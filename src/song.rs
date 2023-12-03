@@ -12,6 +12,7 @@ use crate::track::Track;
 #[derive(Debug, Clone)]
 pub struct Song {
     pub ppq: u16,
+    pub bpm: u16,
     pub tracks: Vec<Track>,
 }
 
@@ -36,15 +37,17 @@ impl Song {
             None => 480,
         };
 
+        let mut bpm = 120u16;
+
         // Tracks
         let mut tracks: Vec<Track> = Vec::new();
 
         for smf_track in smf.tracks.iter() {
-            tracks.push(Track::new(smf_track, &ppq));
+            tracks.push(Track::new(smf_track, ppq, &mut bpm));
         }
 
         Ok(Self {
-            ppq,
+            ppq, bpm,
             tracks,
         })
     }
