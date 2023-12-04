@@ -2,41 +2,24 @@ use std::collections::HashMap;
 use midly::{TrackEventKind, MetaMessage, MidiMessage};
 use crate::{
     track_event::TrackEvent,
-    note::Note,
+    note::Note, utils,
 };
 
 #[derive(Debug, Clone)]
 pub struct Track {
-    events: Vec<TrackEvent>,
-    ppq: u16,
-    bpm: u16,
+    pub events: Vec<TrackEvent>,
+    pub ppq: u16,
+    pub bpm: u16,
 }
 
 impl Track {
     pub fn new(smf_track: &midly::Track, ppq: u16, bpm: &mut u16) -> Self {
-        let mut events: Vec<TrackEvent> = Vec::new();
-        let mut holding_notes: HashMap<u8, usize> = HashMap::new();
-        let mut current_tick: u32 = 0;
+        if let Some(new_bpm) = get_bpm_from_smf_track(smf_track) {
+            *bpm = new_bpm;
+        };
 
-        for smf_event in smf_track.iter() {
-            let delta = smf_event.delta.as_int();
-            current_tick += delta;
-
-            match smf_event.kind {
-                TrackEventKind::Meta(message) => {
-                    match_meta_event(&message, bpm);
-                }
-                TrackEventKind::Midi { message , .. } => {
-                    match_midi_event(
-                        &message,
-                        &mut events,
-                        &mut holding_notes,
-                        &current_tick,
-                    );
-                }
-                _ => ()
-            }
-        }
+        let mut notes = get_notes_from_smf_track(smf_track);
+        let events = get_events_from_notes(&mut notes, ppq);
 
         Self {
             events,
@@ -57,138 +40,152 @@ impl Track {
     }
 }
 
-fn match_meta_event(
-    message: &MetaMessage,
-    bpm: &mut u16,
-) {
-    match message {
-        MetaMessage::Tempo(tempo) => {
-            *bpm = (60_000_000 / tempo.as_int()).try_into().unwrap();
-        }
-        _ => ()
-    }
-}
+fn get_events_from_notes(notes: &mut Vec<Note>, ppq: u16) -> Vec<TrackEvent> {
+    let mut events: Vec<TrackEvent> = Vec::new();
 
-fn match_midi_event(
-    message: &MidiMessage,
-    events: &mut Vec<TrackEvent>,
-    holding_notes: &mut HashMap<u8, usize>,
-    current_ticks: &u32,
-) {
-    match message {
-        MidiMessage::NoteOn { key, vel } => {
-            let midi_key = key.as_int();
+    for index in 0..notes.len() {
+        let note = notes.get(index).unwrap().to_owned();
+        let mut position_diff = note.position_in_tick;
+        let mut octave_event: Option<TrackEvent> = None;
 
-            if vel.as_int() == 0 {
-                update_note(
-                    midi_key,
-                    events,
-                    holding_notes,
-                    current_ticks,
-                );
-            } else {
-                create_note(
-                    midi_key,
-                    events,
-                    holding_notes,
-                    current_ticks,
-                );
+        if index > 0 {
+            if let Some(before_note) = notes.get_mut(index - 1) {
+                let before_note_end_position = before_note.position_in_tick + before_note.duration_in_tick;
+
+                // If while another note is playing
+                if note.position_in_tick < before_note_end_position {
+                    position_diff = 0;
+
+                    utils::connect_to_chord_or_cut_before_note(
+                        &mut events,
+                        ppq, 
+                        &note,
+                        before_note
+                    );
+                } else {
+                    position_diff = position_diff - before_note_end_position;
+                }
+
+                // Octave event
+                let octave_diff = note.octave as i8 - before_note.octave as i8;
+
+                if octave_diff == 1 {
+                    octave_event = Some(TrackEvent::IncreOctave);
+                } else if octave_diff == -1 {
+                    octave_event = Some(TrackEvent::DecreOctave);
+                } else if octave_diff != 0 {
+                    octave_event = Some(TrackEvent::SetOctave(note.octave));
+                }
             }
-        }
-        MidiMessage::NoteOff { key, .. } => {
-            let midi_key = key.as_int();
-
-            update_note(
-                midi_key,
-                events,
-                holding_notes,
-                current_ticks,
-            );
-        }
-        _ => ()
-    }
-}
-
-fn create_note(
-    midi_key: u8,
-    events: &mut Vec<TrackEvent>,
-    holding_notes: &mut HashMap<u8, usize>,
-    current_ticks: &u32,
-) {
-    let note  = Note::new(
-        midi_key,
-        current_ticks.to_owned(),
-    );
-
-    let mut position_diff: i32 = note.position_in_tick.try_into().unwrap();
-
-    if let Some(before_note) = get_before_note(events) {
-        let before_note_end_position: i32 = (before_note.position_in_tick + before_note.duration_in_tick).try_into().unwrap();
-        position_diff = position_diff - before_note_end_position;
-
-        // Chord
-        if holding_notes.len() > 0 || position_diff <= 0 {
-            events.push(TrackEvent::ConnectChord);
-        }
-        // Rest
-        else {
-            events.push(TrackEvent::SetRest(position_diff.try_into().unwrap()));
-        }
-
-        // Octave
-        let octave_diff = note.octave as i8 - before_note.octave as i8;
-
-        if octave_diff == 1 {
-            events.push(TrackEvent::IncreOctave);
-        } else if octave_diff == -1 {
-            events.push(TrackEvent::DecreOctave);
         } else {
-            events.push(TrackEvent::SetOctave(note.octave));
+            octave_event = Some(TrackEvent::SetOctave(note.octave));
         }
-    } else {
-        // Rest
+
+
         if position_diff > 0 {
-            events.push(TrackEvent::SetRest(position_diff.try_into().unwrap()));
+            events.push(TrackEvent::SetRest(position_diff));
         }
 
-        events.push(TrackEvent::SetOctave(note.octave));
+        if let Some(octave_event) = octave_event {
+            events.push(octave_event);
+        }
+
+        events.push(TrackEvent::SetNote(note.to_owned()));
     }
 
-    // Set note
-    holding_notes.insert(midi_key, events.len());
-    events.push(TrackEvent::SetNote(note));
+    events
 }
 
-fn update_note(
-    midi_key: u8,
-    events: &mut Vec<TrackEvent>,
-    holding_notes: &mut HashMap<u8, usize>,
-    current_ticks: &u32,
-) {
-    let index = holding_notes.get(&midi_key);
-    if let Some(index) = index {
-        if let Some(event) = events.get_mut(index.to_owned()) {
-            if let TrackEvent::SetNote(note) = event {
-                let duration_in_ticks = current_ticks - note.position_in_tick;
-                note.duration_in_tick = duration_in_ticks;
+fn get_bpm_from_smf_track(smf_track: &midly::Track) -> Option<u16> {
+    for smf_event in smf_track.iter() {
+        match smf_event.kind {
+            TrackEventKind::Meta(message) => {
+                match message {
+                    MetaMessage::Tempo(tempo) => {
+                        let bpm = (60_000_000 / tempo.as_int()).try_into().unwrap();
+                        return Some(bpm);
+                    }
+                    _ => ()
+                }
             }
-        }
-    }
-
-    holding_notes.remove(&midi_key);
-}
-
-fn get_before_note(events: &Vec<TrackEvent>) -> Option<Note> {
-    if events.len() == 0 {
-        return None;
-    }
-
-    for event in events.iter().rev() {
-        match event {
-            TrackEvent::SetNote(note) => return Some(note.to_owned()),
             _ => ()
         }
     }
 
     None
+}
+
+fn get_notes_from_smf_track(smf_track: &midly::Track) -> Vec<Note> {
+    let mut result: Vec<Note> = Vec::new();
+    let mut holding_notes: HashMap<u8, usize> = HashMap::new();
+    let mut current_ticks = 0u32;
+
+    for midi_event in smf_track.iter() {
+        let delta = midi_event.delta.as_int();
+        current_ticks += delta;
+
+        match midi_event.kind {
+            TrackEventKind::Midi { message, .. } => {
+                match message {
+                    MidiMessage::NoteOn { key, vel } => {
+                        let midi_key = key.as_int();
+
+                        if vel.as_int() > 0 {
+                            create_note(
+                                midi_key,
+                                current_ticks,
+                                &mut result,
+                                &mut holding_notes,
+                            );
+                        } else {
+                            update_note(
+                                midi_key,
+                                current_ticks,
+                                &mut result,
+                                &mut holding_notes,
+                            );
+                        }
+                    }
+                    MidiMessage::NoteOff { key, .. } => {
+                        let midi_key = key.as_int();
+
+                        update_note(
+                            midi_key,
+                            current_ticks,
+                            &mut result,
+                            &mut holding_notes,
+                        );
+                    }
+                    _ => ()
+                }
+            }
+            _ => ()
+        }
+    }
+
+    result
+}
+
+fn create_note(
+    midi_key: u8,
+    current_ticks: u32,
+    notes: &mut Vec<Note>,
+    holding_notes: &mut HashMap<u8, usize>,
+) {
+    let note = Note::new(midi_key, current_ticks);
+    holding_notes.insert(midi_key, notes.len());
+    notes.push(note);
+}
+
+fn update_note(
+    midi_key: u8,
+    current_ticks: u32,
+    notes: &mut Vec<Note>,
+    holding_notes: &mut HashMap<u8, usize>,
+) {
+    if let Some(index) = holding_notes.get(&midi_key) {
+        if let Some(note) = notes.get_mut(index.to_owned()) {
+            note.duration_in_tick = current_ticks - note.position_in_tick;
+        }
+    }
 }
