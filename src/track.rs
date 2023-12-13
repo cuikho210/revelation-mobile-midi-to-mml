@@ -4,8 +4,9 @@ use crate::{
     track_event::TrackEvent,
     note::Note, utils,
 };
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Track {
     pub events: Vec<TrackEvent>,
     pub ppq: u16,

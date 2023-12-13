@@ -8,8 +8,9 @@ use midly::{
     Timing,
 };
 use crate::track::Track;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Song {
     pub ppq: u16,
     pub bpm: u16,

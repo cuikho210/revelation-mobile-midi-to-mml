@@ -2,8 +2,9 @@ use crate::{
     note::Note,
     utils,
 };
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TrackEvent {
     /// Set the tempo with a bpm value.  
     /// Example: `t120`

@@ -1,6 +1,7 @@
 use crate::utils;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Note {
     pub pitch_class: String,
     pub octave: u8,
