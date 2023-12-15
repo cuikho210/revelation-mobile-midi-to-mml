@@ -5,6 +5,7 @@ use serde::{Serialize, Deserialize};
 pub struct Note {
     pub pitch_class: String,
     pub octave: u8,
+    pub velocity: u8,
 
     pub duration_in_tick: u32,
     pub position_in_tick: u32,
@@ -13,7 +14,7 @@ pub struct Note {
 }
 
 impl Note {
-    pub fn new(ppq: u16, midi_key: u8, current_tick: u32) -> Self {
+    pub fn new(ppq: u16, midi_key: u8, velocity: u8, current_tick: u32) -> Self {
         let pitch_class = utils::midi_key_to_pitch_class(midi_key);
         let octave = utils::midi_key_to_octave(midi_key);
         let position_in_smallest_unit = utils::tick_to_smallest_unit(current_tick, ppq);
@@ -21,6 +22,7 @@ impl Note {
         Self {
             pitch_class,
             octave,
+            velocity,
             position_in_tick: current_tick,
             position_in_smallest_unit,
             duration_in_tick: 0,

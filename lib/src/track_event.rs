@@ -30,6 +30,8 @@ pub enum TrackEvent {
 
     /// Store a value is the duration in note 64
     SetRest(u32),
+
+    SetVelocity(u8),
 }
 
 impl TrackEvent {
@@ -42,6 +44,7 @@ impl TrackEvent {
             Self::SetOctave(octave) => format!("o{octave}"),
             Self::SetNote(note) => note.to_mml(),
             Self::SetRest(rest) => utils::get_display_mml(rest.to_owned(), &"r".to_string()),
+            Self::SetVelocity(vel) => format!("v{}", vel)
         };
     }
 }

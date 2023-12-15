@@ -149,9 +149,15 @@ fn get_events_from_notes(notes: &Vec<Note>) -> Vec<TrackEvent> {
                 } else if octave_diff != 0 {
                     octave_event = Some(TrackEvent::SetOctave(note.octave));
                 }
+
+                // Velocity
+                if !is_connected_to_chord && note.velocity != before_note.velocity {
+                    events.push(TrackEvent::SetVelocity(note.velocity));
+                }
             }
         } else {
             octave_event = Some(TrackEvent::SetOctave(note.octave));
+            events.push(TrackEvent::SetVelocity(note.velocity));
         }
 
         if position_diff > 0 {
@@ -206,10 +212,12 @@ fn get_notes_from_smf_track(smf_track: &midly::Track, ppq: u16) -> Vec<Note> {
                 match message {
                     MidiMessage::NoteOn { key, vel } => {
                         let midi_key = key.as_int();
+                        let velocity = vel.as_int() / 16 + 6;
 
                         if vel.as_int() > 0 {
                             create_note(
                                 midi_key,
+                                velocity,
                                 current_ticks,
                                 &mut result,
                                 &mut holding_notes,
@@ -248,6 +256,7 @@ fn get_notes_from_smf_track(smf_track: &midly::Track, ppq: u16) -> Vec<Note> {
 
 fn create_note(
     midi_key: u8,
+    velocity: u8,
     current_ticks: u32,
     notes: &mut Vec<Note>,
     holding_notes: &mut HashMap<u8, usize>,
@@ -256,6 +265,7 @@ fn create_note(
     let note = Note::new(
         ppq,
         midi_key,
+        velocity,
         current_ticks,
     );
 
