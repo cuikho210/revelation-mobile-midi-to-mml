@@ -64,3 +64,23 @@ fn test_get_display_mml() {
         utils::get_display_mml(44, note_class),
     );
 }
+
+#[test]
+fn test_get_smallest_unit_in_tick() {
+    assert_eq!(30.0f32, utils::get_smallest_unit_in_tick(480));
+    assert_eq!(4.0f32, utils::get_smallest_unit_in_tick(64));
+    assert_eq!(50.0f32, utils::get_smallest_unit_in_tick(800));
+}
+
+#[test]
+fn test_tick_to_smallest_unit() {
+    assert_eq!(17, utils::tick_to_smallest_unit(500, 480));
+    assert_eq!(15, utils::tick_to_smallest_unit(444, 480));
+    assert_eq!(33, utils::tick_to_smallest_unit(987, 480));
+    assert_eq!(4, utils::tick_to_smallest_unit(111, 480));
+}
+
+#[test]
+fn test_cut_previous_notes() {
+
+}

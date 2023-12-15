@@ -20,7 +20,8 @@ impl Track {
         };
 
         let mut notes = get_notes_from_smf_track(smf_track, ppq);
-        let events = get_events_from_notes(&mut notes);
+        let mut events = get_events_from_notes(&mut notes);
+        check_note_position(&mut events);
 
         Self {
             events,
@@ -38,6 +39,66 @@ impl Track {
         }
 
         result.join("")
+    }
+}
+
+fn check_note_position(events: &mut Vec<TrackEvent>) {
+    let mut current_position = 0u32;
+    let mut connect_to_chord = false;
+    let mut latest_duration = 0u32;
+    let mut redundant = 0i32;
+
+    for event in events.iter_mut() {
+        match event {
+            TrackEvent::ConnectChord => {
+                connect_to_chord = true;
+            }
+            TrackEvent::SetRest(rest) => {
+                let rest_i32: i32 = rest.to_owned().try_into().unwrap();
+
+                if redundant > 0 {
+                    if redundant >= rest_i32 {
+                        *rest = 0;
+                        redundant -= rest_i32;
+                    } else {
+                        redundant = 0;
+                        *rest = (rest_i32 - redundant).try_into().unwrap();
+                    }
+                } else {
+                    redundant = 0;
+                    *rest = (rest_i32 - redundant).try_into().unwrap();
+                }
+
+                current_position += rest.to_owned();
+            }
+            TrackEvent::SetNote(note) => {
+                if connect_to_chord {
+                    note.duration_in_smallest_unit = latest_duration;
+                } else {
+                    current_position += latest_duration;
+
+                    let note_duration: i32 = note.duration_in_smallest_unit.try_into().unwrap();
+                    let note_position: i32 = note.position_in_smallest_unit.try_into().unwrap();
+                    let position: i32 = current_position.try_into().unwrap();
+                    redundant += position - note_position;
+
+                    if redundant != 0 {
+                        if redundant < note_duration {
+                            note.duration_in_smallest_unit = (note_duration - redundant).try_into().unwrap();
+                            redundant = 0;
+                        } else {
+                            note.duration_in_smallest_unit = 1;
+                            redundant -= note_duration - 1;
+                        }
+                    }
+
+                    latest_duration = note.duration_in_smallest_unit;
+                }
+
+                connect_to_chord = false;
+            }
+            _ => ()
+        }
     }
 }
 
@@ -109,7 +170,6 @@ fn get_events_from_notes(notes: &Vec<Note>) -> Vec<TrackEvent> {
         events.push(TrackEvent::SetNote(note.to_owned()));
     }
 
-    println!("{:#?}", &events);
     events
 }
 
