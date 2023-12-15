@@ -4,7 +4,7 @@ use crate::{
 };
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TrackEvent {
     /// Set the tempo with a bpm value.  
     /// Example: `t120`
@@ -33,15 +33,15 @@ pub enum TrackEvent {
 }
 
 impl TrackEvent {
-    pub fn to_mml(&self, ppq: &u16) -> String {
+    pub fn to_mml(&self) -> String {
         return match self {
             Self::ConnectChord => String::from(":"),
             Self::IncreOctave => String::from(">"),
             Self::DecreOctave => String::from("<"),
             Self::SetTempo(tempo) => format!("t{tempo}"),
             Self::SetOctave(octave) => format!("o{octave}"),
-            Self::SetNote(note) => note.to_mml(ppq),
-            Self::SetRest(rest) => utils::get_display_mml(ppq, rest.to_owned(), &"r".to_string()),
+            Self::SetNote(note) => note.to_mml(),
+            Self::SetRest(rest) => utils::get_display_mml(rest.to_owned(), &"r".to_string()),
         };
     }
 }

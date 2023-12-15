@@ -8,18 +8,39 @@ const SMALLEST_UNIT: u32 = 64;
 /// it must either be joined with the previous note to form a chord,
 /// or the previous note must be cut short.
 /// This is because MML code can only play one note or chord at a time.
-pub fn connect_to_chord_or_cut_before_note(events: &mut Vec<TrackEvent>, ppq: u16, current_note: &Note, before_note: &mut Note) {
-    let position_diff = current_note.position_in_tick - before_note.position_in_tick;
-    let smallest_unit = get_smallest_unit_in_tick(ppq).round() as u32;
-
-    let is_same_duration = current_note.duration_in_tick > before_note.duration_in_tick / 5;
+pub fn try_connect_to_chord(
+    events: &mut Vec<TrackEvent>,
+    current_note: &Note,
+    before_note: &Note,
+) -> bool {
+    let position_diff = current_note.position_in_smallest_unit - before_note.position_in_smallest_unit;
+    let is_same_duration = current_note.duration_in_smallest_unit > before_note.duration_in_smallest_unit / 5;
     let is_same_position = position_diff < before_note.duration_in_tick / 5;
-    let is_lesser_smallest_unit = position_diff < smallest_unit;
+    let is_less_than_smallest_unit = position_diff < 1;
 
-    if is_lesser_smallest_unit || (is_same_position && is_same_duration) {
+    return if is_less_than_smallest_unit || is_same_position && is_same_duration {
         events.push(TrackEvent::ConnectChord);
+        true
     } else {
-        before_note.duration_in_tick = position_diff - 1;
+        false
+    }
+}
+
+/// Cut the duration of all previous notes by a position in ticks
+pub fn cut_previous_notes(
+    events: &mut Vec<TrackEvent>,
+    position: u32,
+) {
+    for event in events.iter_mut() {
+        if let TrackEvent::SetNote(note) = event {
+            let note_end_position = note.position_in_smallest_unit + note.duration_in_smallest_unit;
+
+            if note_end_position > position {
+                let position_diff: u32 = note_end_position - position;
+                let duration = note.duration_in_smallest_unit - position_diff;
+                note.duration_in_smallest_unit = duration;
+            }
+        }
     }
 }
 
@@ -59,10 +80,9 @@ impl MMLNote {
     }
 }
 
-pub fn get_display_mml(ppq: &u16, duration_in_tick: u32, note_class: &String) -> String {
+pub fn get_display_mml(mut duration_in_smallest_unit: u32, note_class: &String) -> String {
     let mut result: Vec<String> = Vec::new();
     let mut main_note: Option<u32> = None;
-    let mut duration_in_smallest_unit = tick_to_smallest_unit(duration_in_tick, ppq.to_owned());
 
     let mut notes: Vec<MMLNote> = Vec::new();
     let mut smallest_unit = SMALLEST_UNIT.to_owned();
@@ -107,12 +127,4 @@ pub fn get_display_mml(ppq: &u16, duration_in_tick: u32, note_class: &String) ->
     }
 
     result.join("")
-}
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn test_display_mml() {
-
-    }
 }
