@@ -21,7 +21,7 @@ impl Track {
 
         let mut notes = get_notes_from_smf_track(smf_track, ppq);
         let mut events = get_events_from_notes(&mut notes);
-        check_note_position(&mut events);
+        fix_note_position(&mut events);
 
         Self {
             events,
@@ -42,7 +42,7 @@ impl Track {
     }
 }
 
-fn check_note_position(events: &mut Vec<TrackEvent>) {
+fn fix_note_position(events: &mut Vec<TrackEvent>) {
     let mut current_position = 0u32;
     let mut connect_to_chord = false;
     let mut latest_duration = 0u32;
