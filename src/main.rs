@@ -3,11 +3,12 @@ use midi_to_mml::Song;
 
 fn main() {
     // let time = Instant::now();
+    let current_dir = std::path::PathBuf::from("/home/cuikho210/Documents/projects/lib/midi-to-mml");
 
-    // let song = Song::from_path("midi_files/Canon_in_D.mid").unwrap();
-    // let song = Song::from_path("midi_files/Orange_Your_Lie_in_April.mid").unwrap();
-    // let song = Song::from_path("midi_files/Fur_Elise.mid").unwrap();
-    let song = Song::from_path("midi_files/Rush_E.mid").unwrap();
+    // let path = current_dir.join("midi_files/Orange_Your_Lie_in_April.mid");
+    let path = current_dir.join("midi_files/Rush_E.mid");
+
+    let song = Song::from_path(path).unwrap();
 
     for track in song.tracks.iter() {
         println!("{}", track.to_mml());

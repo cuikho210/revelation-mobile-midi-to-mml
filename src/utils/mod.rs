@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod test;
+
 use crate::note::Note;
 use crate::track_event::TrackEvent;
 
@@ -65,58 +68,55 @@ pub fn tick_to_smallest_unit(tick: u32, ppq: u16) -> u32 {
     duration_in_note.round() as u32
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct MMLNote {
     duration_in_smallest_unit: u32,
     mml_value: u32,
 }
 
 impl MMLNote {
-    pub fn new(duration_in_smallest_unit: u32) -> Self {
+    pub fn new(smallest_unit: u32, duration_in_smallest_unit: u32) -> Self {
         Self {
             duration_in_smallest_unit,
-            mml_value: SMALLEST_UNIT / duration_in_smallest_unit,
+            mml_value: smallest_unit / duration_in_smallest_unit,
         }
     }
 }
 
+fn get_list_of_mml_notes(smallest_unit: u32) -> Vec<MMLNote> {
+    let mut notes: Vec<MMLNote> = Vec::new();
+    let mut remainder = smallest_unit;
+
+    while remainder > 1 {
+        notes.push(MMLNote::new(smallest_unit, remainder));
+        remainder = remainder / 2;
+    }
+    notes.push(MMLNote::new(smallest_unit, remainder));
+
+    notes
+}
+
 pub fn get_display_mml(mut duration_in_smallest_unit: u32, note_class: &String) -> String {
     let mut result: Vec<String> = Vec::new();
-    let mut main_note: Option<u32> = None;
-
-    let mut notes: Vec<MMLNote> = Vec::new();
-    let mut smallest_unit = SMALLEST_UNIT.to_owned();
-
-    while smallest_unit > 1 {
-        notes.push(MMLNote::new(smallest_unit));
-        smallest_unit = smallest_unit / 2;
-    }
-    notes.push(MMLNote::new(smallest_unit));
+    let notes = get_list_of_mml_notes(SMALLEST_UNIT.to_owned());
 
     while duration_in_smallest_unit > 0 {
-        let mut value: u32 = 0;
+        let mut current_note: u32 = 0;
 
         for mml_note in notes.iter() {
             if duration_in_smallest_unit >= mml_note.duration_in_smallest_unit {
                 duration_in_smallest_unit -= mml_note.duration_in_smallest_unit;
-                value = mml_note.mml_value;
+                current_note = mml_note.mml_value;
                 break;
             }
         }
 
-        result.push(format!("{}{}", note_class, value));
+        result.push(format!("{}{}", note_class, current_note));
 
-        if let None = main_note {
-            main_note = Some(value);
-        }
-
-        if let Some(main_note) = main_note {
-            let half_of_main_note = SMALLEST_UNIT / (main_note * 2);
-
-            if duration_in_smallest_unit >= half_of_main_note {
-                result.push(".".to_string());
-                duration_in_smallest_unit -= half_of_main_note;
-            }
+        let half_of_current_note = SMALLEST_UNIT / (current_note * 2);
+        if duration_in_smallest_unit > 0 && duration_in_smallest_unit >= half_of_current_note {
+            result.push(".".to_string());
+            duration_in_smallest_unit -= half_of_current_note;
         }
 
         if duration_in_smallest_unit == 0 {

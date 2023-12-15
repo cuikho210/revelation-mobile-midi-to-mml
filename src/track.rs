@@ -109,6 +109,7 @@ fn get_events_from_notes(notes: &Vec<Note>) -> Vec<TrackEvent> {
         events.push(TrackEvent::SetNote(note.to_owned()));
     }
 
+    println!("{:#?}", &events);
     events
 }
 
