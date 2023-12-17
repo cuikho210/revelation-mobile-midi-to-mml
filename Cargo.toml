@@ -1,7 +1,0 @@
-[workspace]
-members = [
-	"lib",
-	"mml-editor/src-tauri",
-]
-
-resolver = "2"
