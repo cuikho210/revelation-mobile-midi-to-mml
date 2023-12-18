@@ -12,7 +12,6 @@ dependencies:
   flutter_remix_icon:
     git:
       url: https://github.com/mzeealii/flutter-remix-icon.git
-  bitsdojo_window: ^0.1.5
   package_info_plus: ^3.1.2
   file_picker: ^5.2.10
   gap: ^3.0.1

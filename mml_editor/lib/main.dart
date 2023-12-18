@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mml_editor/pages/hub/hub_page.dart';
-import 'package:bitsdojo_window/bitsdojo_window.dart';
 
 void main() {
 	runApp(const MyApp());
-
-	doWhenWindowReady(() {
-		const initialSize = Size(800, 600);
-		appWindow.minSize = initialSize;
-		appWindow.size = initialSize;
-		appWindow.show();
-	});
 }
 
 class MyApp extends StatelessWidget {
