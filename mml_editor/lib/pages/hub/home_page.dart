@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_remix_icon/flutter_remix_icon.dart';
 import 'package:gap/gap.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:mml_editor/native.dart';
 import '../display_mml_output.dart';
 
@@ -12,24 +13,37 @@ class HomePage extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-		return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-			const Text("Drop a MIDI file here"),
-			const Text("or"),
-			const Gap(16),
+		return DropTarget(
+			onDragDone: (details) => onDragDone(details, context),
+			child: Center(
+				child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+					const Text("Drop a MIDI file here"),
+					const Text("or"),
+					const Gap(16),
 
-			ElevatedButton.icon(
-				icon: const Icon(RemixIcon.file_music_line),
-				label: const Text("Import a MIDI file"),
-				onPressed: () => pickFile(context),
+					ElevatedButton.icon(
+						icon: const Icon(RemixIcon.file_music_line),
+						label: const Text("Import a MIDI file"),
+						onPressed: () => pickFile(context),
+					),
+					const Gap(8),
+					ElevatedButton.icon(
+						icon: const Icon(RemixIcon.music_2_line),
+						label: const Text("Download from Musescore"),
+						onPressed: () => openDownloadFromMusescore(context),
+					),
+					const Gap(8),
+				]),
 			),
-			const Gap(8),
-			ElevatedButton.icon(
-				icon: const Icon(RemixIcon.music_2_line),
-				label: const Text("Download from Musescore"),
-				onPressed: () => openDownloadFromMusescore(context),
-			),
-			const Gap(8),
-		]));
+		);
+	}
+
+	onDragDone(DropDoneDetails details, BuildContext context) async {
+		final path = details.files.first.path;
+
+		if (context.mounted) {
+			await parseAndDisplayMML(context, path);
+		}
 	}
 
 	pickFile(BuildContext context) async {
@@ -53,6 +67,12 @@ class HomePage extends StatelessWidget {
 			return;
 		}
 
+		if (context.mounted) {
+			await parseAndDisplayMML(context, path);
+		}
+	}
+
+	parseAndDisplayMML(BuildContext context, String path) async {
 		final bytes = await getBytesFromPath(path);
 
 		try {

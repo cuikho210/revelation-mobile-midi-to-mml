@@ -51,7 +51,7 @@ class TrackView extends StatelessWidget {
   
   @override
   Widget build(context) {
-    return Column(children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         const Icon(RemixIcon.play_list_line),
         const Gap(8),
