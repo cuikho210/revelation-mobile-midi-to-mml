@@ -5,7 +5,7 @@ fn main() {
     // let time = Instant::now();
 
     // let path = std::path::PathBuf::from("/home/cuikho210/Downloads/3184436_My_Dearest_Guilty_Crown_TheIshter_Sheets_90_Done_2.mid");
-    let path = std::path::PathBuf::from("/Users/tonyk/Downloads/Sukidakara__Yuika_ft._Ren.mid");
+    let path = std::path::PathBuf::from("/Users/tonyk/Downloads/furiko.mid");
     let song = Song::from_path(path).unwrap();
 
     for track in song.tracks.iter() {
