@@ -30,6 +30,8 @@ dev_dependencies:
   ffigen: ^9.0.1
   build_runner: ^2.4.7
   freezed: ^2.4.6
+  flutter_launcher_icons: ^0.13.1
+  msix: ^3.16.7
 
 flutter:
   uses-material-design: true
@@ -45,3 +47,11 @@ flutter:
         - asset: fonts/Mali-BoldItalic.ttf
           weight: 700
           style: italic
+
+flutter_launcher_icons:
+  image_path: ./icon.png
+  android: true
+  ios: true
+  windows:
+    generate: true
+    icon_size: 256
