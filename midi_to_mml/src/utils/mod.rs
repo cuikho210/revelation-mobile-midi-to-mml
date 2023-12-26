@@ -18,7 +18,8 @@ pub fn try_connect_to_chord(
 ) -> bool {
     let position_diff = current_note.position_in_smallest_unit - before_note.position_in_smallest_unit;
     // let is_same_duration = current_note.duration_in_smallest_unit as f32 > before_note.duration_in_smallest_unit as f32 * 0.7;
-    let is_same_position = position_diff < 2;
+    // let is_same_position = position_diff < 2;
+    let is_same_position = position_diff < 1;
 
     return if
         position_diff < 1 ||
