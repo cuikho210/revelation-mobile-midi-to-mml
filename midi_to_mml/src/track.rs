@@ -19,11 +19,8 @@ impl Track {
             *bpm = new_bpm;
         };
 
-        // To-do: Check the notes position
         let mut notes = get_notes_from_smf_track(smf_track, ppq);
-        // In testing
         let mut events = get_events_from_notes(&mut notes);
-        // Hiện tại vấn đề không phải do 2 cái này
         fix_chord_duration(&mut events);
         fix_note_position(&mut events);
 
@@ -171,7 +168,11 @@ fn get_events_from_notes(notes: &Vec<Note>) -> Vec<TrackEvent> {
                         before_note,
                     );
                 } else {
-                    position_diff = position_diff - before_note_end_position;
+                    if position_diff >= max_end_position {
+                        position_diff = position_diff - max_end_position;
+                    } else {
+                        position_diff = 0;
+                    }
                 }
 
                 // Cut previous notes
