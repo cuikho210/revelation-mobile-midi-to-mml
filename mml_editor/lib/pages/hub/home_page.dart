@@ -6,7 +6,7 @@ import 'package:gap/gap.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:mml_editor/native.dart';
-import '../display_mml_output.dart';
+import 'package:mml_editor/pages/editor/editor.dart';
 
 class HomePage extends StatelessWidget {
 	const HomePage({ super.key });
@@ -42,7 +42,7 @@ class HomePage extends StatelessWidget {
 		final path = details.files.first.path;
 
 		if (context.mounted) {
-			await parseAndDisplayMML(context, path);
+			await parseMML(context, path);
 		}
 	}
 
@@ -68,20 +68,21 @@ class HomePage extends StatelessWidget {
 		}
 
 		if (context.mounted) {
-			await parseAndDisplayMML(context, path);
+			await parseMML(context, path);
 		}
 	}
 
-	parseAndDisplayMML(BuildContext context, String path) async {
+	parseMML(BuildContext context, String path) async {
 		final bytes = await getBytesFromPath(path);
 
 		try {
 			final mmls = await api.parseMidi(bytes: bytes);
+
 			if (context.mounted) {
 				Navigator.push(
 					context,
 					MaterialPageRoute(
-						builder: (context) => DisplayMMLOutputPage(mmls: mmls)
+						builder: (context) => EditorPage(mmls: mmls)
 					)
 				);
 			}

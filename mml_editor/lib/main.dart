@@ -13,7 +13,9 @@ class MyApp extends StatelessWidget {
 		return MaterialApp(
 			title: 'MML Editor',
 				theme: ThemeData(
-				colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFFF907F)),
+				colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFFF907F),
+        ),
 				useMaterial3: true,
         fontFamily: "Mali",
 			),
