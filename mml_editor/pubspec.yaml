@@ -21,6 +21,8 @@ dependencies:
   meta: ^1.9.1
   uuid: ^4.2.2
   desktop_drop: ^0.4.4
+  mml_parser:
+    path: ../mml_parser
 
 dev_dependencies:
   flutter_test:

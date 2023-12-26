@@ -1,10 +1,14 @@
-import 'package:mml_parser/mml_parser.dart' as mml_parser;
+import 'package:mml_parser/mml_parser.dart';
+import 'dart:io';
 
-void main(List<String> arguments) {
-	if (arguments.isNotEmpty) {
-		final mml = arguments.first;
-		mml_parser.Parser().parse(mml);
-	} else {
-		print("You need to push the MML code as an argument");
+void main(List<String> arguments) async {
+	final file = File("${Directory.current.path}/bin/test.mml");
+	final mml = await file.readAsString();
+	final events = Parser().parse(mml);
+	
+	for (var event in events) {
+		if (event is SetNote) {
+			print(event.rawString);
+		}
 	}
 }

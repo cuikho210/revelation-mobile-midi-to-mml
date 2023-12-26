@@ -481,6 +481,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.4"
+  mml_parser:
+    dependency: "direct main"
+    description:
+      path: "../mml_parser"
+      relative: true
+    source: path
+    version: "1.0.0"
   msix:
     dependency: "direct dev"
     description:
