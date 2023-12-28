@@ -1,7 +1,8 @@
+use std::cmp::Ordering;
 use crate::utils;
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Note {
     pub pitch_class: String,
     pub octave: u8,
@@ -32,5 +33,17 @@ impl Note {
 
     pub fn to_mml(&self) -> String {
         utils::get_display_mml(self.duration_in_smallest_unit, &self.pitch_class)
+    }
+}
+
+impl Ord for Note {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.position_in_smallest_unit.cmp(&other.position_in_smallest_unit)
+    }
+}
+
+impl PartialOrd for Note {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }

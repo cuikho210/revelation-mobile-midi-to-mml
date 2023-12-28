@@ -9,6 +9,7 @@ use serde::{Serialize, Deserialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Track {
     pub events: Vec<TrackEvent>,
+    pub notes: Vec<Note>,
     pub ppq: u16,
     pub bpm: u16,
 }
@@ -19,16 +20,17 @@ impl Track {
             *bpm = new_bpm;
         };
 
-        let mut notes = get_notes_from_smf_track(smf_track, ppq);
-        let mut events = get_events_from_notes(&mut notes);
-        fix_chord_duration(&mut events);
-        fix_note_position(&mut events);
+        let notes = get_notes_from_smf_track(smf_track, ppq);
 
-        Self {
-            events,
+        let mut result = Self {
+            events: Vec::new(),
+            notes,
             ppq,
             bpm: *bpm
-        }
+        };
+
+        result.update_events();
+        result
     }
 
     pub fn to_mml(&self) -> String {
@@ -40,6 +42,21 @@ impl Track {
         }
 
         result.join("")
+    }
+
+    /// Join other track to this track
+    pub fn concat(&mut self, other: &Self) {
+        self.notes.append(&mut other.notes.to_owned());
+
+        // Sort by position_in_smallest_unit
+        self.notes.sort();
+        self.update_events();
+    }
+
+    fn update_events(&mut self) {
+        self.events = get_events_from_notes(&mut self.notes);
+        fix_chord_duration(&mut self.events);
+        fix_note_position(&mut self.events);
     }
 }
 
