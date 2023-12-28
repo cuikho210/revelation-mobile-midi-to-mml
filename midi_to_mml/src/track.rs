@@ -30,6 +30,18 @@ impl Track {
         result
     }
 
+    pub fn from_notes(ppq: u16, bpm: u16, notes: Vec<Note>) -> Self {
+        let mut result = Self {
+            events: Vec::new(),
+            notes,
+            ppq,
+            bpm,
+        };
+        
+        result.update_events();
+        result
+    }
+
     pub fn to_mml(&self) -> String {
         let mut result: Vec<String> = Vec::new();
         result.push(TrackEvent::SetTempo(self.bpm).to_mml());
@@ -50,7 +62,41 @@ impl Track {
         self.update_events();
     }
 
-    pub fn split() {}
+    pub fn split(&self) -> (Self, Self) {
+        let mut max_end_position = 0u32;
+        let mut notes_a: Vec<Note> = Vec::new();
+        let mut notes_b: Vec<Note> = Vec::new();
+
+        for i in 0..self.notes.len() {
+            let current_note = self.notes.get(i).unwrap();
+            let current_end_position = current_note.position_in_smallest_unit + current_note.duration_in_smallest_unit;
+
+            if current_end_position > max_end_position {
+                max_end_position = current_end_position;
+            }
+
+            if i > 0 {
+                let before_note = self.notes.get(i - 1).unwrap();
+
+                if utils::is_can_connect_to_chord(current_note, before_note) {
+                    notes_a.push(current_note.to_owned());
+                } else {
+                    if current_note.position_in_smallest_unit < max_end_position {
+                        notes_b.push(current_note.to_owned());
+                    } else {
+                        notes_a.push(current_note.to_owned());
+                    }
+                }
+            } else {
+                notes_a.push(current_note.to_owned());
+            }
+        }
+
+        (
+            Self::from_notes(self.ppq, self.bpm, notes_a),
+            Self::from_notes(self.ppq, self.bpm, notes_b),
+        )
+    }
 
     fn update_events(&mut self) {
         self.events = get_events_from_notes(&mut self.notes);
@@ -268,7 +314,7 @@ fn get_notes_from_smf_track(smf_track: &midly::Track, ppq: u16) -> Vec<Note> {
             TrackEventKind::Midi { message, .. } => match message {
                 MidiMessage::NoteOn { key, vel } => {
                     let midi_key = key.as_int();
-                    let velocity = vel.as_int() / 16 + 6;
+                    let velocity: u8 = (vel.as_int() as i32 * 15 / 127).try_into().unwrap();
 
                     if vel.as_int() > 0 {
                         create_note(

@@ -16,22 +16,20 @@ pub fn try_connect_to_chord(
     current_note: &Note,
     before_note: &Note,
 ) -> bool {
-    let position_diff =
-        current_note.position_in_smallest_unit - before_note.position_in_smallest_unit;
-    // let is_same_duration = current_note.duration_in_smallest_unit as f32 > before_note.duration_in_smallest_unit as f32 * 0.7;
-    // let is_same_position = position_diff < 2;
-    let is_same_position = position_diff < 1;
-
-    return if position_diff < 1
-        || (is_same_position
-            // && is_same_duration
-            && before_note.duration_in_smallest_unit >= 4)
-    {
+    return if is_can_connect_to_chord(current_note, before_note) {
         events.push(TrackEvent::ConnectChord);
         true
     } else {
         false
     };
+}
+
+pub fn is_can_connect_to_chord(current_note: &Note, before_note: &Note) -> bool {
+    let position_diff =
+        current_note.position_in_smallest_unit - before_note.position_in_smallest_unit;
+    let is_same_position = position_diff < 1;
+
+    is_same_position
 }
 
 /// Cut the duration of all previous notes by a position in ticks
