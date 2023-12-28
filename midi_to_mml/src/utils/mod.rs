@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test;
 
-use crate::note::Note;
+use crate::note::{Note, PitchClass};
 use crate::track_event::TrackEvent;
 
 // Note 64. Is whole_note/64 or quarter_note/16
@@ -49,12 +49,23 @@ pub fn cut_previous_notes(events: &mut Vec<TrackEvent>, position: u32) {
     }
 }
 
-pub fn midi_key_to_pitch_class(midi_key: u8) -> String {
-    let classes: [&str; 12] = [
-        "C", "C+", "D", "D+", "E", "F", "F+", "G", "G+", "A", "A+", "B",
+pub fn midi_key_to_pitch_class(midi_key: u8) -> PitchClass {
+    let classes: [PitchClass; 12] = [
+        PitchClass::C,
+        PitchClass::Db,
+        PitchClass::D,
+        PitchClass::Eb,
+        PitchClass::E,
+        PitchClass::F,
+        PitchClass::Gb,
+        PitchClass::G,
+        PitchClass::Ab,
+        PitchClass::A,
+        PitchClass::Bb,
+        PitchClass::B,
     ];
     let index = midi_key % 12;
-    classes[index as usize].to_string()
+    classes[index as usize].to_owned()
 }
 
 pub fn midi_key_to_octave(midi_key: u8) -> u8 {
@@ -100,7 +111,7 @@ fn get_list_of_mml_notes(smallest_unit: u32) -> Vec<MMLNote> {
     notes
 }
 
-pub fn get_display_mml(mut duration_in_smallest_unit: u32, note_class: &String) -> String {
+pub fn get_display_mml(mut duration_in_smallest_unit: u32, note_class: &PitchClass) -> String {
     let mut result: Vec<String> = Vec::new();
     let notes = get_list_of_mml_notes(SMALLEST_UNIT.to_owned());
 

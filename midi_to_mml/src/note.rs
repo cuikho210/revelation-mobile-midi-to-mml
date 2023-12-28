@@ -1,10 +1,49 @@
 use crate::utils;
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt::Display};
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+pub enum PitchClass {
+    C,
+    Db,
+    D,
+    Eb,
+    E,
+    F,
+    Gb,
+    G,
+    Ab,
+    A,
+    Bb,
+    B,
+    Rest,
+}
+
+impl Display for PitchClass {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let display_str = match self {
+            Self::C => "C",
+            Self::Db => "C+",
+            Self::D => "D",
+            Self::Eb => "D+",
+            Self::E => "E",
+            Self::F => "F",
+            Self::Gb => "F+",
+            Self::G => "G",
+            Self::Ab => "G+",
+            Self::A => "A",
+            Self::Bb => "A+",
+            Self::B => "B",
+            Self::Rest => "r",
+        };
+
+        write!(f, "{}", display_str)
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Note {
-    pub pitch_class: String,
+    pub pitch_class: PitchClass,
     pub octave: u8,
     pub velocity: u8,
 

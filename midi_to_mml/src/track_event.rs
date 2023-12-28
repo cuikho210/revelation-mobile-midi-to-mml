@@ -1,4 +1,7 @@
-use crate::{note::Note, utils};
+use crate::{
+    note::{Note, PitchClass},
+    utils,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -40,7 +43,7 @@ impl TrackEvent {
             Self::SetTempo(tempo) => format!("t{tempo}"),
             Self::SetOctave(octave) => format!("o{octave}"),
             Self::SetNote(note) => note.to_mml(),
-            Self::SetRest(rest) => utils::get_display_mml(rest.to_owned(), &"r".to_string()),
+            Self::SetRest(rest) => utils::get_display_mml(rest.to_owned(), &PitchClass::Rest),
             Self::SetVelocity(vel) => format!("v{}", vel),
         };
     }
