@@ -44,8 +44,8 @@ impl Track {
         result.join("")
     }
 
-    /// Join other track to this track
-    pub fn concat(&mut self, other: &Self) {
+    /// Merge other track to this track
+    pub fn merge(&mut self, other: &Self) {
         self.notes.append(&mut other.notes.to_owned());
 
         // Sort by position_in_smallest_unit
