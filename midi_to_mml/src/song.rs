@@ -1,14 +1,11 @@
+use crate::track::Track;
+use midly::{Smf, Timing};
+use serde::{Deserialize, Serialize};
 use std::{
     fs,
-    path::Path,
     io::{Error, ErrorKind},
+    path::Path,
 };
-use midly::{
-    Smf,
-    Timing,
-};
-use crate::track::Track;
-use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Song {
@@ -18,7 +15,10 @@ pub struct Song {
 }
 
 impl Song {
-    pub fn from_path<P>(path: P) -> Result<Self, Error> where P: AsRef<Path> {
+    pub fn from_path<P>(path: P) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
         let bytes = match fs::read(path) {
             Ok(bytes) => bytes,
             Err(err) => return Err(err),
@@ -47,10 +47,7 @@ impl Song {
             tracks.push(Track::new(smf_track, ppq, &mut bpm));
         }
 
-        Ok(Self {
-            ppq, bpm,
-            tracks,
-        })
+        Ok(Self { ppq, bpm, tracks })
     }
 
     pub fn get_ppq_from_smf(smf: &Smf) -> Option<u16> {

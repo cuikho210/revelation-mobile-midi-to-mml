@@ -1,8 +1,5 @@
-use crate::{
-    note::Note,
-    utils,
-};
-use serde::{Serialize, Deserialize};
+use crate::{note::Note, utils};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TrackEvent {
@@ -44,7 +41,7 @@ impl TrackEvent {
             Self::SetOctave(octave) => format!("o{octave}"),
             Self::SetNote(note) => note.to_mml(),
             Self::SetRest(rest) => utils::get_display_mml(rest.to_owned(), &"r".to_string()),
-            Self::SetVelocity(vel) => format!("v{}", vel)
+            Self::SetVelocity(vel) => format!("v{}", vel),
         };
     }
 }

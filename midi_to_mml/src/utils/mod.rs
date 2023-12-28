@@ -16,31 +16,26 @@ pub fn try_connect_to_chord(
     current_note: &Note,
     before_note: &Note,
 ) -> bool {
-    let position_diff = current_note.position_in_smallest_unit - before_note.position_in_smallest_unit;
+    let position_diff =
+        current_note.position_in_smallest_unit - before_note.position_in_smallest_unit;
     // let is_same_duration = current_note.duration_in_smallest_unit as f32 > before_note.duration_in_smallest_unit as f32 * 0.7;
     // let is_same_position = position_diff < 2;
     let is_same_position = position_diff < 1;
 
-    return if
-        position_diff < 1 ||
-        (
-            is_same_position
+    return if position_diff < 1
+        || (is_same_position
             // && is_same_duration
-            && before_note.duration_in_smallest_unit >= 4
-        )
+            && before_note.duration_in_smallest_unit >= 4)
     {
         events.push(TrackEvent::ConnectChord);
         true
     } else {
         false
-    }
+    };
 }
 
 /// Cut the duration of all previous notes by a position in ticks
-pub fn cut_previous_notes(
-    events: &mut Vec<TrackEvent>,
-    position: u32,
-) {
+pub fn cut_previous_notes(events: &mut Vec<TrackEvent>, position: u32) {
     for event in events.iter_mut() {
         if let TrackEvent::SetNote(note) = event {
             let note_end_position = note.position_in_smallest_unit + note.duration_in_smallest_unit;
@@ -55,7 +50,9 @@ pub fn cut_previous_notes(
 }
 
 pub fn midi_key_to_pitch_class(midi_key: u8) -> String {
-    let classes: [&str; 12] = ["C", "C+", "D", "D+", "E", "F", "F+", "G", "G+", "A", "A+", "B"];
+    let classes: [&str; 12] = [
+        "C", "C+", "D", "D+", "E", "F", "F+", "G", "G+", "A", "A+", "B",
+    ];
     let index = midi_key % 12;
     classes[index as usize].to_string()
 }

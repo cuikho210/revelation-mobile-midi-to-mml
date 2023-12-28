@@ -1,10 +1,7 @@
+use crate::{note::Note, track_event::TrackEvent, utils};
+use midly::{MetaMessage, MidiMessage, TrackEventKind};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use midly::{TrackEventKind, MetaMessage, MidiMessage};
-use crate::{
-    track_event::TrackEvent,
-    note::Note, utils,
-};
-use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Track {
@@ -26,7 +23,7 @@ impl Track {
             events: Vec::new(),
             notes,
             ppq,
-            bpm: *bpm
+            bpm: *bpm,
         };
 
         result.update_events();
@@ -52,6 +49,8 @@ impl Track {
         self.notes.sort();
         self.update_events();
     }
+
+    pub fn split() {}
 
     fn update_events(&mut self) {
         self.events = get_events_from_notes(&mut self.notes);
@@ -99,7 +98,8 @@ fn fix_note_position(events: &mut Vec<TrackEvent>) {
 
                     if redundant != 0 {
                         if redundant < note_duration {
-                            note.duration_in_smallest_unit = (note_duration - redundant).try_into().unwrap();
+                            note.duration_in_smallest_unit =
+                                (note_duration - redundant).try_into().unwrap();
                             redundant = 0;
                         } else {
                             note.duration_in_smallest_unit = 1;
@@ -110,7 +110,7 @@ fn fix_note_position(events: &mut Vec<TrackEvent>) {
                     latest_duration = note.duration_in_smallest_unit;
                 }
             }
-            _ => ()
+            _ => (),
         }
     }
 }
@@ -172,18 +172,16 @@ fn get_events_from_notes(notes: &Vec<Note>) -> Vec<TrackEvent> {
 
         if index > 0 {
             if let Some(before_note) = notes.get(index - 1) {
-                let before_note_end_position = before_note.position_in_smallest_unit + before_note.duration_in_smallest_unit;
+                let before_note_end_position =
+                    before_note.position_in_smallest_unit + before_note.duration_in_smallest_unit;
                 let mut is_connected_to_chord = false;
 
                 // If while another note is playing
                 if note.position_in_smallest_unit < before_note_end_position {
                     position_diff = 0;
 
-                    is_connected_to_chord = utils::try_connect_to_chord(
-                        &mut events,
-                        note,
-                        before_note,
-                    );
+                    is_connected_to_chord =
+                        utils::try_connect_to_chord(&mut events, note, before_note);
                 } else {
                     if position_diff >= max_end_position {
                         position_diff = position_diff - max_end_position;
@@ -194,12 +192,10 @@ fn get_events_from_notes(notes: &Vec<Note>) -> Vec<TrackEvent> {
 
                 // Cut previous notes
                 if !is_connected_to_chord && note.position_in_smallest_unit < max_end_position {
-                    utils::cut_previous_notes(
-                        &mut events,
-                        note.position_in_smallest_unit,
-                    );
+                    utils::cut_previous_notes(&mut events, note.position_in_smallest_unit);
 
-                    max_end_position = note.position_in_smallest_unit + note.duration_in_smallest_unit;
+                    max_end_position =
+                        note.position_in_smallest_unit + note.duration_in_smallest_unit;
                 }
 
                 // Octave event
@@ -245,16 +241,14 @@ fn get_events_from_notes(notes: &Vec<Note>) -> Vec<TrackEvent> {
 fn get_bpm_from_smf_track(smf_track: &midly::Track) -> Option<u16> {
     for smf_event in smf_track.iter() {
         match smf_event.kind {
-            TrackEventKind::Meta(message) => {
-                match message {
-                    MetaMessage::Tempo(tempo) => {
-                        let bpm = (60_000_000 / tempo.as_int()).try_into().unwrap();
-                        return Some(bpm);
-                    }
-                    _ => ()
+            TrackEventKind::Meta(message) => match message {
+                MetaMessage::Tempo(tempo) => {
+                    let bpm = (60_000_000 / tempo.as_int()).try_into().unwrap();
+                    return Some(bpm);
                 }
-            }
-            _ => ()
+                _ => (),
+            },
+            _ => (),
         }
     }
 
@@ -271,34 +265,21 @@ fn get_notes_from_smf_track(smf_track: &midly::Track, ppq: u16) -> Vec<Note> {
         current_ticks += delta;
 
         match midi_event.kind {
-            TrackEventKind::Midi { message, .. } => {
-                match message {
-                    MidiMessage::NoteOn { key, vel } => {
-                        let midi_key = key.as_int();
-                        let velocity = vel.as_int() / 16 + 6;
+            TrackEventKind::Midi { message, .. } => match message {
+                MidiMessage::NoteOn { key, vel } => {
+                    let midi_key = key.as_int();
+                    let velocity = vel.as_int() / 16 + 6;
 
-                        if vel.as_int() > 0 {
-                            create_note(
-                                midi_key,
-                                velocity,
-                                current_ticks,
-                                &mut result,
-                                &mut holding_notes,
-                                ppq,
-                            );
-                        } else {
-                            update_note(
-                                midi_key,
-                                current_ticks,
-                                &mut result,
-                                &mut holding_notes,
-                                ppq,
-                            );
-                        }
-                    }
-                    MidiMessage::NoteOff { key, .. } => {
-                        let midi_key = key.as_int();
-
+                    if vel.as_int() > 0 {
+                        create_note(
+                            midi_key,
+                            velocity,
+                            current_ticks,
+                            &mut result,
+                            &mut holding_notes,
+                            ppq,
+                        );
+                    } else {
                         update_note(
                             midi_key,
                             current_ticks,
@@ -307,10 +288,21 @@ fn get_notes_from_smf_track(smf_track: &midly::Track, ppq: u16) -> Vec<Note> {
                             ppq,
                         );
                     }
-                    _ => ()
                 }
-            }
-            _ => ()
+                MidiMessage::NoteOff { key, .. } => {
+                    let midi_key = key.as_int();
+
+                    update_note(
+                        midi_key,
+                        current_ticks,
+                        &mut result,
+                        &mut holding_notes,
+                        ppq,
+                    );
+                }
+                _ => (),
+            },
+            _ => (),
         }
     }
 
@@ -325,12 +317,7 @@ fn create_note(
     holding_notes: &mut HashMap<u8, usize>,
     ppq: u16,
 ) {
-    let note = Note::new(
-        ppq,
-        midi_key,
-        velocity,
-        current_ticks,
-    );
+    let note = Note::new(ppq, midi_key, velocity, current_ticks);
 
     holding_notes.insert(midi_key, notes.len());
     notes.push(note);

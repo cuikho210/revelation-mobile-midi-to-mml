@@ -1,6 +1,6 @@
-use std::cmp::Ordering;
 use crate::utils;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Note {
@@ -19,7 +19,7 @@ impl Note {
         let pitch_class = utils::midi_key_to_pitch_class(midi_key);
         let octave = utils::midi_key_to_octave(midi_key);
         let position_in_smallest_unit = utils::tick_to_smallest_unit(current_tick, ppq);
-        
+
         Self {
             pitch_class,
             octave,
@@ -38,7 +38,8 @@ impl Note {
 
 impl Ord for Note {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.position_in_smallest_unit.cmp(&other.position_in_smallest_unit)
+        self.position_in_smallest_unit
+            .cmp(&other.position_in_smallest_unit)
     }
 }
 
