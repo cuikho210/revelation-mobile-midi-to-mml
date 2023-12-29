@@ -22,7 +22,11 @@ use std::sync::Arc;
 
 // Section: wire functions
 
-fn wire_parse_midi_impl(port_: MessagePort, bytes: impl Wire2Api<Vec<u8>> + UnwindSafe) {
+fn wire_parse_midi_impl(
+    port_: MessagePort,
+    bytes: impl Wire2Api<Vec<u8>> + UnwindSafe,
+    is_auto_split: impl Wire2Api<bool> + UnwindSafe,
+) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, Vec<String>, _>(
         WrapInfo {
             debug_name: "parse_midi",
@@ -31,7 +35,8 @@ fn wire_parse_midi_impl(port_: MessagePort, bytes: impl Wire2Api<Vec<u8>> + Unwi
         },
         move || {
             let api_bytes = bytes.wire2api();
-            move |task_callback| Result::<_, ()>::Ok(parse_midi(api_bytes))
+            let api_is_auto_split = is_auto_split.wire2api();
+            move |task_callback| Result::<_, ()>::Ok(parse_midi(api_bytes, api_is_auto_split))
         },
     )
 }
@@ -55,6 +60,11 @@ where
 {
     fn wire2api(self) -> Option<T> {
         (!self.is_null()).then(|| self.wire2api())
+    }
+}
+impl Wire2Api<bool> for bool {
+    fn wire2api(self) -> bool {
+        self
     }
 }
 impl Wire2Api<u8> for u8 {

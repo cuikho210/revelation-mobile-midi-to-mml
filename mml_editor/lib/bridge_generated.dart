@@ -26,14 +26,16 @@ class NativeImpl implements Native {
   factory NativeImpl.wasm(FutureOr<WasmModule> module) =>
       NativeImpl(module as ExternalLibrary);
   NativeImpl.raw(this._platform);
-  Future<List<String>> parseMidi({required Uint8List bytes, dynamic hint}) {
+  Future<List<String>> parseMidi(
+      {required Uint8List bytes, required bool isAutoSplit, dynamic hint}) {
     var arg0 = _platform.api2wire_uint_8_list(bytes);
+    var arg1 = isAutoSplit;
     return _platform.executeNormal(FlutterRustBridgeTask(
-      callFfi: (port_) => _platform.inner.wire_parse_midi(port_, arg0),
+      callFfi: (port_) => _platform.inner.wire_parse_midi(port_, arg0, arg1),
       parseSuccessData: _wire2api_StringList,
       parseErrorData: null,
       constMeta: kParseMidiConstMeta,
-      argValues: [bytes],
+      argValues: [bytes, isAutoSplit],
       hint: hint,
     ));
   }
@@ -41,7 +43,7 @@ class NativeImpl implements Native {
   FlutterRustBridgeTaskConstMeta get kParseMidiConstMeta =>
       const FlutterRustBridgeTaskConstMeta(
         debugName: "parse_midi",
-        argNames: ["bytes"],
+        argNames: ["bytes", "isAutoSplit"],
       );
 
   void dispose() {
@@ -67,6 +69,11 @@ class NativeImpl implements Native {
 }
 
 // Section: api2wire
+
+@protected
+bool api2wire_bool(bool raw) {
+  return raw;
+}
 
 @protected
 int api2wire_u8(int raw) {
@@ -190,19 +197,21 @@ class NativeWire implements FlutterRustBridgeWireBase {
   void wire_parse_midi(
     int port_,
     ffi.Pointer<wire_uint_8_list> bytes,
+    bool is_auto_split,
   ) {
     return _wire_parse_midi(
       port_,
       bytes,
+      is_auto_split,
     );
   }
 
   late final _wire_parse_midiPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(
-              ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_parse_midi');
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>,
+              ffi.Bool)>>('wire_parse_midi');
   late final _wire_parse_midi = _wire_parse_midiPtr
-      .asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+      .asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>, bool)>();
 
   ffi.Pointer<wire_uint_8_list> new_uint_8_list_0(
     int len,

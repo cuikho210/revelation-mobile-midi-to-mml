@@ -2,8 +2,8 @@ use super::*;
 // Section: wire functions
 
 #[no_mangle]
-pub extern "C" fn wire_parse_midi(port_: i64, bytes: *mut wire_uint_8_list) {
-    wire_parse_midi_impl(port_, bytes)
+pub extern "C" fn wire_parse_midi(port_: i64, bytes: *mut wire_uint_8_list, is_auto_split: bool) {
+    wire_parse_midi_impl(port_, bytes, is_auto_split)
 }
 
 // Section: allocate functions

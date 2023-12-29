@@ -76,7 +76,7 @@ class HomePage extends StatelessWidget {
 		final bytes = await getBytesFromPath(path);
 
 		try {
-			final mmls = await api.parseMidi(bytes: bytes);
+			final mmls = await api.parseMidi(bytes: bytes, isAutoSplit: false);
 
 			if (context.mounted) {
 				Navigator.push(
