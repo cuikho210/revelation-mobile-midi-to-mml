@@ -8,6 +8,21 @@ use std::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SongOptions {
+    pub is_split_track: bool,
+    pub merge_track: Vec<(usize, usize)>,
+}
+
+impl Default for SongOptions {
+    fn default() -> Self {
+        SongOptions {
+            is_split_track: false,
+            merge_track: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Song {
     pub ppq: u16,
     pub bpm: u16,
@@ -15,7 +30,7 @@ pub struct Song {
 }
 
 impl Song {
-    pub fn from_path<P>(path: P, split_track: bool) -> Result<Self, Error>
+    pub fn from_path<P>(path: P, options: SongOptions) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
@@ -24,10 +39,10 @@ impl Song {
             Err(err) => return Err(err),
         };
 
-        Self::from_bytes(bytes, split_track)
+        Self::from_bytes(bytes, options)
     }
 
-    pub fn from_bytes(bytes: Vec<u8>, split_track: bool) -> Result<Self, Error> {
+    pub fn from_bytes(bytes: Vec<u8>, options: SongOptions) -> Result<Self, Error> {
         let smf = match Smf::parse(&bytes) {
             Ok(smf) => smf,
             Err(err) => return Err(Error::new(ErrorKind::Other, err)),
@@ -51,23 +66,17 @@ impl Song {
             }
         }
 
-        // Split track
-        if split_track {
-            if tracks.len() == 1 {
-                let (a, b) = tracks.first().unwrap().split();
-                tracks = vec![a, b];
-            } else if tracks.len() == 2 {
-                let track_a = tracks.get(0).unwrap();
-                let track_b = tracks.get(1).unwrap();
+        // Merge track
+        if options.merge_track.len() > 0 {
+            merge_track(
+                &mut tracks,
+                options.merge_track,
+            );
+        }
 
-                if track_a.notes.len() > track_b.notes.len() {
-                    let (a, b) = track_a.split();
-                    tracks = vec![a, b, track_b.to_owned()];
-                } else {
-                    let (a, b) = track_b.split();
-                    tracks = vec![track_a.to_owned(), a, b].to_owned();
-                }
-            }
+        // Split track
+        if options.is_split_track {
+            split_track(&mut tracks);
         }
 
         Ok(Self { ppq, bpm, tracks })
@@ -78,5 +87,32 @@ impl Song {
             Timing::Metrical(ppq) => Some(ppq.as_int()),
             _ => None,
         }
+    }
+}
+
+fn split_track(tracks: &mut Vec<Track>) {
+    if tracks.len() == 1 {
+        let (a, b) = tracks.first().unwrap().split();
+        *tracks = vec![a, b];
+    } else if tracks.len() == 2 {
+        let track_a = tracks.get(0).unwrap();
+        let track_b = tracks.get(1).unwrap();
+
+        if track_a.notes.len() > track_b.notes.len() {
+            let (a, b) = track_a.split();
+            *tracks = vec![a, b, track_b.to_owned()];
+        } else {
+            let (a, b) = track_b.split();
+            *tracks = vec![track_a.to_owned(), a, b].to_owned();
+        }
+    }
+}
+
+fn merge_track(tracks: &mut Vec<Track>, indexes: Vec<(usize, usize)>) {
+    for index in indexes.iter() {
+        let mut track_b = tracks.remove(index.1);
+        let track_a = tracks.get_mut(index.0).unwrap();
+
+        track_a.merge(&mut track_b);
     }
 }
