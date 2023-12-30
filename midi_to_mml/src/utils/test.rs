@@ -1,4 +1,4 @@
-use crate::utils::{self, MMLNote};
+use crate::{utils::{self, MMLNote}, note::PitchClass};
 
 #[test]
 fn test_get_list_of_mml_notes() {
@@ -77,7 +77,7 @@ fn test_get_list_of_mml_notes() {
 
 #[test]
 fn test_get_display_mml() {
-    let note_class = &"r".to_string();
+    let note_class = &PitchClass::Rest;
 
     assert_eq!(String::from("r64"), utils::get_display_mml(1, note_class),);
 

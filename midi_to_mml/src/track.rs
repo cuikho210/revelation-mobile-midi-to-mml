@@ -314,7 +314,7 @@ fn get_notes_from_smf_track(smf_track: &midly::Track, ppq: u16) -> Vec<Note> {
             TrackEventKind::Midi { message, .. } => match message {
                 MidiMessage::NoteOn { key, vel } => {
                     let midi_key = key.as_int();
-                    let velocity: u8 = (vel.as_int() as i32 * 15 / 127).try_into().unwrap();
+                    let velocity: u8 = ((vel.as_int() as i32 * 13 / 127) + 2).try_into().unwrap();
 
                     if vel.as_int() > 0 {
                         create_note(
