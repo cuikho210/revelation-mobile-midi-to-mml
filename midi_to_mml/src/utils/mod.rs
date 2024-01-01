@@ -7,6 +7,18 @@ use crate::track_event::TrackEvent;
 // Note 64. Is whole_note/64 or quarter_note/16
 const SMALLEST_UNIT: u32 = 64;
 
+pub fn get_highest_velocity(notes: &Vec<Note>) -> u8 {
+    let mut max = 0u8;
+
+    for note in notes.iter() {
+        if note.velocity > max {
+            max = note.velocity;
+        }
+    }
+
+    max
+}
+
 /// When a NoteOn event is emitted while another note is playing,
 /// it must either be joined with the previous note to form a chord,
 /// or the previous note must be cut short.

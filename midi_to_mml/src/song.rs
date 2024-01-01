@@ -1,4 +1,7 @@
-use crate::track::Track;
+use crate::{
+    track::Track,
+    utils,
+};
 use midly::{Smf, Timing};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -79,6 +82,8 @@ impl Song {
             split_track(&mut tracks);
         }
 
+        modify_note_velocity(&mut tracks);
+
         Ok(Self { ppq, bpm, tracks })
     }
 
@@ -87,6 +92,23 @@ impl Song {
             Timing::Metrical(ppq) => Some(ppq.as_int()),
             _ => None,
         }
+    }
+}
+
+fn modify_note_velocity(tracks: &mut Vec<Track>) {
+    let mut max = 0u8;
+
+    for track in tracks.iter() {
+        let current_max = utils::get_highest_velocity(&track.notes);
+        if current_max > max {
+            max = current_max;
+        }
+    }
+
+    let diff = 15 - max;
+
+    for track in tracks.iter_mut() {
+        track.modify_velocity(diff);
     }
 }
 

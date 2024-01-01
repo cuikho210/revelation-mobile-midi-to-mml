@@ -98,10 +98,23 @@ impl Track {
         )
     }
 
+    pub fn modify_velocity(&mut self, diff: u8) {
+        modify_note_velocity(&mut self.notes, diff);
+        self.update_events();
+    }
+
     fn update_events(&mut self) {
         self.events = get_events_from_notes(&mut self.notes);
         fix_chord_duration(&mut self.events);
         fix_note_position(&mut self.events);
+    }
+}
+
+fn modify_note_velocity(notes: &mut Vec<Note>, diff: u8) {
+    if diff > 0 {
+        for note in notes.iter_mut() {
+            note.velocity += diff;
+        }
     }
 }
 
