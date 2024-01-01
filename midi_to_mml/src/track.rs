@@ -1,4 +1,9 @@
-use crate::{note::Note, track_event::TrackEvent, utils};
+use crate::{
+    note::Note,
+    track_event::TrackEvent,
+    utils,
+    instrument_map::INSTRUMENT_MAP,
+};
 use midly::{MetaMessage, MidiMessage, TrackEventKind};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -9,6 +14,7 @@ pub struct Track {
     pub notes: Vec<Note>,
     pub ppq: u16,
     pub bpm: u16,
+    pub instrument_name: String,
 }
 
 impl Track {
@@ -17,6 +23,7 @@ impl Track {
             *bpm = new_bpm;
         };
 
+        let instrument_name = get_instrument_name_from_track(smf_track);
         let notes = get_notes_from_smf_track(smf_track, ppq);
 
         let mut result = Self {
@@ -24,20 +31,22 @@ impl Track {
             notes,
             ppq,
             bpm: *bpm,
+            instrument_name,
         };
 
         result.update_events();
         result
     }
 
-    pub fn from_notes(ppq: u16, bpm: u16, notes: Vec<Note>) -> Self {
+    pub fn from_notes(ppq: u16, bpm: u16, instrument_name: String, notes: Vec<Note>) -> Self {
         let mut result = Self {
             events: Vec::new(),
             notes,
             ppq,
             bpm,
+            instrument_name,
         };
-        
+
         result.update_events();
         result
     }
@@ -69,7 +78,8 @@ impl Track {
 
         for i in 0..self.notes.len() {
             let current_note = self.notes.get(i).unwrap();
-            let current_end_position = current_note.position_in_smallest_unit + current_note.duration_in_smallest_unit;
+            let current_end_position =
+                current_note.position_in_smallest_unit + current_note.duration_in_smallest_unit;
 
             if current_end_position > max_end_position {
                 max_end_position = current_end_position;
@@ -93,8 +103,8 @@ impl Track {
         }
 
         (
-            Self::from_notes(self.ppq, self.bpm, notes_a),
-            Self::from_notes(self.ppq, self.bpm, notes_b),
+            Self::from_notes(self.ppq, self.bpm, self.instrument_name.to_owned(), notes_a),
+            Self::from_notes(self.ppq, self.bpm, self.instrument_name.to_owned(), notes_b),
         )
     }
 
@@ -312,6 +322,36 @@ fn get_bpm_from_smf_track(smf_track: &midly::Track) -> Option<u16> {
     }
 
     None
+}
+
+fn get_instrument_name_from_track(smf_track: &midly::Track) -> String {
+    let mut instrument_id: Option<usize> = None;
+
+    for smf_event in smf_track.iter() {
+        match smf_event.kind {
+            TrackEventKind::Meta(message) => match message {
+                MetaMessage::InstrumentName(id) => {
+                    if !id.is_empty() {
+                        let id = id.first().unwrap();
+                        instrument_id = Some(id.to_owned().try_into().unwrap());
+                    }
+                }
+                _ => (),
+            },
+            _ => (),
+        }
+    }
+
+    match instrument_id {
+        Some(id) => {
+            match INSTRUMENT_MAP.get(id) {
+                Some(str) => str.to_string(),
+                None => INSTRUMENT_MAP.first().unwrap().to_string(),
+            }
+
+        },
+        None => "Unknown".to_string(),
+    }
 }
 
 fn get_notes_from_smf_track(smf_track: &midly::Track, ppq: u16) -> Vec<Note> {

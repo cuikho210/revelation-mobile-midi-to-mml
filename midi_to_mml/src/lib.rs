@@ -3,6 +3,7 @@ mod song;
 mod track;
 mod track_event;
 mod utils;
+mod instrument_map;
 
 pub use note::Note;
 pub use song::{Song, SongOptions};

@@ -1,7 +1,4 @@
-use crate::{
-    track::Track,
-    utils,
-};
+use crate::{track::Track, utils};
 use midly::{Smf, Timing};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -71,10 +68,7 @@ impl Song {
 
         // Merge track
         if options.merge_track.len() > 0 {
-            merge_track(
-                &mut tracks,
-                options.merge_track,
-            );
+            merge_track(&mut tracks, options.merge_track);
         }
 
         // Split track

@@ -1,4 +1,7 @@
-use crate::{utils::{self, MMLNote}, note::PitchClass};
+use crate::{
+    note::PitchClass,
+    utils::{self, MMLNote},
+};
 
 #[test]
 fn test_get_list_of_mml_notes() {
