@@ -125,10 +125,17 @@ fn split_track(tracks: &mut Vec<Track>) {
 }
 
 fn merge_track(tracks: &mut Vec<Track>, indexes: Vec<(usize, usize)>) {
+    let mut to_remove: Vec<usize> = Vec::new();
+
     for index in indexes.iter() {
-        let mut track_b = tracks.remove(index.1);
+        let mut track_b = tracks.get(index.1).unwrap().to_owned();
         let track_a = tracks.get_mut(index.0).unwrap();
 
         track_a.merge(&mut track_b);
+        to_remove.push(index.1);
+    }
+
+    for index in to_remove {
+        tracks.remove(index);
     }
 }
