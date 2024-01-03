@@ -10,7 +10,10 @@ import 'package:uuid/uuid.dart';
 
 abstract class Native {
   Future<List<String>> parseMidi(
-      {required Uint8List bytes, required bool isAutoSplit, dynamic hint});
+      {required Uint8List bytes,
+      required bool isAutoSplit,
+      required List<(int, int)> toMerge,
+      dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kParseMidiConstMeta;
 }

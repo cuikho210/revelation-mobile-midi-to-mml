@@ -23,6 +23,7 @@ dependencies:
   desktop_drop: ^0.4.4
   mml_parser:
     path: ../mml_parser
+  get: ^4.6.6
 
 dev_dependencies:
   flutter_test:

@@ -26,6 +26,7 @@ fn wire_parse_midi_impl(
     port_: MessagePort,
     bytes: impl Wire2Api<Vec<u8>> + UnwindSafe,
     is_auto_split: impl Wire2Api<bool> + UnwindSafe,
+    to_merge: impl Wire2Api<Vec<(usize, usize)>> + UnwindSafe,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, Vec<String>, _>(
         WrapInfo {
@@ -36,7 +37,10 @@ fn wire_parse_midi_impl(
         move || {
             let api_bytes = bytes.wire2api();
             let api_is_auto_split = is_auto_split.wire2api();
-            move |task_callback| Result::<_, ()>::Ok(parse_midi(api_bytes, api_is_auto_split))
+            let api_to_merge = to_merge.wire2api();
+            move |task_callback| {
+                Result::<_, ()>::Ok(parse_midi(api_bytes, api_is_auto_split, api_to_merge))
+            }
         },
     )
 }
@@ -62,17 +66,24 @@ where
         (!self.is_null()).then(|| self.wire2api())
     }
 }
+
 impl Wire2Api<bool> for bool {
     fn wire2api(self) -> bool {
         self
     }
 }
+
 impl Wire2Api<u8> for u8 {
     fn wire2api(self) -> u8 {
         self
     }
 }
 
+impl Wire2Api<usize> for usize {
+    fn wire2api(self) -> usize {
+        self
+    }
+}
 // Section: impl IntoDart
 
 // Section: executor

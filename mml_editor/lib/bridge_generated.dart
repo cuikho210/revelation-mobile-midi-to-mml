@@ -27,15 +27,20 @@ class NativeImpl implements Native {
       NativeImpl(module as ExternalLibrary);
   NativeImpl.raw(this._platform);
   Future<List<String>> parseMidi(
-      {required Uint8List bytes, required bool isAutoSplit, dynamic hint}) {
+      {required Uint8List bytes,
+      required bool isAutoSplit,
+      required List<(int, int)> toMerge,
+      dynamic hint}) {
     var arg0 = _platform.api2wire_uint_8_list(bytes);
     var arg1 = isAutoSplit;
+    var arg2 = _platform.api2wire_list___record__usize_usize(toMerge);
     return _platform.executeNormal(FlutterRustBridgeTask(
-      callFfi: (port_) => _platform.inner.wire_parse_midi(port_, arg0, arg1),
+      callFfi: (port_) =>
+          _platform.inner.wire_parse_midi(port_, arg0, arg1, arg2),
       parseSuccessData: _wire2api_StringList,
       parseErrorData: null,
       constMeta: kParseMidiConstMeta,
-      argValues: [bytes, isAutoSplit],
+      argValues: [bytes, isAutoSplit, toMerge],
       hint: hint,
     ));
   }
@@ -43,7 +48,7 @@ class NativeImpl implements Native {
   FlutterRustBridgeTaskConstMeta get kParseMidiConstMeta =>
       const FlutterRustBridgeTaskConstMeta(
         debugName: "parse_midi",
-        argNames: ["bytes", "isAutoSplit"],
+        argNames: ["bytes", "isAutoSplit", "toMerge"],
       );
 
   void dispose() {
@@ -80,6 +85,10 @@ int api2wire_u8(int raw) {
   return raw;
 }
 
+@protected
+int api2wire_usize(int raw) {
+  return raw;
+}
 // Section: finalizer
 
 class NativePlatform extends FlutterRustBridgeBase<NativeWire> {
@@ -88,14 +97,31 @@ class NativePlatform extends FlutterRustBridgeBase<NativeWire> {
 // Section: api2wire
 
   @protected
+  ffi.Pointer<wire_list___record__usize_usize>
+      api2wire_list___record__usize_usize(List<(int, int)> raw) {
+    final ans = inner.new_list___record__usize_usize_0(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      _api_fill_to_wire___record__usize_usize(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
   ffi.Pointer<wire_uint_8_list> api2wire_uint_8_list(Uint8List raw) {
     final ans = inner.new_uint_8_list_0(raw.length);
     ans.ref.ptr.asTypedList(raw.length).setAll(0, raw);
     return ans;
   }
+
 // Section: finalizer
 
 // Section: api_fill_to_wire
+
+  void _api_fill_to_wire___record__usize_usize(
+      (int, int) apiObj, wire___record__usize_usize wireObj) {
+    wireObj.field0 = api2wire_usize(apiObj.$1);
+    wireObj.field1 = api2wire_usize(apiObj.$2);
+  }
 }
 
 // ignore_for_file: camel_case_types, non_constant_identifier_names, avoid_positional_boolean_parameters, annotate_overrides, constant_identifier_names
@@ -198,20 +224,40 @@ class NativeWire implements FlutterRustBridgeWireBase {
     int port_,
     ffi.Pointer<wire_uint_8_list> bytes,
     bool is_auto_split,
+    ffi.Pointer<wire_list___record__usize_usize> to_merge,
   ) {
     return _wire_parse_midi(
       port_,
       bytes,
       is_auto_split,
+      to_merge,
     );
   }
 
   late final _wire_parse_midiPtr = _lookup<
+          ffi.NativeFunction<
+              ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>,
+                  ffi.Bool, ffi.Pointer<wire_list___record__usize_usize>)>>(
+      'wire_parse_midi');
+  late final _wire_parse_midi = _wire_parse_midiPtr.asFunction<
+      void Function(int, ffi.Pointer<wire_uint_8_list>, bool,
+          ffi.Pointer<wire_list___record__usize_usize>)>();
+
+  ffi.Pointer<wire_list___record__usize_usize> new_list___record__usize_usize_0(
+    int len,
+  ) {
+    return _new_list___record__usize_usize_0(
+      len,
+    );
+  }
+
+  late final _new_list___record__usize_usize_0Ptr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>,
-              ffi.Bool)>>('wire_parse_midi');
-  late final _wire_parse_midi = _wire_parse_midiPtr
-      .asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>, bool)>();
+          ffi.Pointer<wire_list___record__usize_usize> Function(
+              ffi.Int32)>>('new_list___record__usize_usize_0');
+  late final _new_list___record__usize_usize_0 =
+      _new_list___record__usize_usize_0Ptr.asFunction<
+          ffi.Pointer<wire_list___record__usize_usize> Function(int)>();
 
   ffi.Pointer<wire_uint_8_list> new_uint_8_list_0(
     int len,
@@ -247,6 +293,21 @@ final class _Dart_Handle extends ffi.Opaque {}
 
 final class wire_uint_8_list extends ffi.Struct {
   external ffi.Pointer<ffi.Uint8> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire___record__usize_usize extends ffi.Struct {
+  @ffi.UintPtr()
+  external int field0;
+
+  @ffi.UintPtr()
+  external int field1;
+}
+
+final class wire_list___record__usize_usize extends ffi.Struct {
+  external ffi.Pointer<wire___record__usize_usize> ptr;
 
   @ffi.Int32()
   external int len;

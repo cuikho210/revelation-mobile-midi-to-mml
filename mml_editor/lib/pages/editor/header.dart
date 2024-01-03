@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_remix_icon/remixicon.dart';
+import 'package:get/get.dart';
 
 class EditorHeader extends StatelessWidget {
+	final String fileName;
+
 	const EditorHeader({
 		super.key,
+		required this.fileName,
 	});
 
 	@override
@@ -19,13 +23,9 @@ class EditorHeader extends StatelessWidget {
 				IconButton(
 					icon: const Icon(RemixIcon.arrow_left_s_line),
 					tooltip: "Back",
-					onPressed: () => Navigator.of(context).pop(),
+					onPressed: () => Get.back(),
 				),
-				ElevatedButton.icon(
-					onPressed: () => (),
-					icon: const Icon(RemixIcon.save_line),
-					label: const Text("Save"),
-				),
+				Text(fileName),
 				Expanded(child: Container()),
 				IconButton(
 					icon: const Icon(RemixIcon.play_line),
