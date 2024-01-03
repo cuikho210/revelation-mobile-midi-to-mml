@@ -44,6 +44,19 @@ fn wire_parse_midi_impl(
         },
     )
 }
+fn wire_get_track_length_impl(port_: MessagePort, bytes: impl Wire2Api<Vec<u8>> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, usize, _>(
+        WrapInfo {
+            debug_name: "get_track_length",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_bytes = bytes.wire2api();
+            move |task_callback| Result::<_, ()>::Ok(get_track_length(api_bytes))
+        },
+    )
+}
 // Section: wrapper structs
 
 // Section: static checks

@@ -1,4 +1,5 @@
 use midi_to_mml::{SongOptions, Song};
+use midly::Smf;
 
 pub fn parse_midi(bytes: Vec<u8>, is_auto_split: bool, to_merge: Vec<(usize, usize)>) -> Vec<String> {
     let mut result: Vec<String> = Vec::new();
@@ -12,4 +13,9 @@ pub fn parse_midi(bytes: Vec<u8>, is_auto_split: bool, to_merge: Vec<(usize, usi
     }
 
     result
+}
+
+pub fn get_track_length(bytes: Vec<u8>) -> usize {
+    let smf = Smf::parse(&bytes).unwrap();
+    smf.tracks.len()
 }

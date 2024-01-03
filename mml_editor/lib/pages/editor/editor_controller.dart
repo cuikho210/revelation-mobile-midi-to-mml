@@ -15,14 +15,12 @@ class Track {
 }
 
 class EditorController extends GetxController {
-	var midiBytes = Uint8List(0);
 	var refreshKey = const Key("Ahihi do ngoc!").obs;
 	var currentTabIndex = 0.obs;
 	var tracks = <Track>[].obs;
 
 	EditorController(Uint8List bytes, List<String> mmls) {
 		tracks.value = _getTracks(mmls);
-		midiBytes = bytes;
 	}
 
 	void updateCurrentTabIndex(index) => currentTabIndex.value = index;

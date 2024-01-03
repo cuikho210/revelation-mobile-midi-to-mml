@@ -16,4 +16,8 @@ abstract class Native {
       dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kParseMidiConstMeta;
+
+  Future<int> getTrackLength({required Uint8List bytes, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kGetTrackLengthConstMeta;
 }

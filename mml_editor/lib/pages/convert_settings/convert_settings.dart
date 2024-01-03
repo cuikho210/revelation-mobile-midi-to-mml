@@ -38,12 +38,12 @@ class ConvertSettings extends StatelessWidget {
 			fileName: fileName,
 			mmls: mmls,
 			midiBytes: midiBytes,
-		));
+		), transition: Transition.rightToLeft);
 	}
 
 	@override
 	Widget build(context) {
-		var c = Get.put(Controller());
+		var c = Controller(midiBytes);
 
 		return Scaffold(
 			appBar: AppBar(
@@ -55,9 +55,8 @@ class ConvertSettings extends StatelessWidget {
 					tooltip: "Back",
 				),
 				actions: [
-					TextButton.icon(
-						icon: const Icon(RemixIcon.arrow_right_s_line),
-						label: const Text("Next"),
+					TextButton(
+						child: const Text("Next"),
 						onPressed: () => nextToEditor(c.isAutoSplit()),
 					),
 				],
@@ -75,7 +74,10 @@ class ConvertSettings extends StatelessWidget {
 					const Gap(16),
 
 					Obx(() => MergeTracks(
+						key: c.refreshKey(),
 						isVisible: !c.isAutoSplit(),
+						tracksList: c.tracks,
+						merge: c.mergeTracks,
 					)),
 				],
 			),
@@ -95,24 +97,77 @@ class AutoSplitSetting extends StatelessWidget {
 
 	@override
 	Widget build(context) {
-		return Row(children: [
-			Checkbox(
-				value: value,
-				onChanged: onChanged,
-			),
-			const Gap(8),
-			const Text("Auto split track"),
-		]);
+		return CheckboxListTile(
+			title: const Text("Auto split track"),
+			value: value,
+			onChanged: onChanged,
+		);
 	}
 }
 
 class MergeTracks extends StatelessWidget {
 	final bool isVisible;
+	final List<List<int>> tracksList;
+	final Function(int to, int from, int value) merge;
 
 	const MergeTracks({
 		super.key,
 		required this.isVisible,
+		required this.tracksList,
+		required this.merge,
 	});
+
+	List<Widget> getColums() {
+		List<Widget> cols = [];
+
+		tracksList.asMap().forEach((index, tracks) {
+			final children = getColumChildren(index, tracks);
+			final column = Column(children: children);
+
+			final dragTarget = DragTarget<(int, int)>(
+				builder: (
+					BuildContext ctx,
+					List<dynamic> accepted,
+					List<dynamic> rejected
+				) => column,
+				onAccept: ((int, int) data) {
+					if (tracks.length > 1) return;
+
+					var to = tracks.first;
+					var from = data.$1;
+					var value = data.$2;
+					merge(to, from, value);
+				},
+			);
+
+			cols.add(dragTarget);
+		});
+
+		return cols;
+	}
+
+	List<Widget> getColumChildren(int colIndex, List<int> col) {
+		List<Widget> children = [];
+
+		for (final i in col) {
+			final child = Container(
+				color: Get.theme.colorScheme.primary.withAlpha(64),
+				margin: const EdgeInsets.all(1),
+				padding: const EdgeInsets.all(8),
+				child: Text("Track $i", style: Get.theme.textTheme.bodyLarge),
+			);
+
+			final dragable = Draggable<(int, int)>(
+				data: (colIndex, i),
+				feedback: child,
+				child: child,
+			);
+
+			children.add(dragable);
+		}
+
+		return children;
+	}
 
 	@override
 	Widget build(context) {
@@ -121,6 +176,14 @@ class MergeTracks extends StatelessWidget {
 			child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 				Text("Merge Tracks", style: Theme.of(context).textTheme.titleLarge),
 				const Text("Drag and drop to merge tracks"),
+				const Gap(16),
+				SizedBox(
+					height: 256,
+					child: ListView(
+						scrollDirection: Axis.horizontal,
+						children: getColums(),
+					),
+				),
 			]),
 		);
 	}

@@ -51,6 +51,24 @@ class NativeImpl implements Native {
         argNames: ["bytes", "isAutoSplit", "toMerge"],
       );
 
+  Future<int> getTrackLength({required Uint8List bytes, dynamic hint}) {
+    var arg0 = _platform.api2wire_uint_8_list(bytes);
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_get_track_length(port_, arg0),
+      parseSuccessData: _wire2api_usize,
+      parseErrorData: null,
+      constMeta: kGetTrackLengthConstMeta,
+      argValues: [bytes],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kGetTrackLengthConstMeta =>
+      const FlutterRustBridgeTaskConstMeta(
+        debugName: "get_track_length",
+        argNames: ["bytes"],
+      );
+
   void dispose() {
     _platform.dispose();
   }
@@ -70,6 +88,10 @@ class NativeImpl implements Native {
 
   Uint8List _wire2api_uint_8_list(dynamic raw) {
     return raw as Uint8List;
+  }
+
+  int _wire2api_usize(dynamic raw) {
+    return castInt(raw);
   }
 }
 
@@ -242,6 +264,23 @@ class NativeWire implements FlutterRustBridgeWireBase {
   late final _wire_parse_midi = _wire_parse_midiPtr.asFunction<
       void Function(int, ffi.Pointer<wire_uint_8_list>, bool,
           ffi.Pointer<wire_list___record__usize_usize>)>();
+
+  void wire_get_track_length(
+    int port_,
+    ffi.Pointer<wire_uint_8_list> bytes,
+  ) {
+    return _wire_get_track_length(
+      port_,
+      bytes,
+    );
+  }
+
+  late final _wire_get_track_lengthPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64,
+              ffi.Pointer<wire_uint_8_list>)>>('wire_get_track_length');
+  late final _wire_get_track_length = _wire_get_track_lengthPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
 
   ffi.Pointer<wire_list___record__usize_usize> new_list___record__usize_usize_0(
     int len,

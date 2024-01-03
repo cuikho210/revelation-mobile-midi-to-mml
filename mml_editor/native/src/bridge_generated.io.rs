@@ -11,6 +11,11 @@ pub extern "C" fn wire_parse_midi(
     wire_parse_midi_impl(port_, bytes, is_auto_split, to_merge)
 }
 
+#[no_mangle]
+pub extern "C" fn wire_get_track_length(port_: i64, bytes: *mut wire_uint_8_list) {
+    wire_get_track_length_impl(port_, bytes)
+}
+
 // Section: allocate functions
 
 #[no_mangle]

@@ -62,7 +62,7 @@ class HomePage extends StatelessWidget {
 			Get.to(ConvertSettings(
 				fileName: getFileNameFromPath(path),
 				midiBytes: bytes,
-			));
+			), transition: Transition.rightToLeftWithFade);
 		} catch(e) {
 			alert("Error", "Cannot parse this file!");
 		}
