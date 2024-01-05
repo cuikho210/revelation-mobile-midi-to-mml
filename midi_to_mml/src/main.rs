@@ -4,7 +4,7 @@ use midi_to_mml::{Song, SongOptions};
 fn main() {
     // let time = Instant::now();
 
-    let path = std::path::PathBuf::from("/home/cuikho210/Downloads/Hikaru_Nara__guangrunara_-_Goose_house_Piano__Violin.mid");
+    let path = std::path::PathBuf::from("/home/cuikho210/Downloads/First_Love_-_uru.mid");
     let song = Song::from_path(
         path,
         // SongOptions::default(),

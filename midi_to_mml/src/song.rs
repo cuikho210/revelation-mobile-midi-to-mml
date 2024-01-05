@@ -110,17 +110,21 @@ fn split_track(tracks: &mut Vec<Track>) {
     if tracks.len() == 1 {
         let (a, b) = tracks.first().unwrap().split();
         *tracks = vec![a, b];
-    } else if tracks.len() == 2 {
-        let track_a = tracks.get(0).unwrap();
-        let track_b = tracks.get(1).unwrap();
+    } else {
+        let mut longest_track_index = 0_usize;
+        let mut longest_note_length = 0_usize;
 
-        if track_a.notes.len() > track_b.notes.len() {
-            let (a, b) = track_a.split();
-            *tracks = vec![a, b, track_b.to_owned()];
-        } else {
-            let (a, b) = track_b.split();
-            *tracks = vec![track_a.to_owned(), a, b].to_owned();
+        for (index, track) in tracks.iter().enumerate() {
+            let current_note_length = track.notes.len();
+            if current_note_length > longest_note_length {
+                longest_track_index = index;
+                longest_note_length = current_note_length;
+            }
         }
+
+        let longest_track = tracks.get(longest_track_index).unwrap().to_owned();
+        let (a, b) = longest_track.split();
+        tracks.splice(longest_track_index..longest_track_index+1, [a, b]);
     }
 }
 
