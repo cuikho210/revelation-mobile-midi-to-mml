@@ -59,8 +59,10 @@ class HomePage extends StatelessWidget {
 		final bytes = await getBytesFromPath(path);
 
 		try {
+			final fileName = getFileNameFromPath(path);
+
 			Get.to(ConvertSettings(
-				fileName: getFileNameFromPath(path),
+				fileName: fileName,
 				midiBytes: bytes,
 			), transition: Transition.rightToLeftWithFade);
 		} catch(e) {

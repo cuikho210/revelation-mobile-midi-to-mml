@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_remix_icon/remixicon.dart';
 import 'package:get/get.dart';
+import 'package:mml_editor/pages/hub/hub_page.dart';
 
 class EditorHeader extends StatelessWidget {
 	final String fileName;
@@ -23,6 +24,14 @@ class EditorHeader extends StatelessWidget {
 				IconButton(
 					icon: const Icon(RemixIcon.arrow_left_s_line),
 					tooltip: "Back",
+					onPressed: () => Get.offAll(
+						const HubPage(),
+						transition: Transition.leftToRight,
+					),
+				),
+				IconButton(
+					icon: const Icon(RemixIcon.settings_2_line),
+					tooltip: "Options",
 					onPressed: () => Get.back(),
 				),
 				Text(fileName),

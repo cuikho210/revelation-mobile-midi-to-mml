@@ -20,7 +20,7 @@ class EditorPage extends StatelessWidget {
 
 	@override
 	Widget build(context) {
-		var controller = Get.put(EditorController(midiBytes, mmls));
+		var controller = EditorController(midiBytes, mmls);
 
 		return Scaffold(
 			body: Column(children: [
