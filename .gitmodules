@@ -1,3 +1,0 @@
-[submodule "mml_editor/lib/pages/hub/corrosion"]
-	path = mml_editor/lib/pages/hub/corrosion
-	url = https://github.com/corrosion-rs/corrosion.git

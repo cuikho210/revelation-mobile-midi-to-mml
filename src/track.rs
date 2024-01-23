@@ -325,21 +325,25 @@ fn get_bpm_from_smf_track(smf_track: &midly::Track) -> Option<u16> {
 }
 
 fn get_instrument_name_from_track(smf_track: &midly::Track) -> String {
+    let mut midi_channel: u8 = 0;
     let mut instrument_id: Option<usize> = None;
 
     for smf_event in smf_track.iter() {
         match smf_event.kind {
-            TrackEventKind::Meta(message) => match message {
-                MetaMessage::InstrumentName(id) => {
-                    if !id.is_empty() {
-                        let id = id.first().unwrap();
-                        instrument_id = Some(id.to_owned().try_into().unwrap());
-                    }
+            TrackEventKind::Midi { message, channel } => match message {
+                MidiMessage::ProgramChange { program } => {
+                    let id = program.as_int();
+                    instrument_id = Some(id.to_owned().try_into().unwrap());
+                    midi_channel = channel.as_int() + 1;
                 }
                 _ => (),
             },
             _ => (),
         }
+    }
+    
+    if midi_channel == 10 {
+        return "Drum Set".to_string();
     }
 
     match instrument_id {
