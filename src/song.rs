@@ -9,15 +9,17 @@ use std::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SongOptions {
-    pub is_split_track: bool,
-    pub merge_track: Vec<(usize, usize)>,
+    pub auto_boot_velocity: bool,
+    pub velocity_min: u8,
+    pub velocity_max: u8,
 }
 
 impl Default for SongOptions {
     fn default() -> Self {
         SongOptions {
-            is_split_track: false,
-            merge_track: Vec::new(),
+            auto_boot_velocity: true,
+            velocity_min: 0,
+            velocity_max: 15,
         }
     }
 }
@@ -59,7 +61,13 @@ impl Song {
         let mut tracks: Vec<Track> = Vec::new();
 
         for smf_track in smf.tracks.iter() {
-            let track = Track::new(smf_track, ppq, &mut bpm);
+            let track = Track::new(
+                smf_track,
+                ppq,
+                &mut bpm,
+                options.velocity_min,
+                options.velocity_max,
+            );
 
             if track.notes.len() > 0 {
                 tracks.push(track);
@@ -67,16 +75,18 @@ impl Song {
         }
 
         // Merge track
-        if options.merge_track.len() > 0 {
-            merge_track(&mut tracks, options.merge_track);
-        }
+        // if options.merge_track.len() > 0 {
+        //     merge_track(&mut tracks, options.merge_track);
+        // }
 
         // Split track
-        if options.is_split_track {
-            split_track(&mut tracks);
-        }
+        // if options.is_split_track {
+        //     split_track(&mut tracks);
+        // }
 
-        modify_note_velocity(&mut tracks);
+        if options.auto_boot_velocity {
+            modify_note_velocity(&mut tracks);
+        }
 
         Ok(Self { ppq, bpm, tracks })
     }
@@ -106,40 +116,40 @@ fn modify_note_velocity(tracks: &mut Vec<Track>) {
     }
 }
 
-fn split_track(tracks: &mut Vec<Track>) {
-    if tracks.len() == 1 {
-        let (a, b) = tracks.first().unwrap().split();
-        *tracks = vec![a, b];
-    } else {
-        let mut longest_track_index = 0_usize;
-        let mut longest_note_length = 0_usize;
-
-        for (index, track) in tracks.iter().enumerate() {
-            let current_note_length = track.notes.len();
-            if current_note_length > longest_note_length {
-                longest_track_index = index;
-                longest_note_length = current_note_length;
-            }
-        }
-
-        let longest_track = tracks.get(longest_track_index).unwrap().to_owned();
-        let (a, b) = longest_track.split();
-        tracks.splice(longest_track_index..longest_track_index+1, [a, b]);
-    }
-}
-
-fn merge_track(tracks: &mut Vec<Track>, indexes: Vec<(usize, usize)>) {
-    let mut to_remove: Vec<usize> = Vec::new();
-
-    for index in indexes.iter() {
-        let mut track_b = tracks.get(index.1).unwrap().to_owned();
-        let track_a = tracks.get_mut(index.0).unwrap();
-
-        track_a.merge(&mut track_b);
-        to_remove.push(index.1);
-    }
-
-    for index in to_remove {
-        tracks.remove(index);
-    }
-}
+// fn split_track(tracks: &mut Vec<Track>) {
+//     if tracks.len() == 1 {
+//         let (a, b) = tracks.first().unwrap().split();
+//         *tracks = vec![a, b];
+//     } else {
+//         let mut longest_track_index = 0_usize;
+//         let mut longest_note_length = 0_usize;
+//
+//         for (index, track) in tracks.iter().enumerate() {
+//             let current_note_length = track.notes.len();
+//             if current_note_length > longest_note_length {
+//                 longest_track_index = index;
+//                 longest_note_length = current_note_length;
+//             }
+//         }
+//
+//         let longest_track = tracks.get(longest_track_index).unwrap().to_owned();
+//         let (a, b) = longest_track.split();
+//         tracks.splice(longest_track_index..longest_track_index+1, [a, b]);
+//     }
+// }
+//
+// fn merge_track(tracks: &mut Vec<Track>, indexes: Vec<(usize, usize)>) {
+//     let mut to_remove: Vec<usize> = Vec::new();
+//
+//     for index in indexes.iter() {
+//         let mut track_b = tracks.get(index.1).unwrap().to_owned();
+//         let track_a = tracks.get_mut(index.0).unwrap();
+//
+//         track_a.merge(&mut track_b);
+//         to_remove.push(index.1);
+//     }
+//
+//     for index in to_remove {
+//         tracks.remove(index);
+//     }
+// }

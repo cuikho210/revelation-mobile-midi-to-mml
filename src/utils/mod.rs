@@ -7,6 +7,18 @@ use crate::track_event::TrackEvent;
 // Note 64. Is whole_note/64 or quarter_note/16
 const SMALLEST_UNIT: u32 = 64;
 
+pub fn midi_velocity_to_mml_velocity(
+    midi_velocity: u8,
+    velocity_min: u8,
+    velocity_max: u8,
+) -> u8 {
+    let range: i32 = (velocity_max - velocity_min).into();
+    let midi_velocity: i32 = midi_velocity.into();
+    let velocity_min: i32 = velocity_min.into();
+
+    ((midi_velocity * range / 127) + velocity_min).try_into().unwrap()
+}
+
 pub fn get_highest_velocity(notes: &Vec<Note>) -> u8 {
     let mut max = 0u8;
 

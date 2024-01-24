@@ -1,8 +1,8 @@
 use crate::{
-    note::Note,
-    track_event::TrackEvent,
+    Note,
+    TrackEvent,
+    Instrument,
     utils,
-    instrument_map::INSTRUMENT_MAP,
 };
 use midly::{MetaMessage, MidiMessage, TrackEventKind};
 use serde::{Deserialize, Serialize};
@@ -14,37 +14,42 @@ pub struct Track {
     pub notes: Vec<Note>,
     pub ppq: u16,
     pub bpm: u16,
-    pub instrument_name: String,
+    pub instrument: Instrument,
 }
 
 impl Track {
-    pub fn new(smf_track: &midly::Track, ppq: u16, bpm: &mut u16) -> Self {
+    pub fn new(
+        smf_track: &midly::Track,
+        ppq: u16, bpm: &mut u16,
+        velocity_min: u8,
+        velocity_max: u8,
+    ) -> Self {
         if let Some(new_bpm) = get_bpm_from_smf_track(smf_track) {
             *bpm = new_bpm;
         };
 
-        let instrument_name = get_instrument_name_from_track(smf_track);
-        let notes = get_notes_from_smf_track(smf_track, ppq);
+        let instrument = get_instrument_from_track(smf_track);
+        let notes = get_notes_from_smf_track(smf_track, ppq, velocity_min, velocity_max);
 
         let mut result = Self {
             events: Vec::new(),
             notes,
             ppq,
             bpm: *bpm,
-            instrument_name,
+            instrument,
         };
 
         result.update_events();
         result
     }
 
-    pub fn from_notes(ppq: u16, bpm: u16, instrument_name: String, notes: Vec<Note>) -> Self {
+    pub fn from_notes(ppq: u16, bpm: u16, instrument: Instrument, notes: Vec<Note>) -> Self {
         let mut result = Self {
             events: Vec::new(),
             notes,
             ppq,
             bpm,
-            instrument_name,
+            instrument,
         };
 
         result.update_events();
@@ -103,8 +108,8 @@ impl Track {
         }
 
         (
-            Self::from_notes(self.ppq, self.bpm, self.instrument_name.to_owned(), notes_a),
-            Self::from_notes(self.ppq, self.bpm, self.instrument_name.to_owned(), notes_b),
+            Self::from_notes(self.ppq, self.bpm, self.instrument.to_owned(), notes_a),
+            Self::from_notes(self.ppq, self.bpm, self.instrument.to_owned(), notes_b),
         )
     }
 
@@ -324,16 +329,15 @@ fn get_bpm_from_smf_track(smf_track: &midly::Track) -> Option<u16> {
     None
 }
 
-fn get_instrument_name_from_track(smf_track: &midly::Track) -> String {
+fn get_instrument_from_track(smf_track: &midly::Track) -> Instrument {
     let mut midi_channel: u8 = 0;
-    let mut instrument_id: Option<usize> = None;
+    let mut instrument_id: u8 = 0;
 
     for smf_event in smf_track.iter() {
         match smf_event.kind {
             TrackEventKind::Midi { message, channel } => match message {
                 MidiMessage::ProgramChange { program } => {
-                    let id = program.as_int();
-                    instrument_id = Some(id.to_owned().try_into().unwrap());
+                    instrument_id = program.as_int();
                     midi_channel = channel.as_int() + 1;
                 }
                 _ => (),
@@ -342,23 +346,15 @@ fn get_instrument_name_from_track(smf_track: &midly::Track) -> String {
         }
     }
     
-    if midi_channel == 10 {
-        return "Drum Set".to_string();
-    }
-
-    match instrument_id {
-        Some(id) => {
-            match INSTRUMENT_MAP.get(id) {
-                Some(str) => str.to_string(),
-                None => INSTRUMENT_MAP.first().unwrap().to_string(),
-            }
-
-        },
-        None => "Unknown".to_string(),
-    }
+    Instrument::new(instrument_id, midi_channel)
 }
 
-fn get_notes_from_smf_track(smf_track: &midly::Track, ppq: u16) -> Vec<Note> {
+fn get_notes_from_smf_track(
+    smf_track: &midly::Track,
+    ppq: u16,
+    velocity_min: u8,
+    velocity_max: u8,
+) -> Vec<Note> {
     let mut result: Vec<Note> = Vec::new();
     let mut holding_notes: HashMap<u8, usize> = HashMap::new();
     let mut current_ticks = 0u32;
@@ -368,15 +364,18 @@ fn get_notes_from_smf_track(smf_track: &midly::Track, ppq: u16) -> Vec<Note> {
         current_ticks += delta;
 
         match midi_event.kind {
-            TrackEventKind::Midi { message, .. } => match message {
+            TrackEventKind::Midi { message, channel } => match message {
                 MidiMessage::NoteOn { key, vel } => {
                     let midi_key = key.as_int();
-                    let velocity: u8 = ((vel.as_int() as i32 * 13 / 127) + 2).try_into().unwrap();
+                    let midi_velocity = vel.as_int();
+                    let mml_velocity = utils::midi_velocity_to_mml_velocity(midi_velocity, velocity_min, velocity_max);
 
                     if vel.as_int() > 0 {
                         create_note(
+                            channel.as_int() + 1,
                             midi_key,
-                            velocity,
+                            midi_velocity,
+                            mml_velocity,
                             current_ticks,
                             &mut result,
                             &mut holding_notes,
@@ -413,14 +412,23 @@ fn get_notes_from_smf_track(smf_track: &midly::Track, ppq: u16) -> Vec<Note> {
 }
 
 fn create_note(
+    midi_channel: u8,
     midi_key: u8,
-    velocity: u8,
+    midi_velocity: u8,
+    mml_velocity: u8,
     current_ticks: u32,
     notes: &mut Vec<Note>,
     holding_notes: &mut HashMap<u8, usize>,
     ppq: u16,
 ) {
-    let note = Note::new(ppq, midi_key, velocity, current_ticks);
+    let note = Note::new(
+        ppq,
+        midi_channel,
+        midi_key,
+        midi_velocity,
+        mml_velocity,
+        current_ticks,
+    );
 
     holding_notes.insert(midi_key, notes.len());
     notes.push(note);
