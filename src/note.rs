@@ -58,7 +58,14 @@ pub struct Note {
 }
 
 impl Note {
-    pub fn new(ppq: u16, midi_channel: u8, midi_key: u8, midi_velocity: u8, velocity: u8, current_tick: u32) -> Self {
+    pub fn new(
+        ppq: u16,
+        midi_channel: u8,
+        midi_key: u8,
+        midi_velocity: u8,
+        velocity: u8,
+        current_tick: u32,
+    ) -> Self {
         let pitch_class = utils::midi_key_to_pitch_class(midi_key);
         let octave = utils::midi_key_to_octave(midi_key);
         let position_in_smallest_unit = utils::tick_to_smallest_unit(current_tick, ppq);
@@ -89,7 +96,7 @@ impl Note {
         utils::get_display_mml(self.duration_in_smallest_unit, &self.pitch_class)
     }
 
-    fn to_percussion_note(&mut self) {
+    pub fn to_percussion_note(&mut self) {
         let new_midi_key = match self.midi_key {
             // Snare - C#4
             38|40 => 37,
@@ -130,6 +137,8 @@ impl Note {
         self.midi_key = new_midi_key;
         self.pitch_class = utils::midi_key_to_pitch_class(new_midi_key);
         self.octave = utils::midi_key_to_octave(new_midi_key) + 2;
+        self.midi_channel = 10;
+        self.is_percussion = true;
     }
 }
 

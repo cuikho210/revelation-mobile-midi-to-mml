@@ -118,6 +118,15 @@ impl Track {
         self.update_events();
     }
 
+    pub fn to_percussion(&mut self) {
+        for note in self.notes.iter_mut() {
+            note.to_percussion_note();
+        }
+
+        self.instrument = Instrument::new(0, 10);
+        self.update_events();
+    }
+
     fn update_events(&mut self) {
         self.events = get_events_from_notes(&mut self.notes);
         fix_chord_duration(&mut self.events);
@@ -369,10 +378,11 @@ fn get_notes_from_smf_track(
                     let midi_key = key.as_int();
                     let midi_velocity = vel.as_int();
                     let mml_velocity = utils::midi_velocity_to_mml_velocity(midi_velocity, velocity_min, velocity_max);
+                    let midi_channel = channel.as_int() + 1;
 
                     if vel.as_int() > 0 {
                         create_note(
-                            channel.as_int() + 1,
+                            midi_channel,
                             midi_key,
                             midi_velocity,
                             mml_velocity,
