@@ -19,7 +19,12 @@ fn main() {
     let tracks = [track0, track1.0, track1.1];
 
     for track in tracks.iter() {
-        println!("\n{} -------------------------------------\n", track.instrument.name);
+        println!(
+            "\nTrack {} - {} - {} notes ----------------------------------\n",
+            track.name,
+            track.instrument.name,
+            track.mml_note_length,
+        );
         println!("{}", track.to_mml());
     }
 }
