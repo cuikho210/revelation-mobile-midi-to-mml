@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod test;
 
+use std::convert::TryInto;
 use crate::note::{Note, PitchClass};
 use crate::track_event::TrackEvent;
 

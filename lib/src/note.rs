@@ -49,6 +49,7 @@ pub struct Note {
     pub pitch_class: PitchClass,
     pub octave: u8,
     pub velocity: u8,
+    pub mml_string: String,
     pub is_percussion: bool,
 
     pub duration_in_tick: u32,
@@ -78,6 +79,7 @@ impl Note {
             pitch_class,
             octave,
             velocity,
+            mml_string: String::new(),
             is_percussion,
             position_in_tick: current_tick,
             position_in_smallest_unit,
@@ -94,6 +96,10 @@ impl Note {
 
     pub fn to_mml(&self) -> String {
         utils::get_display_mml(self.duration_in_smallest_unit, &self.pitch_class)
+    }
+
+    pub fn count_mml_note(&self) -> usize {
+        self.mml_string.split("&").count()
     }
 
     pub fn to_percussion_note(&mut self) {

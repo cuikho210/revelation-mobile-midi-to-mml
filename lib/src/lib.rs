@@ -1,3 +1,6 @@
+extern crate serde;
+extern crate midly;
+
 mod note;
 mod song;
 mod track;

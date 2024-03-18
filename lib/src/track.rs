@@ -4,9 +4,13 @@ use crate::{
     Instrument,
     utils,
 };
+
 use midly::{MetaMessage, MidiMessage, TrackEventKind};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    convert::TryInto,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Track {
@@ -457,6 +461,7 @@ fn update_note(
             let duration_in_smallest_unit = utils::tick_to_smallest_unit(duration, ppq);
             note.duration_in_tick = duration;
             note.duration_in_smallest_unit = duration_in_smallest_unit;
+            note.mml_string = note.to_mml();
         }
     }
 }

@@ -36,15 +36,23 @@ pub enum TrackEvent {
 
 impl TrackEvent {
     pub fn to_mml(&self) -> String {
-        return match self {
+        match self {
             Self::ConnectChord => String::from(":"),
             Self::IncreOctave => String::from(">"),
             Self::DecreOctave => String::from("<"),
             Self::SetTempo(tempo) => format!("t{tempo}"),
             Self::SetOctave(octave) => format!("o{octave}"),
-            Self::SetNote(note) => note.to_mml(),
+            Self::SetNote(note) => note.mml_string.to_owned(),
             Self::SetRest(rest) => utils::get_display_mml(rest.to_owned(), &PitchClass::Rest),
             Self::SetVelocity(vel) => format!("v{}", vel),
-        };
+        }
+    }
+
+    pub fn count_mml_note(&self) -> usize {
+        match self {
+            Self::SetNote(note) => note.count_mml_note(),
+            Self::SetRest(_) => self.to_mml().split("&").count(),
+            _ => 0
+        }
     }
 }
