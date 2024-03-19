@@ -1,4 +1,8 @@
 # Revelation mobile MIDI to MML
+
+[[English]](https://github.com/cuikho210/revelation-mobile-midi-to-mml) - 
+[[Tiếng Việt]](https://github.com/cuikho210/revelation-mobile-midi-to-mml/blob/main/README/README-vi.md)
+
 Một công cụ được sử dụng để chuyển đổi tệp MIDI thành mã MML sử dụng trong Revelation Mobile  
 -- *Dự án này vẫn đang trong quá trình phát triển và chưa thực sự ổn định* --  
 
