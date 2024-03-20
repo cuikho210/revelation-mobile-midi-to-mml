@@ -94,8 +94,13 @@ impl Track {
         tracks
     }
 
-    pub fn modify_velocity(&mut self, diff: u8) {
-        fixer::modify_note_velocity(&mut self.notes, diff);
+    pub fn apply_boot_velocity(&mut self, diff: u8) {
+        fixer::apply_boot_velocity(&mut self.notes, diff);
+        self.update_events();
+    }
+
+    pub fn apply_velocity_range(&mut self, velocity_min: u8, velocity_max: u8) {
+        fixer::apply_velocity_range(&mut self.notes, velocity_min, velocity_max);
         self.update_events();
     }
 

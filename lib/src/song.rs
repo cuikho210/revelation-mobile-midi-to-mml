@@ -29,6 +29,7 @@ pub struct Song {
     pub ppq: u16,
     pub bpm: u16,
     pub tracks: Vec<Track>,
+    pub options: SongOptions,
 }
 
 impl Song {
@@ -50,32 +51,42 @@ impl Song {
             Err(err) => return Err(Error::new(ErrorKind::Other, err)),
         };
 
-        let ppq = match Self::get_ppq_from_smf(&smf) {
+        let ppq = match get_ppq_from_smf(&smf) {
             Some(ppq) => ppq,
             None => 480,
         };
 
         let mut bpm = 120u16;
 
-        // Tracks
-        let mut tracks = get_tracks(
+        let tracks = get_tracks(
             &smf.tracks,
             ppq,
             &mut bpm,
             &options
         );
 
-        if options.auto_boot_velocity {
-            modify_note_velocity(&mut tracks);
-        }
+        let mut result = Self { ppq, bpm, tracks, options };
+        result.apply_song_options();
 
-        Ok(Self { ppq, bpm, tracks })
+        Ok(result)
     }
 
-    pub fn get_ppq_from_smf(smf: &Smf) -> Option<u16> {
-        match smf.header.timing {
-            Timing::Metrical(ppq) => Some(ppq.as_int()),
-            _ => None,
+    pub fn set_song_options(&mut self, options: SongOptions) {
+        self.options = options;
+        self.apply_song_options();
+    }
+
+    fn apply_song_options(&mut self) {
+        self.apply_velocity_range(self.options.velocity_min, self.options.velocity_max);
+
+        if self.options.auto_boot_velocity {
+            auto_boot_note_velocity(&mut self.tracks, self.options.velocity_max);
+        }
+    }
+
+    fn apply_velocity_range(&mut self, velocity_min: u8, velocity_max: u8) {
+        for track in self.tracks.iter_mut() {
+            track.apply_velocity_range(velocity_min, velocity_max);
         }
     }
 }
@@ -106,19 +117,26 @@ fn get_tracks(
     tracks
 }
 
-fn modify_note_velocity(tracks: &mut Vec<Track>) {
+fn auto_boot_note_velocity(tracks: &mut Vec<Track>, velocity_max: u8) {
     let mut max = 0u8;
 
     for track in tracks.iter() {
-        let current_max = utils::get_highest_velocity(&track.notes);
-        if current_max > max {
-            max = current_max;
+        let current = utils::get_highest_velocity(&track.notes);
+        if current > max {
+            max = current;
         }
     }
 
-    let diff = 15 - max;
+    let diff = velocity_max - max;
 
     for track in tracks.iter_mut() {
-        track.modify_velocity(diff);
+        track.apply_boot_velocity(diff);
+    }
+}
+
+pub fn get_ppq_from_smf(smf: &Smf) -> Option<u16> {
+    match smf.header.timing {
+        Timing::Metrical(ppq) => Some(ppq.as_int()),
+        _ => None,
     }
 }
