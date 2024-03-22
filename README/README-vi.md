@@ -3,7 +3,7 @@
 Một công cụ được sử dụng để chuyển đổi tệp MIDI thành mã MML sử dụng trong Revelation Mobile  
 -- *Dự án này vẫn đang trong quá trình phát triển và chưa thực sự ổn định* --  
 
-## Tại sao lại là tool này?
+## Tại sao là tool này?
 
 + Bảo toàn hợp âm thay vì chia thành nhiều track
 + Ánh xạ bộ trống từ tệp MIDI với bộ trống trong game
