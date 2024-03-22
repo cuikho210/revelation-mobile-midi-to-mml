@@ -114,7 +114,7 @@ impl Track {
     }
 
     fn update_events(&mut self) {
-        self.events = events::get_events_from_notes(&mut self.notes);
+        self.events = events::get_events_from_notes(&self.notes);
         fixer::fix_chord_duration(&mut self.events);
         fixer::fix_note_position(&mut self.events);
     }

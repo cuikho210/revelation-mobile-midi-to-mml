@@ -15,7 +15,7 @@ pub fn apply_boot_velocity(notes: &mut Vec<Note>, diff: u8) {
 
 pub fn apply_velocity_range(notes: &mut Vec<Note>, velocity_min: u8, velocity_max: u8) {
     for note in notes.iter_mut() {
-        utils::midi_velocity_to_mml_velocity(
+        note.velocity = utils::midi_velocity_to_mml_velocity(
             note.midi_velocity,
             velocity_min,
             velocity_max,
