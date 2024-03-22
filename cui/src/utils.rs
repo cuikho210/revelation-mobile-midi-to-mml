@@ -1,10 +1,45 @@
 use std::{
     path::PathBuf,
-    io::Error,
+    io::{Error, Write},
     fs,
 };
 use revelation_mobile_midi_to_mml::{Track, Song, SongOptions};
-use crate::types::PathGroup;
+use crate::{
+    types::PathGroup,
+    utils,
+};
+
+pub fn set_song_options<F>(json_path: &String, set_options: F)
+where F: Fn(&Song) -> SongOptions
+{
+    let json_path = PathBuf::from(json_path);
+    let mut song = utils::get_song_from_json_path(&json_path).unwrap();
+    let options = set_options(&song);
+
+    song.set_song_options(options);
+    utils::save_to_json(&song, &json_path);
+}
+
+pub fn string_to_bool_arg(arg: &String) -> bool {
+    let be_true = ["true", "0"];
+    let arg = arg.to_lowercase();
+
+    for value in be_true {
+        if arg == value {
+            return true;
+        }
+    }
+
+    false
+}
+
+pub fn save_to_json(song: &Song, path: &PathBuf) {
+    let json = serde_json::to_string(&song).unwrap();
+    let mut file = fs::File::create(path).unwrap();
+    file.write_all(json.as_bytes()).unwrap();
+
+    println!("Saved json file to {}", path.display());
+}
 
 pub fn to_path_group(input: &String, output: &Option<String>) -> PathGroup {
     let mut path = PathBuf::from(input);

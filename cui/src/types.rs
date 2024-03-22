@@ -17,17 +17,23 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Convert a MIDI file to JSON data
-    ToJson {
-        /// Path to MIDI file
-        input: String,
-        output: Option<String>,
-    },
+    ToJson { input: String, output: Option<String> },
 
-    ToMML {
-        input: String,
-    },
+    /// Export MML from MIDI or JSON
+    ToMML { input: String },
 
-    List {
-        input: String,
-    }
+    /// List tracks from MIDI or JSON
+    ListTracks { input: String },
+
+    /// List options from MIDI or JSON
+    ListOptions { input: String },
+
+    /// Set auto boot velocity of a JSON file
+    SetAutoBootVelocity { input: String, is_auto_boot_velocity: String },
+
+    /// Set velocity min of a JSON file
+    SetVelocityMin { input: String, value: u8 },
+    
+    /// Set velocity max of a JSON file
+    SetVelocityMax { input: String, value: u8 },
 }
