@@ -117,7 +117,7 @@ dependencies = [
 
 [[package]]
 name = "revelation-mobile-midi-to-mml"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "midly",
  "serde",
