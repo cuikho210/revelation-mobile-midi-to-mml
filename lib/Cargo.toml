@@ -1,6 +1,6 @@
 [package]
 name = "revelation-mobile-midi-to-mml"
-version = "0.1.0"
+version = "0.1.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
