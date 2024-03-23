@@ -5,7 +5,7 @@ use std::convert::TryInto;
 pub fn split_track(track: &Track) -> (Track, Track) {
     let (mut track_a, mut track_b) = split_track_by_override(track);
 
-    if track_a.mml_note_length > 3000 && track_b.mml_note_length > 3000 {
+    if track_a.mml_note_length > 3000 || track_b.mml_note_length > 3000 {
         equalize_tracks(&mut track_a, &mut track_b);
     }
 
@@ -40,7 +40,10 @@ pub fn equalize_tracks(track_a: &mut Track, track_b: &mut Track) {
         b.update_mml_note_length();
     };
 
-    let gap = track_a.mml_note_length as isize - track_b.mml_note_length as isize;
+    let length_a = track_a.mml_note_length as isize;
+    let length_b = track_b.mml_note_length as isize;
+    let gap = (length_a - length_b) / 2;
+
     if gap > 0 {
         equalize(track_a, track_b, gap as usize);
     } else {

@@ -2,7 +2,7 @@ extern crate revelation_mobile_midi_to_mml;
 use revelation_mobile_midi_to_mml::{Song, SongOptions};
 
 fn main() {
-    let path = std::path::PathBuf::from("/home/cuikho210/Downloads/Shinunoga_E-Wa__Fujii_Kaze__.mid");
+    let path = std::path::PathBuf::from("/home/cuikho210/Downloads/ban_khong_thuc_su_hanh_phuc.mid");
     let song = Song::from_path(
         path,
         // SongOptions::default(),
@@ -14,7 +14,10 @@ fn main() {
     )
     .unwrap();
 
-    for track in song.tracks.iter() {
+    let (left, right) = song.tracks.get(2).unwrap().split();
+    let tracks = [left, right];
+
+    for track in tracks.iter() {
         println!(
             "\nTrack {} - {} - {} notes ----------------------------------\n",
             track.name,

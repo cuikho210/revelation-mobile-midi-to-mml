@@ -89,9 +89,7 @@ impl Track {
     }
 
     pub fn split(&self) -> (Self, Self) {
-        let tracks = track_utils::split_track(self);
-
-        tracks
+        track_utils::split_track(self)
     }
 
     pub fn apply_boot_velocity(&mut self, diff: u8) {
