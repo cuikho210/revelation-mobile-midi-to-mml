@@ -89,7 +89,7 @@ impl Track {
     }
 
     pub fn split(&self) -> (Self, Self) {
-        let tracks = track_utils::split_notes_by_override(self);
+        let tracks = track_utils::split_track(self);
 
         tracks
     }

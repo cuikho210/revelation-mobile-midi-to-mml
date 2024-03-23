@@ -14,11 +14,7 @@ fn main() {
     )
     .unwrap();
 
-    let track0 = song.tracks.get(0).unwrap().to_owned();
-    let track1 = song.tracks.get(1).unwrap().split();
-    let tracks = [track0, track1.0, track1.1];
-
-    for track in tracks.iter() {
+    for track in song.tracks.iter() {
         println!(
             "\nTrack {} - {} - {} notes ----------------------------------\n",
             track.name,

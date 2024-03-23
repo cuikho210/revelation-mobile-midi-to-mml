@@ -2,7 +2,53 @@ use crate::{Instrument, Note, Track, utils};
 use midly::{TrackEventKind, MetaMessage, MidiMessage};
 use std::convert::TryInto;
 
-pub fn split_notes_by_override(track: &Track) -> (Track, Track) {
+pub fn split_track(track: &Track) -> (Track, Track) {
+    let (mut track_a, mut track_b) = split_track_by_override(track);
+
+    if track_a.mml_note_length > 3000 && track_b.mml_note_length > 3000 {
+        equalize_tracks(&mut track_a, &mut track_b);
+    }
+
+    (track_a, track_b)
+}
+
+/// Equalize the number of notes in the two tracks so that they are equal
+pub fn equalize_tracks(track_a: &mut Track, track_b: &mut Track) {
+    let equalize = |a: &mut Track, b: &mut Track, gap: usize| {
+        let mut mml_counter = 0usize;
+        let mut index_counter = 0usize;
+
+        for (index, note) in a.notes.iter().enumerate() {
+            mml_counter += note.count_mml_note();
+
+            if mml_counter >= gap {
+                index_counter = index + 1;
+                break;
+            }
+        }
+        
+        let (left, right) = a.notes.split_at(index_counter);
+        let mut left = left.to_vec();
+
+        a.notes = right.to_vec();
+        a.update_events();
+        a.update_mml_note_length();
+
+        b.notes.append(&mut left);
+        b.notes.sort();
+        b.update_events();
+        b.update_mml_note_length();
+    };
+
+    let gap = track_a.mml_note_length as isize - track_b.mml_note_length as isize;
+    if gap > 0 {
+        equalize(track_a, track_b, gap as usize);
+    } else {
+        equalize(track_b, track_a, gap.abs() as usize);
+    }
+}
+
+pub fn split_track_by_override(track: &Track) -> (Track, Track) {
     let mut max_end_position = 0u32;
     let mut notes_a: Vec<Note> = Vec::new();
     let mut notes_b: Vec<Note> = Vec::new();
