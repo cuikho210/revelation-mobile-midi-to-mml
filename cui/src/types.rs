@@ -36,4 +36,7 @@ pub enum Commands {
     
     /// Set velocity max of a JSON file
     SetVelocityMax { input: String, value: u8 },
+
+    /// Split track
+    Split { input: String, index: usize },
 }

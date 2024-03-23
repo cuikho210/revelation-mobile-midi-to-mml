@@ -66,9 +66,10 @@ pub fn to_path_group(input: &String, output: &Option<String>) -> PathGroup {
     }
 }
 
-pub fn print_track_title(track: &Track) {
+pub fn print_track_title(index: &usize, track: &Track) {
     println!(
-        "Track {} - {} - {} notes --------------------\n",
+        "{} - Track '{}' - {} - {} notes --------------------\n",
+        index,
         track.name,
         track.instrument.name,
         track.mml_note_length,

@@ -32,6 +32,9 @@ impl App {
             }
             Some(Commands::SetVelocityMin { input, value }) => commands::set_velocity_min(input, value),
             Some(Commands::SetVelocityMax { input, value }) => commands::set_velocity_max(input, value),
+            Some(Commands::Split { input, index }) => {
+                commands::split_track(input, index);
+            },
             _ => ()
         };
     }

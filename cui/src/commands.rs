@@ -1,5 +1,17 @@
+use std::path::PathBuf;
+
 use crate::utils;
 use revelation_mobile_midi_to_mml::{Song, SongOptions};
+
+pub fn split_track(json_path: &String, index: &usize) {
+    let json_path = PathBuf::from(json_path);
+    let mut song = utils::get_song_from_json_path(&json_path).unwrap();
+
+    let (left, right) = song.tracks.get(*index).unwrap().split();
+    song.tracks.splice(*index..index+1, [left, right]);
+
+    utils::save_to_json(&song, &json_path);
+}
 
 pub fn set_velocity_max(json_path: &String, value: &u8) {
     utils::set_song_options(json_path, |song| {
@@ -45,8 +57,8 @@ pub fn midi_to_json(input: &String, output: &Option<String>) {
 }
 
 pub fn list_tracks(song: &Song) {
-    for track in song.tracks.iter() {
-        utils::print_track_title(track);
+    for (index, track) in song.tracks.iter().enumerate() {
+        utils::print_track_title(&index, track);
     }
 }
 
@@ -61,8 +73,8 @@ pub fn to_mml(input: &String) {
     println!("|     MIDI to MML - https://github.com/cuikho210/revelation-mobile-midi-to-mml     |");
     println!("------------------------------------------------------------------------------------\n");
 
-    for track in song.tracks.iter() {
-        utils::print_track_title(track);
+    for (index, track) in song.tracks.iter().enumerate() {
+        utils::print_track_title(&index, track);
         utils::print_track_mml(track);
     }
 }
