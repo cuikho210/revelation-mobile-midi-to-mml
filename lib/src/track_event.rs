@@ -42,9 +42,16 @@ impl TrackEvent {
             Self::DecreOctave => String::from("<"),
             Self::SetTempo(tempo) => format!("t{tempo}"),
             Self::SetOctave(octave) => format!("o{octave}"),
-            Self::SetNote(note) => note.mml_string.to_owned(),
+            Self::SetNote(note) => note.to_mml(),
             Self::SetRest(rest) => utils::get_display_mml(rest.to_owned(), &PitchClass::Rest),
             Self::SetVelocity(vel) => format!("v{}", vel),
+        }
+    }
+
+    pub fn update_mml_note(&mut self) {
+        match self {
+            Self::SetNote(note) => note.update_mml_string(),
+            _ => ()
         }
     }
 

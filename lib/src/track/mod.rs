@@ -109,6 +109,7 @@ impl Track {
 
         self.instrument = Instrument::new(0, 10);
         self.update_events();
+        self.update_mml_note_length();
     }
 
     fn update_events(&mut self) {
@@ -120,7 +121,8 @@ impl Track {
     fn update_mml_note_length(&mut self) {
         let mut note_length = 0usize;
         
-        for event in self.events.iter() {
+        for event in self.events.iter_mut() {
+            event.update_mml_note();
             note_length += event.count_mml_note();
         }
 

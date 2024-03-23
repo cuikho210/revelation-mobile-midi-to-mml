@@ -104,7 +104,7 @@ pub fn update_note(
             let duration_in_smallest_unit = utils::tick_to_smallest_unit(duration, ppq);
             note.duration_in_tick = duration;
             note.duration_in_smallest_unit = duration_in_smallest_unit;
-            note.mml_string = note.to_mml();
+            note.update_mml_string();
         }
     }
 }

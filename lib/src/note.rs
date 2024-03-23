@@ -102,6 +102,10 @@ impl Note {
         self.mml_string.split("&").count()
     }
 
+    pub fn update_mml_string(&mut self) {
+        self.mml_string = self.to_mml();
+    }
+
     pub fn to_percussion_note(&mut self) {
         let new_midi_key = match self.midi_key {
             // Snare - C#4
