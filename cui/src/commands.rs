@@ -3,6 +3,18 @@ use std::path::PathBuf;
 use crate::utils;
 use revelation_mobile_midi_to_mml::{Song, SongOptions};
 
+pub fn merge_tracks(json_path: &String, index_a: &usize, index_b: &usize) {
+    let json_path = PathBuf::from(json_path);
+    let mut song = utils::get_song_from_json_path(&json_path).unwrap();
+    
+    let track_b = song.tracks.get(*index_b).unwrap().to_owned();
+    let track_a = song.tracks.get_mut(*index_a).unwrap();
+    track_a.merge(&track_b);
+    song.tracks.remove(*index_b);
+
+    utils::save_to_json(&song, &json_path);
+}
+
 pub fn split_track(json_path: &String, index: &usize) {
     let json_path = PathBuf::from(json_path);
     let mut song = utils::get_song_from_json_path(&json_path).unwrap();

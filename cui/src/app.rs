@@ -30,11 +30,18 @@ impl App {
                     utils::string_to_bool_arg(is_auto_boot_velocity),
                 );
             }
-            Some(Commands::SetVelocityMin { input, value }) => commands::set_velocity_min(input, value),
-            Some(Commands::SetVelocityMax { input, value }) => commands::set_velocity_max(input, value),
+            Some(Commands::SetVelocityMin { input, value }) => {
+                commands::set_velocity_min(input, value);
+            }
+            Some(Commands::SetVelocityMax { input, value }) => {
+                commands::set_velocity_max(input, value);
+            }
             Some(Commands::Split { input, index }) => {
                 commands::split_track(input, index);
-            },
+            }
+            Some(Commands::Merge { input, index_a, index_b }) => {
+                commands::merge_tracks(input, index_a, index_b);
+            }
             _ => ()
         };
     }

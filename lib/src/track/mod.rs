@@ -81,6 +81,7 @@ impl Track {
     /// Merge other track to this track
     pub fn merge(&mut self, other: &Self) {
         self.notes.append(&mut other.notes.to_owned());
+        self.name = format!("{}+{}", &self.name, other.name);
 
         // Sort by position_in_smallest_unit
         self.notes.sort();

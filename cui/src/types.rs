@@ -39,4 +39,7 @@ pub enum Commands {
 
     /// Split track
     Split { input: String, index: usize },
+
+    /// Merge tracks
+    Merge { input: String, index_a: usize, index_b: usize },
 }
