@@ -17,29 +17,70 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Convert a MIDI file to JSON data
-    ToJson { input: String, output: Option<String> },
+    ToJson {
+        #[arg(short, long, value_name = "MIDI_PATH")]
+        input: String,
+
+        #[arg(short, long, value_name = "OUTPUT_PATH")]
+        output: Option<String>
+    },
 
     /// Export MML from MIDI or JSON
-    ToMML { input: String },
+    ToMML {
+        #[arg(short, long, value_name = "PATH")]
+        input: String
+    },
 
     /// List tracks from MIDI or JSON
-    ListTracks { input: String },
+    ListTracks {
+        #[arg(short, long, value_name = "JSON_PATH")]
+        input: String
+    },
 
     /// List options from MIDI or JSON
-    ListOptions { input: String },
+    ListOptions {
+        #[arg(short, long, value_name = "JSON_PATH")]
+        input: String
+    },
 
     /// Set auto boot velocity of a JSON file
-    SetAutoBootVelocity { input: String, is_auto_boot_velocity: String },
+    SetAutoBootVelocity {
+        #[arg(short, long, value_name = "JSON_PATH")]
+        input: String,
+
+        is_auto_boot_velocity: String
+    },
 
     /// Set velocity min of a JSON file
-    SetVelocityMin { input: String, value: u8 },
+    SetVelocityMin {
+        #[arg(short, long, value_name = "JSON_PATH")]
+        input: String,
+
+        value: u8,
+    },
     
     /// Set velocity max of a JSON file
-    SetVelocityMax { input: String, value: u8 },
+    SetVelocityMax {
+        #[arg(short, long, value_name = "JSON_PATH")]
+        input: String,
+
+        value: u8,
+    },
 
     /// Split track
-    Split { input: String, index: usize },
+    Split {
+        #[arg(short, long, value_name = "JSON_PATH")]
+        input: String,
+
+        index: usize,
+    },
 
     /// Merge tracks
-    Merge { input: String, index_a: usize, index_b: usize },
+    Merge {
+        #[arg(short, long, value_name = "JSON_PATH")]
+        input: String,
+
+        index_a: usize,
+        index_b: usize,
+    },
 }
