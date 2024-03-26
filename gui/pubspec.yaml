@@ -41,6 +41,7 @@ dependencies:
   gap: ^3.0.1
   remixicon: ^1.2.0
   file_picker: ^8.0.0+1
+  package_info_plus: ^6.0.0
 
 dev_dependencies:
   flutter_test:

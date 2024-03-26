@@ -6,15 +6,18 @@ import 'package:midi_to_mml/file_importer/from_midi_file.dart';
 import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 import 'package:gap/gap.dart';
 import 'package:midi_to_mml/utils.dart';
+import 'package:midi_to_mml/controller.dart';
 
 class HomePage extends StatelessWidget {
 	const HomePage({ super.key });
 
 	@override
 	Widget build(context) {
+		final controller = Get.put(AppController());
+
 		return Scaffold(
 			appBar: AppBar(
-				title: const Text("MIDI to MML"),
+				title: const _AppTitle(),
 			),
 			body: Center(child: Column(
 				mainAxisAlignment: MainAxisAlignment.center,
@@ -36,7 +39,8 @@ class HomePage extends StatelessWidget {
 
 								if (message.isOk) {
 									WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-										Get.to(EditSongPage(songStatus: message.songStatus));
+										controller.songStatus(message.songStatus);
+										Get.to(const EditSongPage());
 									});
 								} else {
 									WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -51,5 +55,14 @@ class HomePage extends StatelessWidget {
 				],
 			)),
 		);
+	}
+}
+
+class _AppTitle extends GetView<AppController> {
+	const _AppTitle();
+
+	@override
+	Widget build(context) {
+		return Obx(() => Text("MIDI to MML ${controller.packageInfo().version}"));
 	}
 }
