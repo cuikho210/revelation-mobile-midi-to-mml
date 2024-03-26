@@ -6,18 +6,19 @@ use std::{
 use revelation_mobile_midi_to_mml::{Track, Song, SongOptions};
 use crate::{
     types::PathGroup,
-    utils,
+    commands,
 };
 
-pub fn set_song_options<F>(json_path: &String, set_options: F)
-where F: Fn(&Song) -> SongOptions
+pub fn modify_json_file<C>(input: &String, callback: C)
+where C: Fn(&mut Song)
 {
-    let json_path = PathBuf::from(json_path);
-    let mut song = utils::get_song_from_json_path(&json_path).unwrap();
-    let options = set_options(&song);
+    let path = PathBuf::from(input);
+    let mut song = get_song_from_json_path(&path).unwrap();
 
-    song.set_song_options(options);
-    utils::save_to_json(&song, &json_path);
+    callback(&mut song);
+
+    let json = commands::to_json(&song);
+    save_json(&json, &path);
 }
 
 pub fn string_to_bool_arg(arg: &String) -> bool {
@@ -33,8 +34,7 @@ pub fn string_to_bool_arg(arg: &String) -> bool {
     false
 }
 
-pub fn save_to_json(song: &Song, path: &PathBuf) {
-    let json = serde_json::to_string(&song).unwrap();
+pub fn save_json(json: &String, path: &PathBuf) {
     let mut file = fs::File::create(path).unwrap();
     file.write_all(json.as_bytes()).unwrap();
 
@@ -66,18 +66,18 @@ pub fn to_path_group(input: &String, output: &Option<String>) -> PathGroup {
     }
 }
 
-pub fn print_track_title(index: &usize, track: &Track) {
-    println!(
+pub fn get_track_title(index: &usize, track: &Track) -> String {
+    format!(
         "{} - Track '{}' - {} - {} notes --------------------\n",
         index,
         track.name,
         track.instrument.name,
         track.mml_note_length,
-    );
+    )
 }
 
-pub fn print_track_mml(track: &Track) {
-    println!("{}\n", track.to_mml());
+pub fn get_track_mml(track: &Track) -> String {
+    format!("{}\n", track.to_mml())
 }
 
 pub fn get_song_from_path(path: &String) -> Song {
