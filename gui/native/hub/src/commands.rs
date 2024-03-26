@@ -7,6 +7,7 @@ use crate::{
             ImportMidiDataOutput,
             SplitTrackOutput,
             MergeTracksOutput,
+            GetMmlOutput,
         },
         types::{
             SongStatus,
@@ -16,6 +17,18 @@ use crate::{
     state,
     utils,
 };
+
+pub async fn to_mml() {
+    let mut receiver = commands::ToMml::get_dart_signal_receiver();
+
+    while let Some(dart_signal) = receiver.recv().await {
+        let options = dart_signal.message.options.unwrap();
+        state::set_song_options(options).await;
+
+        let mml = state::get_mml().await;
+        GetMmlOutput { mml }.send_signal_to_dart(None);
+    }
+}
 
 pub async fn merge_tracks() {
     let mut receiver = commands::Merge::get_dart_signal_receiver();

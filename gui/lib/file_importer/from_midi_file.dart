@@ -20,7 +20,10 @@ class FromMidiFile {
 
 	/// Open the file picker and return the path of file
 	Future<String?> getMidiFilePath() async {
-		FilePickerResult? result = await FilePicker.platform.pickFiles();
+		FilePickerResult? result = await FilePicker.platform.pickFiles(
+			type: FileType.custom,
+			allowedExtensions: ['mid', 'midi'],
+		);
 
 		if (result != null) {
 			return result.files.single.path;

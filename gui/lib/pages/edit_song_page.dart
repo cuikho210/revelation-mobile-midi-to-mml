@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
+import 'package:midi_to_mml/command_signals.dart';
+import 'package:midi_to_mml/utils.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:midi_to_mml/components/track.dart';
 import 'package:midi_to_mml/controller.dart';
 import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 
-class EditSongPage extends StatelessWidget {
+class EditSongPage extends GetView<AppController> {
 	const EditSongPage({ super.key });
 
 	@override
 	Widget build(context) {
+		listenToMmlSignalStream();
+		listenMergeTracksSignalStream();
+		listenSplitTrackSignalStream();
+
 		return Scaffold(
 			appBar: AppBar(
 				title: const Text("Edit"),
@@ -18,69 +24,48 @@ class EditSongPage extends StatelessWidget {
 					TextButton.icon(
 						icon: const Icon(Remix.export_line),
 						label: const Text("Export"),
-						onPressed: () => {},
+						onPressed: () => ExportToMML(controller.songStatus().options),
 					),
 				],
 			),
 			body: ListView(children: const [
-				_MergeSignalReceiver(),
-				_SplitSignalReceiver(),
 				_Options(),
 				Gap(32),
 				_Tracks(),
 			]),
 		);
 	}
-}
 
-class _MergeSignalReceiver extends GetView<AppController> {
-	const _MergeSignalReceiver();
-
-	@override
-	Widget build(context) {
-		return StreamBuilder(
-			stream: MergeTracksOutput.rustSignalStream,
-			builder: (context, snapshot) {
-				final signal = snapshot.data;
-
-				if (signal != null) {
-					WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-						final tracks = signal.message.tracks;
-						controller.songStatus.value.tracks.clear();
-						controller.songStatus.value.tracks.addAll(tracks);
-						controller.songStatus.refresh();
-						Get.back();
-					});
-				}
-
-				return Container();
-			}
-		);
+	void listenToMmlSignalStream() async {
+		await for (final signal in GetMMLOutput.rustSignalStream) {
+			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+				final mmlString = signal.message.mml;
+				SaveToTextFile(mmlString);
+			});
+		}
 	}
-}
 
-class _SplitSignalReceiver extends GetView<AppController> {
-	const _SplitSignalReceiver();
+	void listenMergeTracksSignalStream() async {
+		await for (final signal in MergeTracksOutput.rustSignalStream) {
+			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+				final tracks = signal.message.tracks;
+				controller.songStatus.value.tracks.clear();
+				controller.songStatus.value.tracks.addAll(tracks);
+				controller.songStatus.refresh();
+				Get.back();
+			});
+		}
+	}
 
-	@override
-	Widget build(context) {
-		return StreamBuilder(
-			stream: SplitTrackOutput.rustSignalStream,
-			builder: (context, snapshot) {
-				final signal = snapshot.data;
-
-				if (signal != null) {
-					WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-						final tracks = signal.message.tracks;
-						controller.songStatus.value.tracks.clear();
-						controller.songStatus.value.tracks.addAll(tracks);
-						controller.songStatus.refresh();
-					});
-				}
-
-				return Container();
-			}
-		);
+	void listenSplitTrackSignalStream() async {
+		await for (final signal in SplitTrackOutput.rustSignalStream) {
+			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+				final tracks = signal.message.tracks;
+				controller.songStatus.value.tracks.clear();
+				controller.songStatus.value.tracks.addAll(tracks);
+				controller.songStatus.refresh();
+			});
+		}
 	}
 }
 

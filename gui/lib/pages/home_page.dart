@@ -14,6 +14,7 @@ class HomePage extends StatelessWidget {
 	@override
 	Widget build(context) {
 		final controller = Get.put(AppController());
+		listenImportMidiSignalStream(controller);
 
 		return Scaffold(
 			appBar: AppBar(
@@ -29,32 +30,26 @@ class HomePage extends StatelessWidget {
 					),
 
 					const Gap(16),
-					StreamBuilder(
-						stream: ImportMidiDataOutput.rustSignalStream,
-						builder: (context, snapshot) {
-							final signal = snapshot.data;
-
-							if (signal != null) {
-								final message = signal.message;
-
-								if (message.isOk) {
-									WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-										controller.songStatus(message.songStatus);
-										Get.to(const EditSongPage());
-									});
-								} else {
-									WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-										AlertError("Incorrect MIDI file!");
-									});
-								}
-							}
-
-							return const Text("Drop a file here");
-						},
-					),
 				],
 			)),
 		);
+	}
+
+	void listenImportMidiSignalStream(AppController controller) async {
+		await for (final signal in ImportMidiDataOutput.rustSignalStream) {
+			final message = signal.message;
+
+			if (message.isOk) {
+				WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+					controller.songStatus(message.songStatus);
+					Get.to(const EditSongPage());
+				});
+			} else {
+				WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+					AlertError("Incorrect MIDI file!");
+				});
+			}
+		}
 	}
 }
 
