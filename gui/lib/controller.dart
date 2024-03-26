@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
+import 'package:midi_to_mml/messages/types.pb.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class AppController extends GetxController {

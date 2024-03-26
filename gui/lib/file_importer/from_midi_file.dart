@@ -11,7 +11,7 @@ class FromMidiFile {
 		final filePath = await getMidiFilePath();
 
 		if (filePath == null) {
-			const Utils().alertError("Cannot open this file!");
+			AlertError("Cannot open this file!");
 			return;
 		}
 

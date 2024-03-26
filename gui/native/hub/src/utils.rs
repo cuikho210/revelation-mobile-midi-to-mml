@@ -1,5 +1,5 @@
 use revelation_mobile_midi_to_mml::Song;
-use crate::messages::rust_to_dart::Track;
+use crate::messages::types::Track;
 
 pub fn get_tracks_from_song(song: &Song) -> Vec<Track> {
     let mut result: Vec<Track> = Vec::new();

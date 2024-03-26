@@ -1,27 +1,16 @@
 syntax = "proto3";
 package commands;
 
+import 'types.proto';
+
 // [RINF:DART-SIGNAL]
 message ImportMidiData {
 	string path = 1;
 }
 
 // [RINF:DART-SIGNAL]
-message ToMML {}
-
-// [RINF:DART-SIGNAL]
-message SetAutoBootVelocity {
-	bool value = 1;
-}
-
-// [RINF:DART-SIGNAL]
-message SetVelocityMin {
-	uint32 value = 1;
-}
-
-// [RINF:DART-SIGNAL]
-message SetVelocityMax {
-	uint32 value = 1;
+message ToMML {
+	types.SongOptions options = 1;
 }
 
 // [RINF:DART-SIGNAL]

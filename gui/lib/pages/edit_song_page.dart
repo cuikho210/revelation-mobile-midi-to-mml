@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:midi_to_mml/components/track.dart';
 import 'package:midi_to_mml/controller.dart';
+import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 
 class EditSongPage extends StatelessWidget {
 	const EditSongPage({ super.key });
@@ -22,10 +23,63 @@ class EditSongPage extends StatelessWidget {
 				],
 			),
 			body: ListView(children: const [
+				_MergeSignalReceiver(),
+				_SplitSignalReceiver(),
 				_Options(),
 				Gap(32),
 				_Tracks(),
 			]),
+		);
+	}
+}
+
+class _MergeSignalReceiver extends GetView<AppController> {
+	const _MergeSignalReceiver();
+
+	@override
+	Widget build(context) {
+		return StreamBuilder(
+			stream: MergeTracksOutput.rustSignalStream,
+			builder: (context, snapshot) {
+				final signal = snapshot.data;
+
+				if (signal != null) {
+					WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+						final tracks = signal.message.tracks;
+						controller.songStatus.value.tracks.clear();
+						controller.songStatus.value.tracks.addAll(tracks);
+						controller.songStatus.refresh();
+						Get.back();
+					});
+				}
+
+				return Container();
+			}
+		);
+	}
+}
+
+class _SplitSignalReceiver extends GetView<AppController> {
+	const _SplitSignalReceiver();
+
+	@override
+	Widget build(context) {
+		return StreamBuilder(
+			stream: SplitTrackOutput.rustSignalStream,
+			builder: (context, snapshot) {
+				final signal = snapshot.data;
+
+				if (signal != null) {
+					WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+						final tracks = signal.message.tracks;
+						controller.songStatus.value.tracks.clear();
+						controller.songStatus.value.tracks.addAll(tracks);
+						controller.songStatus.refresh();
+					});
+				}
+
+				return Container();
+			}
 		);
 	}
 }

@@ -1,11 +1,14 @@
 use rinf::debug_print;
-use midi_to_mml_cui::commands;
 use revelation_mobile_midi_to_mml::{Song, SongOptions};
 use crate::{
     messages::{
-        commands::ImportMidiData,
+        commands,
         rust_to_dart::{
             ImportMidiDataOutput,
+            SplitTrackOutput,
+            MergeTracksOutput,
+        },
+        types::{
             SongStatus,
             SongOptions as SignalSongOptions,
         },
@@ -14,8 +17,33 @@ use crate::{
     utils,
 };
 
+pub async fn merge_tracks() {
+    let mut receiver = commands::Merge::get_dart_signal_receiver();
+
+    while let Some(dart_signal) = receiver.recv().await {
+        let signal = dart_signal.message;
+        let index_a: usize = signal.index_a.try_into().unwrap();
+        let index_b: usize = signal.index_b.try_into().unwrap();
+        let tracks = state::merge_tracks(index_a, index_b).await;
+
+        MergeTracksOutput { tracks }.send_signal_to_dart(None);
+    }
+}
+
+pub async fn split_track() {
+    let mut receiver = commands::Split::get_dart_signal_receiver();
+
+    while let Some(dart_signal) = receiver.recv().await {
+        let signal = dart_signal.message;
+        let split_index: usize = signal.index.try_into().unwrap();
+        let tracks = state::split_track(split_index).await;
+
+        SplitTrackOutput { tracks }.send_signal_to_dart(None);
+    }
+}
+
 pub async fn import_midi_data() {
-    let mut receiver = ImportMidiData::get_dart_signal_receiver();
+    let mut receiver = commands::ImportMidiData::get_dart_signal_receiver();
 
     while let Some(dart_signal) = receiver.recv().await {
         let signal = dart_signal.message;

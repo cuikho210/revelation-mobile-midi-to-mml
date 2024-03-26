@@ -1,28 +1,12 @@
 syntax = "proto3";
 package rust_to_dart;
 
-message SongOptions {
-	bool auto_boot_velocity = 1;
-	uint32 velocity_min = 2;
-	uint32 velocity_max = 3;
-}
-
-message Track {
-	uint32 index = 1;
-	string name = 2;
-	string instrument_name = 3;
-	uint32 note_length = 4;
-}
-
-message SongStatus {
-	SongOptions options = 1;
-	repeated Track tracks = 2;
-}
+import 'types.proto';
 
 // [RINF:RUST-SIGNAL]
 message ImportMidiDataOutput {
 	bool is_ok = 1;
-	optional SongStatus songStatus = 2;
+	optional types.SongStatus songStatus = 2;
 }
 
 // [RINF:RUST-SIGNAL]
@@ -31,26 +15,11 @@ message GetMMLOutput {
 }
 
 // [RINF:RUST-SIGNAL]
-message SetAutoBootVelocityOutput {
-	bool is_ok = 1;
-}
-
-// [RINF:RUST-SIGNAL]
-message SetVelocityMinOutput {
-	bool is_ok = 1;
-}
-
-// [RINF:RUST-SIGNAL]
-message SetVelocityMaxOutput {
-	bool is_ok = 1;
-}
-
-// [RINF:RUST-SIGNAL]
 message SplitTrackOutput {
-	repeated string tracks = 1;
+	repeated types.Track tracks = 1;
 }
 
 // [RINF:RUST-SIGNAL]
 message MergeTracksOutput {
-	repeated string tracks = 1;
+	repeated types.Track tracks = 1;
 }

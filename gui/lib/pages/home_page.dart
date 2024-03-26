@@ -44,7 +44,7 @@ class HomePage extends StatelessWidget {
 									});
 								} else {
 									WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-										const Utils().alertError("Incorrect MIDI file!");
+										AlertError("Incorrect MIDI file!");
 									});
 								}
 							}
