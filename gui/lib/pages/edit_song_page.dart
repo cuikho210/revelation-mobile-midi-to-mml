@@ -8,14 +8,13 @@ import 'package:midi_to_mml/components/track.dart';
 import 'package:midi_to_mml/controller.dart';
 import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 
-class EditSongPage extends GetView<AppController> {
+class EditSongPage extends StatelessWidget {
 	const EditSongPage({ super.key });
 
 	@override
 	Widget build(context) {
+		final controller = Get.put(AppController());
 		listenToMmlSignalStream();
-		listenMergeTracksSignalStream();
-		listenSplitTrackSignalStream();
 
 		return Scaffold(
 			appBar: AppBar(
@@ -44,6 +43,32 @@ class EditSongPage extends GetView<AppController> {
 			});
 		}
 	}
+}
+
+class _Tracks extends GetView<AppController> {
+	const _Tracks();
+
+	List<Widget> getTrackWidgets() {
+		return controller.songStatus().tracks.map((track) => TrackListTitle(
+			trackIndex: track.index,
+			trackName: track.name,
+			instrumentName: track.instrumentName,
+			trackNoteLength: track.noteLength,
+		)).toList();
+	}
+
+	@override
+	Widget build(context) {
+		listenMergeTracksSignalStream();
+		listenSplitTrackSignalStream();
+
+		return Obx(() =>Column(children: [
+			Text("Tracks", style: Theme.of(context).textTheme.titleLarge),
+			const Gap(16),
+			
+			...getTrackWidgets()
+		]));
+	}
 
 	void listenMergeTracksSignalStream() async {
 		await for (final signal in MergeTracksOutput.rustSignalStream) {
@@ -66,29 +91,6 @@ class EditSongPage extends GetView<AppController> {
 				controller.songStatus.refresh();
 			});
 		}
-	}
-}
-
-class _Tracks extends GetView<AppController> {
-	const _Tracks();
-
-	List<Widget> getTrackWidgets() {
-		return controller.songStatus().tracks.map((track) => TrackListTitle(
-			trackIndex: track.index,
-			trackName: track.name,
-			instrumentName: track.instrumentName,
-			trackNoteLength: track.noteLength,
-		)).toList();
-	}
-
-	@override
-	Widget build(context) {
-		return Obx(() =>Column(children: [
-			Text("Tracks", style: Theme.of(context).textTheme.titleLarge),
-			const Gap(16),
-			
-			...getTrackWidgets()
-		]));
 	}
 }
 
