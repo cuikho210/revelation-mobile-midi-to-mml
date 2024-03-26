@@ -3,19 +3,26 @@ import 'package:midi_to_mml/messages/commands.pb.dart';
 import 'package:midi_to_mml/utils.dart';
 
 class FromMidiFile {
-	FromMidiFile() {
-		init();
+	FromMidiFile.open(String path) {
+		open(path);
 	}
 
-	Future init() async {
-		final filePath = await getMidiFilePath();
+	FromMidiFile.pickFile() {
+		pickFile();
+	}
 
-		if (filePath == null) {
+	Future pickFile() async {
+		final path = await getMidiFilePath();
+		open(path);
+	}
+
+	Future open(String? path) async {
+		if (path == null) {
 			AlertError("Cannot open this file!");
 			return;
 		}
 
-		ImportMidiData(path: filePath).sendSignalToRust(null);
+		ImportMidiData(path: path).sendSignalToRust(null);
 	}
 
 	/// Open the file picker and return the path of file

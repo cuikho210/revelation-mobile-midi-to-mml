@@ -1,3 +1,4 @@
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:midi_to_mml/pages/edit_song_page.dart';
@@ -19,41 +20,47 @@ class HomePage extends StatelessWidget {
 			appBar: AppBar(
 				title: const _AppTitle(),
 			),
-			body: Center(child: Column(
-				mainAxisAlignment: MainAxisAlignment.center,
-				children: [
-					ElevatedButton.icon(
-						onPressed: () => FromMidiFile(),
-						icon: const Icon(Remix.file_music_line),
-						label: const Text("Import a MIDI file"),
-					),
+			body: DropTarget(
+				onDragDone: (detail) {
+					final path = detail.files.first.path;
+					FromMidiFile.open(path);
+				},
+				child: Center(child: Column(
+					mainAxisAlignment: MainAxisAlignment.center,
+					children: [
+						ElevatedButton.icon(
+							onPressed: () => FromMidiFile.pickFile(),
+							icon: const Icon(Remix.file_music_line),
+							label: const Text("Import a MIDI file"),
+						),
 
-					const Gap(16),
-					StreamBuilder(
-						stream: ImportMidiDataOutput.rustSignalStream,
-						builder: (context, snapshot) {
-							final signal = snapshot.data;
+						const Gap(16),
+						StreamBuilder(
+							stream: ImportMidiDataOutput.rustSignalStream,
+							builder: (context, snapshot) {
+								final signal = snapshot.data;
 
-							if (signal != null) {
-								final message = signal.message;
+								if (signal != null) {
+									final message = signal.message;
 
-								if (message.isOk) {
-									WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-										controller.songStatus(message.songStatus);
-										Get.to(const EditSongPage());
-									});
-								} else {
-									WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-										AlertError("Incorrect MIDI file!");
-									});
+									if (message.isOk) {
+										WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+											controller.songStatus(message.songStatus);
+											Get.to(const EditSongPage());
+										});
+									} else {
+										WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+											AlertError("Incorrect MIDI file!");
+										});
+									}
 								}
-							}
 
-							return const Text("Drop a file here");
-						},
-					),
-				],
-			)),
+								return const Text("Drop a file here");
+							},
+						),
+					]),
+				)
+			),
 		);
 	}
 }
