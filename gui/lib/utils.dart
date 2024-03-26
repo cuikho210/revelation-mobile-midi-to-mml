@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -17,15 +17,23 @@ class AlertError {
 
 class SaveToTextFile {
 	SaveToTextFile(String content) {
-		FilePicker.platform.saveFile(
-			dialogTitle: "Save MML to a text file",
-			fileName: "exported_mml.txt",
-			lockParentWindow: true,
-		).then((path) {
-			if (path != null) {
-				final file = File(path);
-				file.writeAsString(content);
-			}
-		});
+		if (Platform.isAndroid || Platform.isIOS) {
+			FilePicker.platform.saveFile(
+				dialogTitle: "Save MML to a text file",
+				fileName: "exported_mml.txt",
+				bytes: Uint8List.fromList(content.codeUnits),
+			);
+		} else {
+			FilePicker.platform.saveFile(
+				dialogTitle: "Save MML to a text file",
+				fileName: "exported_mml.txt",
+				lockParentWindow: true,
+			).then((path) {
+				if (path != null) {
+					final file = File(path);
+					file.writeAsString(content);
+				}
+			});
+		}
 	}
 }
