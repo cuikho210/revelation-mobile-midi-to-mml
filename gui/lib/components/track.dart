@@ -44,7 +44,7 @@ class _MergeTracksDialog extends GetView<AppController> {
 
 	const _MergeTracksDialog(this.indexA);
 
-	List<Widget> getTrackButtons() {
+	List<Widget> getTrackButtons(BuildContext context) {
 		return controller.songStatus().tracks
 			.where((track) => track.index != indexA)
 			.map((track) => ListTile(
@@ -52,7 +52,10 @@ class _MergeTracksDialog extends GetView<AppController> {
 				subtitle: Text(track.instrumentName),
 				trailing: ElevatedButton(
 					child: const Text("Merge"),
-					onPressed: () => MergeTracks(indexA, track.index),
+					onPressed: () {
+						MergeTracks(indexA, track.index);
+						Navigator.of(context).pop();
+					}
 				),
 			))
 			.toList();
@@ -63,7 +66,7 @@ class _MergeTracksDialog extends GetView<AppController> {
 		return Dialog(child: SizedBox(
 			height: 512,
 			child: ListView(
-				children: getTrackButtons(),
+				children: getTrackButtons(context),
 			),
 		));
 	}

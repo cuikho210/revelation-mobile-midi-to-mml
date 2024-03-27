@@ -14,7 +14,10 @@ class EditSongPage extends StatelessWidget {
 	@override
 	Widget build(context) {
 		final controller = Get.put(AppController());
+
 		listenToMmlSignalStream();
+		listenSplitTrackSignalStream(controller);
+		listenMergeTracksSignalStream(controller);
 
 		return Scaffold(
 			appBar: AppBar(
@@ -43,6 +46,28 @@ class EditSongPage extends StatelessWidget {
 			});
 		}
 	}
+
+	void listenMergeTracksSignalStream(AppController controller) async {
+		await for (final signal in MergeTracksOutput.rustSignalStream) {
+			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+				final tracks = signal.message.tracks;
+				controller.songStatus.value.tracks.clear();
+				controller.songStatus.value.tracks.addAll(tracks);
+				controller.songStatus.refresh();
+			});
+		}
+	}
+
+	void listenSplitTrackSignalStream(AppController controller) async {
+		await for (final signal in SplitTrackOutput.rustSignalStream) {
+			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+				final tracks = signal.message.tracks;
+				controller.songStatus.value.tracks.clear();
+				controller.songStatus.value.tracks.addAll(tracks);
+				controller.songStatus.refresh();
+			});
+		}
+	}
 }
 
 class _Tracks extends GetView<AppController> {
@@ -59,9 +84,6 @@ class _Tracks extends GetView<AppController> {
 
 	@override
 	Widget build(context) {
-		listenMergeTracksSignalStream();
-		listenSplitTrackSignalStream();
-
 		return Obx(() =>Column(children: [
 			Text("Tracks", style: Theme.of(context).textTheme.titleLarge),
 			const Gap(16),
@@ -70,28 +92,6 @@ class _Tracks extends GetView<AppController> {
 		]));
 	}
 
-	void listenMergeTracksSignalStream() async {
-		await for (final signal in MergeTracksOutput.rustSignalStream) {
-			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-				final tracks = signal.message.tracks;
-				controller.songStatus.value.tracks.clear();
-				controller.songStatus.value.tracks.addAll(tracks);
-				controller.songStatus.refresh();
-				Get.back();
-			});
-		}
-	}
-
-	void listenSplitTrackSignalStream() async {
-		await for (final signal in SplitTrackOutput.rustSignalStream) {
-			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-				final tracks = signal.message.tracks;
-				controller.songStatus.value.tracks.clear();
-				controller.songStatus.value.tracks.addAll(tracks);
-				controller.songStatus.refresh();
-			});
-		}
-	}
 }
 
 class _Options extends GetView<AppController> {
