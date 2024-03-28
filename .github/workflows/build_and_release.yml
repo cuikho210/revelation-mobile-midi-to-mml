@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: "oracle"
-          java-version: "17"
+          java-version: "22"
 
       - name: Install rinf
         run: cargo install rinf
@@ -33,7 +33,9 @@ jobs:
         run: Compress-Archive -Path build/windows/x64/runner/Release/* -Destination windows_portable_release_x86_64.zip
 
       - name: Create upload keystore file
-        run: $keystoreContent = [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")) > D:/keystore.jks
+        run: |
+          $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
+          [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
       - name: Create key.properties file
         run: |
           echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
