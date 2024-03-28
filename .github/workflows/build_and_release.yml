@@ -17,40 +17,42 @@ jobs:
         with:
           channel: "stable"
           cache: true
-      - uses: actions/setup-java@v4
-        with:
-          distribution: "oracle"
-          java-version: "22"
-
-      - name: Install rinf
-        run: cargo install rinf
-      - name: Generate message code
-        run: rinf message
-
-      - name: Build for windows
-        run: flutter build windows
-      - name: Zip the windows release
-        run: Compress-Archive -Path build/windows/x64/runner/Release/* -Destination windows_portable_release_x86_64.zip
-
-      - name: Create upload keystore file
-        run: |
-          $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
-          [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
-      - name: Create key.properties file
-        run: |
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
-          echo "keyPassword=${{ secrets.KEYSTORE_PASSWORD }}" >> ./android/key.properties
-          echo "keyAlias=upload" >> ./android/key.properties
-          echo "storeFile=D:/keystore.jks" >> ./android/key.properties
-      - name: Build apk
-        run: flutter build apk --release --verbose
-
-      - uses: "marvinpinto/action-automatic-releases@latest"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
-          prerelease: true
-          title: "Release"
-          files: |
-            windows_portable_release_x86_64.zip
-            build/app/outputs/flutter-apk/app-release.apk
+      - name: Flutter docter with verbose
+        run: flutter doctor --verbose
+      # - uses: actions/setup-java@v4
+      #   with:
+      #     distribution: "oracle"
+      #     java-version: "22"
+      #
+      # - name: Install rinf
+      #   run: cargo install rinf
+      # - name: Generate message code
+      #   run: rinf message
+      #
+      # - name: Build for windows
+      #   run: flutter build windows
+      # - name: Zip the windows release
+      #   run: Compress-Archive -Path build/windows/x64/runner/Release/* -Destination windows_portable_release_x86_64.zip
+      #
+      # - name: Create upload keystore file
+      #   run: |
+      #     $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
+      #     [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
+      # - name: Create key.properties file
+      #   run: |
+      #     echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
+      #     echo "keyPassword=${{ secrets.KEYSTORE_PASSWORD }}" >> ./android/key.properties
+      #     echo "keyAlias=upload" >> ./android/key.properties
+      #     echo "storeFile=D:/keystore.jks" >> ./android/key.properties
+      # - name: Build apk
+      #   run: flutter build apk --release --verbose
+      #
+      # - uses: "marvinpinto/action-automatic-releases@latest"
+      #   with:
+      #     repo_token: "${{ secrets.GITHUB_TOKEN }}"
+      #     automatic_release_tag: "latest"
+      #     prerelease: true
+      #     title: "Release"
+      #     files: |
+      #       windows_portable_release_x86_64.zip
+      #       build/app/outputs/flutter-apk/app-release.apk
