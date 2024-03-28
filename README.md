@@ -18,4 +18,4 @@ A tool used to convert MIDI files into MML code used in Revelation Mobile
 
 + `lib` - [The library](https://github.com/cuikho210/revelation-mobile-midi-to-mml/tree/main/lib)
 + `cui` - [Command line user interface](https://github.com/cuikho210/revelation-mobile-midi-to-mml/tree/main/cui)
-+ `gui` - Graphical user interface (Incoming)
++ `gui` - [Graphical user interface](https://github.com/cuikho210/revelation-mobile-midi-to-mml/tree/main/gui)
