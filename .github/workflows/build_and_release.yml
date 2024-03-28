@@ -1,0 +1,23 @@
+name: Build and release
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+      - name: Install rinf
+        run: cargo install rinf
+      - name: Go to gui directory
+        run: cd gui
+      - name: Generate message code
+        run: rinf message
+      - name: Build for windows
+        run: flutter build windows
