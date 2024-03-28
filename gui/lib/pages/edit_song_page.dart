@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:midi_to_mml/command_signals.dart';
-import 'package:midi_to_mml/utils.dart';
+import 'package:midi_to_mml/pages/display_mmls.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:midi_to_mml/components/track.dart';
 import 'package:midi_to_mml/controller.dart';
@@ -15,7 +15,7 @@ class EditSongPage extends StatelessWidget {
 	Widget build(context) {
 		final controller = Get.put(AppController());
 
-		listenToMmlSignalStream();
+		listenToMmlSignalStream(controller);
 		listenSplitTrackSignalStream(controller);
 		listenMergeTracksSignalStream(controller);
 
@@ -38,11 +38,12 @@ class EditSongPage extends StatelessWidget {
 		);
 	}
 
-	void listenToMmlSignalStream() async {
+	void listenToMmlSignalStream(AppController controller) async {
 		await for (final signal in GetMMLOutput.rustSignalStream) {
 			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-				final mmlString = signal.message.mml;
-				SaveToTextFile(mmlString);
+				final mmls = signal.message.mml;
+				controller.mmls(mmls);
+				Get.to(const DisplayMmls());
 			});
 		}
 	}
@@ -74,12 +75,7 @@ class _Tracks extends GetView<AppController> {
 	const _Tracks();
 
 	List<Widget> getTrackWidgets() {
-		return controller.songStatus().tracks.map((track) => TrackListTitle(
-			trackIndex: track.index,
-			trackName: track.name,
-			instrumentName: track.instrumentName,
-			trackNoteLength: track.noteLength,
-		)).toList();
+		return controller.songStatus().tracks.map((track) => TrackListTitle(track: track)).toList();
 	}
 
 	@override

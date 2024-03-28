@@ -11,7 +11,7 @@ message ImportMidiDataOutput {
 
 // [RINF:RUST-SIGNAL]
 message GetMMLOutput {
-	string mml = 1;
+	repeated string mml = 1;
 }
 
 // [RINF:RUST-SIGNAL]

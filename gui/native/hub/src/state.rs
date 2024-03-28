@@ -14,11 +14,11 @@ pub static STATE: Mutex<State> = Mutex::const_new(State {
     song: None,
 });
 
-pub async fn get_mml() -> String {
+pub async fn get_mml() -> Vec<String> {
     let state = STATE.lock().await;
     let song = state.song.as_ref().unwrap();
-    
-    commands::to_mml(song)
+
+    song.tracks.iter().map(|track| track.to_mml()).collect()
 }
 
 pub async fn merge_tracks(index_a: usize, index_b: usize) -> Vec<Track> {
