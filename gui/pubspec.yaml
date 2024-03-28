@@ -21,6 +21,7 @@ dependencies:
   file_picker: ^8.0.0+1
   package_info_plus: ^6.0.0
   desktop_drop: 0.4.3
+  path: ^1.9.0
 
 dev_dependencies:
   flutter_test:

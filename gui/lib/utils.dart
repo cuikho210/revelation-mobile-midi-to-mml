@@ -16,17 +16,22 @@ class AlertError {
 }
 
 class SaveToTextFile {
-	SaveToTextFile(String content) {
+	SaveToTextFile({
+		required String fileName,
+		required String content,
+	}) {
+		fileName = "$fileName.txt";
+
 		if (Platform.isAndroid || Platform.isIOS) {
 			FilePicker.platform.saveFile(
 				dialogTitle: "Save MML to a text file",
-				fileName: "exported_mml.txt",
+				fileName: fileName,
 				bytes: Uint8List.fromList(content.codeUnits),
 			);
 		} else {
 			FilePicker.platform.saveFile(
 				dialogTitle: "Save MML to a text file",
-				fileName: "exported_mml.txt",
+				fileName: fileName,
 				lockParentWindow: true,
 			).then((path) {
 				if (path != null) {

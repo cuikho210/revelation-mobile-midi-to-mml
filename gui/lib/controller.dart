@@ -21,7 +21,7 @@ class AppController extends GetxController {
 	).obs;
 
 	final mmls = <String>[].obs;
-	final fileName = "".obs;
+	final fileName = "new_song".obs;
 	
 	AppController() {
 		getAppVersion();

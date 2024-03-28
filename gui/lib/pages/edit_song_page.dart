@@ -21,7 +21,7 @@ class EditSongPage extends StatelessWidget {
 
 		return Scaffold(
 			appBar: AppBar(
-				title: const Text("Edit"),
+				title: Text("Edit: ${controller.fileName()}"),
 				actions: [
 					TextButton.icon(
 						icon: const Icon(Remix.export_line),

@@ -23,12 +23,15 @@ class DisplayMmls extends StatelessWidget {
 
 		return Scaffold(
 			appBar: AppBar(
-				title: const Text("Export MML"),
+				title: Text("Export: ${controller.fileName()}"),
 				actions: [
 					TextButton.icon(
 						icon: const Icon(Remix.save_line),
 						label: const Text("Save as file"),
-						onPressed: () => SaveToTextFile(controller.exportMML()),
+						onPressed: () => SaveToTextFile(
+							fileName: controller.fileName(),
+							content: controller.exportMML(),
+						),
 					),
 				],
 			),

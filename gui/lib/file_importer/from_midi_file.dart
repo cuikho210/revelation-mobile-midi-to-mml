@@ -1,6 +1,9 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:get/get.dart';
+import 'package:midi_to_mml/controller.dart';
 import 'package:midi_to_mml/messages/commands.pb.dart';
 import 'package:midi_to_mml/utils.dart';
+import 'package:path/path.dart';
 
 class FromMidiFile {
 	FromMidiFile.open(String path) {
@@ -22,6 +25,9 @@ class FromMidiFile {
 			return;
 		}
 
+		final controller = Get.put(AppController());
+
+		controller.fileName(basename(path));
 		ImportMidiData(path: path).sendSignalToRust(null);
 	}
 
