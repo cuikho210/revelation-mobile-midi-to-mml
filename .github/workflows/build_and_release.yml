@@ -27,10 +27,10 @@ jobs:
       - name: Generate message code
         run: rinf message
 
-      # - name: Build for windows
-      #   run: flutter build windows
-      # - name: Zip the windows release
-      #   run: Compress-Archive -Path build/windows/x64/runner/Release/* -Destination windows_portable_release_x86_64.zip
+      - name: Build for windows
+        run: flutter build windows
+      - name: Zip the windows release
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -Destination windows_portable_release_x86_64.zip
 
       - name: Create upload keystore file
         run: |
@@ -45,12 +45,12 @@ jobs:
       - name: Build apk
         run: flutter build apk --release
 
-      # - uses: "marvinpinto/action-automatic-releases@latest"
-      #   with:
-      #     repo_token: "${{ secrets.GITHUB_TOKEN }}"
-      #     automatic_release_tag: "latest"
-      #     prerelease: true
-      #     title: "Release"
-      #     files: |
-      #       windows_portable_release_x86_64.zip
-      #       build/app/outputs/flutter-apk/app-release.apk
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Release"
+          files: |
+            windows_portable_release_x86_64.zip
+            build/app/outputs/flutter-apk/app-release.apk
