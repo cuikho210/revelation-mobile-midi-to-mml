@@ -2,12 +2,15 @@ name: Build and release
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - "v*"
   pull_request:
     branches: [ "main" ]
 
 jobs:
   build:
     runs-on: windows-latest
+    permissions: write-all
     defaults:
       run:
         working-directory: ./gui
@@ -49,8 +52,8 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "latest"
-          prerelease: true
-          title: "Release"
+          prerelease: false
+          draft: true
           files: |
             windows_portable_release_x86_64.zip
             build/app/outputs/flutter-apk/app-release.apk
