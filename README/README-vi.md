@@ -15,4 +15,4 @@ Một công cụ được sử dụng để chuyển đổi tệp MIDI thành m�
 
 + `lib` - [Thư viện](https://github.com/cuikho210/revelation-mobile-midi-to-mml/tree/main/lib)
 + `cui` - [Giao diện dòng lệnh](https://github.com/cuikho210/revelation-mobile-midi-to-mml/tree/main/cui)
-+ `gui` - Giao diện đồ họa (Sắp tới)
++ `gui` - [Graphical user interface](https://github.com/cuikho210/revelation-mobile-midi-to-mml/tree/main/gui)
