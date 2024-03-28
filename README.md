@@ -1,5 +1,7 @@
 # Revelation mobile MIDI to MML
 
+[<img src="https://github.com/cuikho210/revelation-mobile-midi-to-mml/assets/86552587/8ae2c84c-1e6e-4883-8409-2aeefcfbab45" height="128px" />](https://github.com/cuikho210/revelation-mobile-midi-to-mml/blob/main/README/DONATE.md)
+
 [[English]](https://github.com/cuikho210/revelation-mobile-midi-to-mml) - 
 [[Tiếng Việt]](https://github.com/cuikho210/revelation-mobile-midi-to-mml/blob/main/README/README-vi.md)
 
