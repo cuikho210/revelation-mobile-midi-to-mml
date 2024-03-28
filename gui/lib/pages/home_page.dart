@@ -8,6 +8,7 @@ import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 import 'package:gap/gap.dart';
 import 'package:midi_to_mml/utils.dart';
 import 'package:midi_to_mml/controller.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatelessWidget {
 	const HomePage({ super.key });
@@ -19,6 +20,23 @@ class HomePage extends StatelessWidget {
 		return Scaffold(
 			appBar: AppBar(
 				title: const _AppTitle(),
+				actions: [
+					IconButton(
+						icon: const Icon(Remix.github_line),
+						onPressed: () {
+							final uri = Uri.parse("https://github.com/cuikho210/revelation-mobile-midi-to-mml");
+							launchUrl(uri);
+						},
+					),
+					TextButton.icon(
+						icon: const Icon(Remix.hand_heart_line),
+						label: const Text("Donate"),
+						onPressed: () {
+							final uri = Uri.parse("https://github.com/cuikho210/revelation-mobile-midi-to-mml/blob/main/README/DONATE.md");
+							launchUrl(uri);
+						},
+					)
+				],
 			),
 			body: DropTarget(
 				onDragDone: (detail) {
