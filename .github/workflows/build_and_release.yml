@@ -1,7 +1,8 @@
 name: Build and release
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
     tags:
       - "v*"
   pull_request:
@@ -48,12 +49,10 @@ jobs:
       - name: Build apk
         run: flutter build apk --release
 
-      - uses: "marvinpinto/action-automatic-releases@latest"
+      - name: Release
+      - uses: softprops/action-gh-release@v2
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
-          prerelease: false
-          draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             windows_portable_release_x86_64.zip
             build/app/outputs/flutter-apk/app-release.apk
