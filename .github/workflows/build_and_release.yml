@@ -17,6 +17,7 @@ jobs:
         with:
           distribution: "zulu"
           java-version: "17"
+          cache: "gradle"
       - uses: subosito/flutter-action@v2
         with:
           channel: "stable"
@@ -45,7 +46,8 @@ jobs:
         run: flutter_distributor release --name default
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: dist/*
+          artifacts: dist/*
+          generateReleaseNotes: true
