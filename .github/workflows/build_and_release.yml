@@ -13,11 +13,11 @@ jobs:
         working-directory: ./gui
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: "zulu"
-          java-version: "17"
-          cache: "gradle"
+      # - uses: actions/setup-java@v4
+      #   with:
+      #     distribution: "zulu"
+      #     java-version: "17"
+      #     cache: "gradle"
       - uses: subosito/flutter-action@v2
         with:
           channel: "stable"
@@ -31,23 +31,24 @@ jobs:
       - name: Generate message code
         run: rinf message
 
-      - name: Create upload keystore file
-        run: |
-          $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
-          [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
-      - name: Create key.properties file
-        run: |
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
-          echo "keyPassword=${{ secrets.KEYSTORE_PASSWORD }}" >> ./android/key.properties
-          echo "keyAlias=upload" >> ./android/key.properties
-          echo "storeFile=D:/keystore.jks" >> ./android/key.properties
+      # - name: Create upload keystore file
+      #   run: |
+      #     $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
+      #     [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
+      # - name: Create key.properties file
+      #   run: |
+      #     echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
+      #     echo "keyPassword=${{ secrets.KEYSTORE_PASSWORD }}" >> ./android/key.properties
+      #     echo "keyAlias=upload" >> ./android/key.properties
+      #     echo "storeFile=D:/keystore.jks" >> ./android/key.properties
 
       - name: Build releases
-        run: flutter_distributor release --name default
+        run: flutter_distributor release --name default --jobs release-windows
 
       - name: Release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: dist/*
+          artifacts: gui/dist/*
           generateReleaseNotes: true
+          artifactErrorsFailBuild: true
