@@ -1,8 +1,8 @@
 # Revelation mobile MIDI to MML
 
-[[Donate]](https://github.com/cuikho210/revelation-mobile-midi-to-mml/blob/main/README/DONATE.md)
+[[Donate]](https://github.com/cuikho210/revelation-mobile-midi-to-mml/blob/main/README/DONATE.md) - 
+[[Download]](https://github.com/cuikho210/revelation-mobile-midi-to-mml/releases)  
 
-[[English]](https://github.com/cuikho210/revelation-mobile-midi-to-mml) - 
 [[Tiếng Việt]](https://github.com/cuikho210/revelation-mobile-midi-to-mml/blob/main/README/README-vi.md)
 
 A tool used to convert MIDI files into MML code used in Revelation Mobile  
