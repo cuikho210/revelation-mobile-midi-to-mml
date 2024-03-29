@@ -1,0 +1,14 @@
+output: dist/
+releases:
+  - name: default
+    jobs:
+      - name: release-android
+        package:
+          platform: android
+          target: apk
+          build_args:
+            target-platform: android-arm64
+      - name: release-windows
+        package:
+          platform: windows
+          target: exe

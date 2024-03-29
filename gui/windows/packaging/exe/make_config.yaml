@@ -1,0 +1,8 @@
+app_id: revelation_mobile_midi_to_mml-cuikho210-2024
+publisher: cuikho210
+publisher_url: https://github.com/cuikho210/revelation-mobile-midi-to-mml
+display_name: MIDI to MML
+create_desktop_icon: true
+install_dir_name: revelation_mobile_midi_to_mml
+locales:
+  - en
