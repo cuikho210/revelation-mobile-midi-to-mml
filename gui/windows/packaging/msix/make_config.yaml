@@ -1,0 +1,5 @@
+display_name: "RM: MIDI to MML"
+publisher_display_name: cuikho210
+identity_name: com.mtlkms.revelation-mobile-midi-to-mml
+msix_version: 1.0.0.0
+logo_path: ../../../icon.png
