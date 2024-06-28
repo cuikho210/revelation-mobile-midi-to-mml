@@ -61,7 +61,7 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           packageName: com.mtlkms.revelation_mobile_midi_to_mml
-          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          releaseFiles: gui/build/app/outputs/bundle/release/app-release.aab
           track: alpha
           status: completed
       
@@ -69,6 +69,6 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "gui/build/windows/x64/runner/Release/*,build/app/outputs/bundle/release/app-release.aab"
+          artifacts: "gui/build/windows/x64/runner/Release/*,gui/build/app/outputs/bundle/release/app-release.aab"
           generateReleaseNotes: true
           artifactErrorsFailBuild: true
