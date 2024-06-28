@@ -3,9 +3,6 @@ on:
   push:
     tags:
       - "v*"
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build:
@@ -34,6 +31,11 @@ jobs:
       - name: Generate message code
         run: rinf message
 
+      - name: Setup Microsoft Store Developer CLI
+        uses: microsoft/setup-msstore-cli@v1
+      - name: Configure Microsoft Store Developer CLI
+        run: msstore reconfigure --tenantId ${{ secrets.PARTNER_CENTER_TENANT_ID }} --sellerId ${{ secrets.PARTNER_CENTER_SELLER_ID }} --clientId ${{ secrets.PARTNER_CENTER_CLIENT_ID }} --clientSecret ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
+
       - name: Create upload keystore file
         run: |
           $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
@@ -48,10 +50,13 @@ jobs:
       - name: Build releases
         run: flutter_distributor release --name default
 
-      - name: Release
+      - name: Release to artifacts
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: gui/dist/*/*
           generateReleaseNotes: true
           artifactErrorsFailBuild: true
+
+      - name: Publish to microsoft test flight
+        run: msstore publish -i gui/dist -f ${{ secrets.PARTNER_CENTER_FLIGHT_ID }}
