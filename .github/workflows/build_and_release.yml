@@ -2,7 +2,7 @@ name: Build and release
 on:
   push:
     tags:
-      - "*"
+      - "v*"
 
 jobs:
   build:
@@ -59,4 +59,4 @@ jobs:
           artifactErrorsFailBuild: true
 
       - name: Publish to microsoft test flight
-        run: msstore publish -i gui/dist -f ${{ secrets.PARTNER_CENTER_FLIGHT_ID }}
+        run: msstore publish -i dist -f ${{ secrets.PARTNER_CENTER_FLIGHT_ID }}
