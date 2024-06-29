@@ -29,6 +29,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.13.1
+  msix: ^3.16.7
 
 flutter:
   uses-material-design: true
@@ -50,3 +51,12 @@ flutter_launcher_icons:
   macos:
     generate: true
     image_path: "icon.png"
+
+msix_config:
+  display_name: MIDI to MML
+  publisher_display_name: cuikho210
+  publisher: CN=686422A7-5A4A-4633-BAB3-4CB07D6870A6
+  identity_name: cuikho210.MIDItoMML
+  msix_version: 0.0.1.0
+  logo_path: windows/runner/resources/app_icon.png
+  msstore_appId: 9NWBRMHF4TLH
