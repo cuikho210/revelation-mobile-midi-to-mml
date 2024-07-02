@@ -343,6 +343,7 @@ version = "0.1.0"
 dependencies = [
  "cpal",
  "oxisynth",
+ "regex",
  "revelation-mobile-midi-to-mml",
 ]
 
