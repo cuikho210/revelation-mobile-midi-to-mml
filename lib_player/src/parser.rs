@@ -43,6 +43,7 @@ impl Parser {
             if current_chord.len() > 0 {
                 utils::play_chord(connection, &current_chord, channel);
                 current_chord.clear();
+                before = Some(note.to_owned());
                 continue;
             }
 
