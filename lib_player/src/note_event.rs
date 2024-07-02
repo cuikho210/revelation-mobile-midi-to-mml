@@ -1,17 +1,27 @@
 use crate::utils;
 
+#[derive(Debug, Clone)]
 pub struct NoteEvent {
     pub raw_mml: String,
+    pub tempo: usize,
     pub midi_key: Option<u8>,
     pub midi_velocity: u8,
     pub duration_in_note_64: usize,
+    pub duration_in_ms: usize,
+    pub is_connected_to_prev_note: bool,
 }
 
 impl NoteEvent {
-    pub fn from_mml(mml: String, octave: u8, velocity: u8, tempo: u16) -> Self {
+    pub fn from_mml(
+        mml: String,
+        octave: u8,
+        velocity: u8,
+        tempo: usize,
+        is_connected_to_prev_note: bool,
+    ) -> Self {
         let mut parts = mml.split('&');
         let mut mml_key: Option<String> = None;
-        let mut key_length = 1usize;
+        let mut key_length: usize = 1;
         let mut midi_key: Option<u8> = None;
         let mut duration_in_note_64: usize = 0;
         let midi_velocity = utils::mml_velocity_to_midi_velocity(velocity);
@@ -30,11 +40,16 @@ impl NoteEvent {
             duration_in_note_64 += duration;
         }
 
+        let duration_in_ms: usize = utils::duration_in_note_64_to_ms(duration_in_note_64, tempo);
+
         Self {
             raw_mml: mml,
+            tempo,
             midi_key,
             midi_velocity,
             duration_in_note_64,
+            duration_in_ms,
+            is_connected_to_prev_note,
         }
     }
 }

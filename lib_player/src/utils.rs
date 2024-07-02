@@ -1,6 +1,9 @@
+use std::{thread::sleep, time::Duration};
+use crate::{SynthOutputConnection, NoteEvent};
 
 pub fn mml_velocity_to_midi_velocity(mml_velocity: u8) -> u8 {
-    mml_velocity / 15 * 128
+    let mml_f64: f64 = mml_velocity as f64;
+    (mml_f64 / 15.0 * 128.0) as u8
 }
 
 pub fn mml_to_midi_key(mml: &str, octave: u8) -> Option<u8> {
@@ -62,4 +65,38 @@ pub fn mml_duration_to_duration_in_note_64(mml_duration: &str) -> usize {
     }
 
     result
+}
+
+pub fn duration_in_note_64_to_ms(duration_in_note_64: usize, tempo: usize) -> usize {
+    let tempo_f64 = tempo as f64;
+    let dur_per_note_64_in_ms = tempo_f64 / 960.0;
+
+    let result = duration_in_note_64 as f64 * dur_per_note_64_in_ms * 1000.0;
+    result.round() as usize
+}
+
+pub fn play_note(connection: &mut SynthOutputConnection, note: &NoteEvent, channel: u8) {
+    if let Some(key) = note.midi_key {
+        connection.note_on(channel, key, note.midi_velocity);
+        sleep(Duration::from_millis(note.duration_in_ms as u64));
+        connection.note_off(channel, key);
+    } else {
+        sleep(Duration::from_millis(note.duration_in_ms as u64));
+    }
+}
+
+pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>, channel: u8) {
+    for note in chord.iter() {
+        if let Some(key) = note.midi_key {
+            connection.note_on(channel, key, note.midi_velocity);
+        }
+    }
+
+    sleep(Duration::from_millis(chord.first().unwrap().duration_in_ms as u64));
+
+    for note in chord.iter() {
+        if let Some(key) = note.midi_key {
+            connection.note_off(channel, key);
+        }
+    }
 }
