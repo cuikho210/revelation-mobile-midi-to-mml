@@ -69,7 +69,7 @@ pub fn mml_duration_to_duration_in_note_64(mml_duration: &str) -> usize {
 
 pub fn duration_in_note_64_to_ms(duration_in_note_64: usize, tempo: usize) -> usize {
     let tempo_f64 = tempo as f64;
-    let dur_per_note_64_in_ms = tempo_f64 / 1.44;
+    let dur_per_note_64_in_ms = 15_000.0 / (tempo_f64 * 4.0);
 
     let result = duration_in_note_64 as f64 * dur_per_note_64_in_ms;
     result.round() as usize
