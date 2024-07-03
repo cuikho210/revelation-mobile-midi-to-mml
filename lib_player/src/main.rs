@@ -11,15 +11,17 @@ fn main() {
 fn test_from_midi() {
     use revelation_mobile_midi_to_mml::{Song, SongOptions};
 
-    // let synth = Synth::new(String::from("./test_resouces/YDP-GrandPiano-SF2-20160804/YDP-GrandPiano-20160804.sf2"));
-    // let synth = Synth::new(String::from("./test_resouces/Yamaha_C3_Grand_Piano.sf2"));
-    let synth = Synth::new(String::from("./test_resouces/East_West_-_The_Ultimate_Piano_Collection.sf2"));
-    let (_stream, connection) = synth.new_stream();
+    let synth = Synth::new();
 
-    let midi_path = std::path::PathBuf::from("./test_resouces/rex_incognito.mid");
+    let (_stream, connection) = synth.new_stream(
+        String::from("./test_resouces/East_West_-_The_Ultimate_Piano_Collection.sf2")
+        // String::from("./test_resouces/Yamaha_C3_Grand_Piano.sf2")
+    );
+
+    // let midi_path = std::path::PathBuf::from("./test_resouces/rex_incognito.mid");
     // let midi_path = std::path::PathBuf::from("./test_resouces/Hitchcock.mid");
     // let midi_path = std::path::PathBuf::from("./test_resouces/Cloudless_Yorushika.mid");
-    // let midi_path = std::path::PathBuf::from("./test_resouces/Kiseki.mid");
+    let midi_path = std::path::PathBuf::from("./test_resouces/Kiseki.mid");
     // let midi_path = std::path::PathBuf::from("./test_resouces/ghost_in_a_flower.mid");
     // let midi_path = std::path::PathBuf::from("./test_resouces/Senbonzakura.mid");
 
@@ -63,8 +65,10 @@ fn _test_simple() {
     let parsed = Parser::parse(mml_1.to_string());
     println!("parse 1: {}", time.elapsed().as_nanos());
 
-    let synth = Synth::new(String::from("./test_resouces/YDP-GrandPiano-SF2-20160804/YDP-GrandPiano-20160804.sf2"));
-    let (_stream, mut connection) = synth.new_stream();
+    let synth = Synth::new();
+    let (_stream, mut connection) = synth.new_stream(
+        String::from("./test_resouces/YDP-GrandPiano-SF2-20160804/YDP-GrandPiano-20160804.sf2")
+    );
 
     parsed.play(&mut connection, 0);
     sleep(Duration::from_millis(parsed.duration_in_ms as u64));
