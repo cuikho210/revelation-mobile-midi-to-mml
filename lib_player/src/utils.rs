@@ -3,7 +3,7 @@ use crate::{SynthOutputConnection, NoteEvent};
 
 pub fn mml_velocity_to_midi_velocity(mml_velocity: u8) -> u8 {
     let mml_f64: f64 = mml_velocity as f64;
-    (mml_f64 / 15.0 * 128.0) as u8
+    (mml_f64 / 15.0 * 127.0) as u8
 }
 
 pub fn mml_to_midi_key(mml: &str, octave: u8) -> Option<u8> {
@@ -78,6 +78,7 @@ pub fn duration_in_note_64_to_ms(duration_in_note_64: usize, tempo: usize) -> us
 pub fn play_note(connection: &mut SynthOutputConnection, note: &NoteEvent, channel: u8) {
     if let Some(key) = note.midi_key {
         connection.note_on(channel, key, note.midi_velocity);
+        log_note_on(note, channel);
         sleep(Duration::from_millis(note.duration_in_ms as u64));
         connection.note_off(channel, key);
     } else {
@@ -89,6 +90,7 @@ pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>
     for note in chord.iter() {
         if let Some(key) = note.midi_key {
             connection.note_on(channel, key, note.midi_velocity);
+            log_note_on(note, channel);
         }
     }
 
@@ -99,4 +101,20 @@ pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>
             connection.note_off(channel, key);
         }
     }
+}
+
+pub fn log_note_on(note: &NoteEvent, channel: u8) {
+    let midi_key = match note.midi_key {
+        Some(key) => key.to_string(),
+        None => String::from("rest"),
+    };
+
+    println!(
+        "[play_note] note_on {} {} - velocity {} - duration {}ms - channel {}",
+        midi_key,
+        note.raw_mml,
+        note.midi_velocity,
+        note.duration_in_ms,
+        channel,
+    );
 }
