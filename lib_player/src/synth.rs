@@ -6,6 +6,7 @@ use cpal::{
 };
 use oxisynth::MidiEvent;
 
+#[derive(Clone, Debug)]
 pub struct SynthOutputConnection {
     pub tx: std::sync::mpsc::Sender<MidiEvent>,
 }

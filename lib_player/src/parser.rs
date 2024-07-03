@@ -5,9 +5,6 @@ use crate::{
     utils,
 };
 
-const REGEXP_TEMPO: &str = r"t\d+";
-const REGEXP_OCTAVE: &str = r"o\d+";
-const REGEXP_VELOCITY: &str = r"v\d+";
 const REGEXP_NOTE: &str = r"[ABCDEFGr](\+)?\d+(\.)?(&[ABCDEFGr](\+)?\d+(\.)?)*";
 
 pub struct Parser {
@@ -98,45 +95,23 @@ impl Parser {
                 let mml = &self.raw_mml.as_str()[*index..];
 
                 if char == 't' {
-                    let re = Regex::new(REGEXP_TEMPO).unwrap();
-                    if let Some(matches) = re.find(mml) {
-                        if matches.len() == 0 {
-                            return None;
-                        }
+                    let value = get_first_mml_value(mml);
+                    *index += value.len() + 1;
 
-                        *index += matches.len();
-
-                        let tempo = matches.as_str()[1..].parse::<usize>().unwrap();
-                        return Some(MmlEvent::SetTempo(tempo));
-                    } else {
-                        return None;
-                    }
+                    let tempo = value.parse::<usize>().unwrap();
+                    return Some(MmlEvent::SetTempo(tempo));
                 } else if char == 'o' {
-                    let re = Regex::new(REGEXP_OCTAVE).unwrap();
-                    if let Some(matches) = re.find(mml) {
-                        if matches.len() == 0 {
-                            return None;
-                        }
+                    let value = get_first_mml_value(mml);
+                    *index += value.len() + 1;
 
-                        *index += matches.len();
-                        let octave = matches.as_str()[1..].parse::<u8>().unwrap();
-                        return Some(MmlEvent::SetOctave(octave));
-                    } else {
-                        return None;
-                    }
+                    let octave = value.parse::<u8>().unwrap();
+                    return Some(MmlEvent::SetOctave(octave));
                 } else if char == 'v' {
-                    let re = Regex::new(REGEXP_VELOCITY).unwrap();
-                    if let Some(matches) = re.find(mml) {
-                        if matches.len() == 0 {
-                            return None;
-                        }
+                    let value = get_first_mml_value(mml);
+                    *index += value.len() + 1;
 
-                        *index += matches.len();
-                        let velocity = matches.as_str()[1..].parse::<u8>().unwrap();
-                        return Some(MmlEvent::SetVelocity(velocity));
-                    } else {
-                        return None;
-                    }
+                    let velocity = value.parse::<u8>().unwrap();
+                    return Some(MmlEvent::SetVelocity(velocity));
                 } else if char == '>' {
                     *index += 1;
                     return Some(MmlEvent::IncreOctave);
@@ -147,31 +122,78 @@ impl Parser {
                     *index += 1;
                     return Some(MmlEvent::ConnectChord);
                 } else {
-                    let re = Regex::new(REGEXP_NOTE).unwrap();
-                    if let Some(matches) = re.find(mml) {
-                        if matches.len() == 0 {
-                            return None;
-                        }
+                    let mml_note = get_first_mml_note(mml);
+                    *index += mml_note.len();
 
-                        let mml_note = matches.as_str();
-                        let note = NoteEvent::from_mml(
-                            mml_note.to_string(),
-                            current_mml_octave,
-                            current_mml_velocity,
-                            current_tempo,
-                            *is_connect_chord,
-                        );
+                    let note = NoteEvent::from_mml(
+                        mml_note,
+                        current_mml_octave,
+                        current_mml_velocity,
+                        current_tempo,
+                        *is_connect_chord,
+                    );
 
-                        *index += matches.len();
-                        *is_connect_chord = false;
-
-                        return Some(MmlEvent::SetNote(note));
-                    } else {
-                        return None;
-                    }
+                    *is_connect_chord = false;
+                    return Some(MmlEvent::SetNote(note));
                 }
             },
             None => None
         }
     }
+}
+
+fn get_first_mml_note(mml: &str) -> String {
+    let mut chars = mml.chars();
+    let mut result = String::new();
+    let mut is_note_extra_checked = false;
+    let mut before_char = chars.next().unwrap();
+    let note_name = before_char;
+    let to_match = ['&', '.', '+'];
+
+    result.push(note_name);
+
+    while let Some(char) = chars.next() {
+        if is_note_extra_checked == false {
+            if char == '+' {
+                result.push(char);
+                continue;
+            }
+
+            is_note_extra_checked = true;
+        }
+
+        let mut is_break = true;
+
+        if char.is_digit(10) || to_match.contains(&char) {
+            is_break = false;
+        }
+
+        if char == note_name && before_char == '&' {
+            is_break = false;
+        }
+
+        if is_break {
+            break;
+        } else {
+            before_char = char;
+            result.push(char);
+        }
+    }
+
+    result
+}
+
+fn get_first_mml_value(mml: &str) -> String {
+    let mut chars = mml[1..].chars();
+    let mut result = String::new();
+
+    while let Some(char) = chars.next() {
+        if char.is_digit(10) {
+            result.push(char);
+        } else {
+            break;
+        }
+    }
+
+    result
 }
