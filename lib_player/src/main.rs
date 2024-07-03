@@ -18,9 +18,10 @@ fn test_from_midi() {
 
     // let midi_path = std::path::PathBuf::from("./test_resouces/rex_incognito.mid");
     // let midi_path = std::path::PathBuf::from("./test_resouces/Hitchcock.mid");
-    let midi_path = std::path::PathBuf::from("./test_resouces/Cloudless_Yorushika.mid");
+    // let midi_path = std::path::PathBuf::from("./test_resouces/Cloudless_Yorushika.mid");
     // let midi_path = std::path::PathBuf::from("./test_resouces/Kiseki.mid");
     // let midi_path = std::path::PathBuf::from("./test_resouces/ghost_in_a_flower.mid");
+    let midi_path = std::path::PathBuf::from("./test_resouces/Senbonzakura.mid");
 
     let song = Song::from_path(midi_path, SongOptions {
         auto_boot_velocity: true,

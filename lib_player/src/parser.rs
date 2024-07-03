@@ -32,8 +32,10 @@ impl Parser {
 
         for note in self.notes.iter() {
             if note.is_connected_to_prev_note {
-                if current_chord.len() == 0 {
-                    current_chord.push(before.as_ref().unwrap().to_owned());
+                if let Some(before_note) = before.as_ref() {
+                    if current_chord.len() == 0 {
+                        current_chord.push(before_note.to_owned());
+                    }
                 }
 
                 current_chord.push(note.to_owned());
