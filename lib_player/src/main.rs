@@ -1,5 +1,5 @@
 use std::{
-    thread::{sleep, self},
+    thread::{self, sleep, JoinHandle},
     time::{Duration, Instant},
 };
 use lib_player::{Parser, Synth, SynthOutputConnection};
@@ -11,15 +11,17 @@ fn main() {
 fn test_from_midi() {
     use revelation_mobile_midi_to_mml::{Song, SongOptions};
 
-    let synth = Synth::new(String::from("./test_resouces/YDP-GrandPiano-SF2-20160804/YDP-GrandPiano-20160804.sf2"));
+    // let synth = Synth::new(String::from("./test_resouces/YDP-GrandPiano-SF2-20160804/YDP-GrandPiano-20160804.sf2"));
+    // let synth = Synth::new(String::from("./test_resouces/Yamaha_C3_Grand_Piano.sf2"));
+    let synth = Synth::new(String::from("./test_resouces/East_West_-_The_Ultimate_Piano_Collection.sf2"));
     let (_stream, connection) = synth.new_stream();
 
     // let midi_path = std::path::PathBuf::from("./test_resouces/rex_incognito.mid");
     // let midi_path = std::path::PathBuf::from("./test_resouces/Hitchcock.mid");
-    // let midi_path = std::path::PathBuf::from("./test_resouces/Cloudless_Yorushika.mid");
-    let midi_path = std::path::PathBuf::from("./test_resouces/Kiseki.mid");
+    let midi_path = std::path::PathBuf::from("./test_resouces/Cloudless_Yorushika.mid");
+    // let midi_path = std::path::PathBuf::from("./test_resouces/Kiseki.mid");
     // let midi_path = std::path::PathBuf::from("./test_resouces/ghost_in_a_flower.mid");
-    //
+
     let song = Song::from_path(midi_path, SongOptions {
         auto_boot_velocity: true,
         ..Default::default()
@@ -29,8 +31,9 @@ fn test_from_midi() {
     let mut max_duration = 0;
 
     for track in song.tracks.iter() {
+        let mml = track.to_mml();
         let conn = connection.clone();
-        let parsed = Parser::parse(track.to_mml());
+        let parsed = Parser::parse(mml);
 
         if parsed.duration_in_ms > max_duration {
             max_duration = parsed.duration_in_ms;
@@ -40,12 +43,16 @@ fn test_from_midi() {
     }
 
     let mut index = 0;
+    let mut handles: Vec<JoinHandle<()>> = Vec::new();
     for (mut conn, parsed) in parses {
-        thread::spawn(move || parsed.play(&mut conn, index));
+        let handle = thread::spawn(move || parsed.play(&mut conn, index));
+        handles.push(handle);
         index += 1;
     }
 
-    sleep(Duration::from_millis(max_duration as u64));
+    for handle in handles {
+        handle.join().unwrap();
+    }
 }
 
 fn _test_simple() {

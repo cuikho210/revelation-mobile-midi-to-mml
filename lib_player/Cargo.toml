@@ -6,5 +6,4 @@ edition = "2021"
 [dependencies]
 cpal = "0.15.3"
 oxisynth = "0.0.5"
-regex = "1.10.5"
 revelation-mobile-midi-to-mml = { version = "0.1.3", path = "../lib" }

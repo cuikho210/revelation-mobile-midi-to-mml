@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use crate::{
     mml_event::MmlEvent,
     note_event::NoteEvent, SynthOutputConnection,
@@ -25,6 +27,8 @@ impl Parser {
     pub fn play(&self, connection: &mut SynthOutputConnection, channel: u8) {
         let mut before: Option<NoteEvent> = None;
         let mut current_chord: Vec<NoteEvent> = Vec::new();
+        let mut absolute_duration: isize = 0;
+        let time = Instant::now();
 
         for note in self.notes.iter() {
             if note.is_connected_to_prev_note {
@@ -36,15 +40,40 @@ impl Parser {
                 continue;
             }
 
+            let correct_duration = time.elapsed().as_millis() as isize;
+            let duration_diff = correct_duration - absolute_duration;
+
             if current_chord.len() > 0 {
-                utils::play_chord(connection, &current_chord, channel);
+                let duration_isize = current_chord.first().unwrap().duration_in_ms as isize;
+                let duration = duration_isize - duration_diff;
+                let duration = Duration::from_millis(duration as u64);
+
+                utils::play_chord(
+                    connection,
+                    &current_chord,
+                    channel,
+                    Some(duration),
+                );
+
+                absolute_duration += duration_isize;
                 current_chord.clear();
                 before = Some(note.to_owned());
                 continue;
             }
 
             if let Some(before_note) = &before {
-                utils::play_note(connection, before_note, channel);
+                let duration_isize = before_note.duration_in_ms as isize;
+                let duration = duration_isize - duration_diff;
+                let duration = Duration::from_millis(duration as u64);
+
+                utils::play_note(
+                    connection,
+                    before_note,
+                    channel,
+                    Some(duration),
+                );
+
+                absolute_duration += duration_isize;
             }
 
             before = Some(note.to_owned());

@@ -75,18 +75,29 @@ pub fn duration_in_note_64_to_ms(duration_in_note_64: usize, tempo: usize) -> us
     result.round() as usize
 }
 
-pub fn play_note(connection: &mut SynthOutputConnection, note: &NoteEvent, channel: u8) {
+pub fn play_note(connection: &mut SynthOutputConnection, note: &NoteEvent, channel: u8, duration: Option<Duration>) {
+    let duration = match duration {
+        Some(value) => value,
+        None => Duration::from_millis(note.duration_in_ms as u64),
+    };
+
     if let Some(key) = note.midi_key {
         connection.note_on(channel, key, note.midi_velocity);
         log_note_on(note, channel);
-        sleep(Duration::from_millis(note.duration_in_ms as u64));
+
+        sleep(duration);
         connection.note_off(channel, key);
     } else {
-        sleep(Duration::from_millis(note.duration_in_ms as u64));
+        sleep(duration);
     }
 }
 
-pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>, channel: u8) {
+pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>, channel: u8, duration: Option<Duration>) {
+    let duration = match duration {
+        Some(value) => value,
+        None => Duration::from_millis(chord.first().unwrap().duration_in_ms as u64),
+    };
+
     for note in chord.iter() {
         if let Some(key) = note.midi_key {
             connection.note_on(channel, key, note.midi_velocity);
@@ -94,7 +105,7 @@ pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>
         }
     }
 
-    sleep(Duration::from_millis(chord.first().unwrap().duration_in_ms as u64));
+    sleep(duration);
 
     for note in chord.iter() {
         if let Some(key) = note.midi_key {
