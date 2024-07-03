@@ -9,6 +9,8 @@ pub struct NoteEvent {
     pub duration_in_note_64: usize,
     pub duration_in_ms: usize,
     pub is_connected_to_prev_note: bool,
+    pub char_index: usize,
+    pub char_length: usize,
 }
 
 impl NoteEvent {
@@ -18,6 +20,7 @@ impl NoteEvent {
         velocity: u8,
         tempo: usize,
         is_connected_to_prev_note: bool,
+        char_index: usize,
     ) -> Self {
         let mut parts = mml.split('&');
         let mut mml_key: Option<String> = None;
@@ -43,13 +46,15 @@ impl NoteEvent {
         let duration_in_ms: usize = utils::duration_in_note_64_to_ms(duration_in_note_64, tempo);
 
         Self {
-            raw_mml: mml,
             tempo,
             midi_key,
             midi_velocity,
             duration_in_note_64,
             duration_in_ms,
             is_connected_to_prev_note,
+            char_index,
+            char_length: mml.len(),
+            raw_mml: mml,
         }
     }
 }

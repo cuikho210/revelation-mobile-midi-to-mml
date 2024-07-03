@@ -1,15 +1,13 @@
-use regex::Regex;
 use crate::{
     mml_event::MmlEvent,
     note_event::NoteEvent, SynthOutputConnection,
     utils,
 };
 
-const REGEXP_NOTE: &str = r"[ABCDEFGr](\+)?\d+(\.)?(&[ABCDEFGr](\+)?\d+(\.)?)*";
-
 pub struct Parser {
     pub raw_mml: String,
     pub notes: Vec<NoteEvent>,
+    pub duration_in_ms: usize,
 }
 
 impl Parser {
@@ -17,6 +15,7 @@ impl Parser {
         let mut result = Self {
             raw_mml: mml,
             notes: Vec::new(),
+            duration_in_ms: 0,
         };
 
         result.parse_note_events();
@@ -68,7 +67,13 @@ impl Parser {
                 &mut is_connect_chord,
             ) {
                 match event {
-                    MmlEvent::SetNote(note) => self.notes.push(note),
+                    MmlEvent::SetNote(note) => {
+                        if note.is_connected_to_prev_note == false {
+                            self.duration_in_ms += note.duration_in_ms;
+                        }
+
+                        self.notes.push(note);
+                    },
                     MmlEvent::SetTempo(tempo) => current_tempo = tempo,
                     MmlEvent::SetOctave(octave) => current_octave = octave,
                     MmlEvent::IncreOctave => current_octave += 1,
@@ -131,6 +136,7 @@ impl Parser {
                         current_mml_velocity,
                         current_tempo,
                         *is_connect_chord,
+                        *index,
                     );
 
                     *is_connect_chord = false;
