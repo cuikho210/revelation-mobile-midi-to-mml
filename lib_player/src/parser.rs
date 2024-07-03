@@ -80,6 +80,13 @@ impl Parser {
 
             before = Some(note.to_owned());
         }
+
+
+        if current_chord.len() > 0 {
+            utils::play_chord(connection, &current_chord, channel, None);
+        }
+
+        utils::play_note(connection, &before.unwrap(), channel, None);
     }
 
     fn parse_note_events(&mut self) {
