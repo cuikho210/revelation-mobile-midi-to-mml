@@ -7,5 +7,9 @@ mod mml_player;
 
 pub use synth::Synth;
 pub use synth::SynthOutputConnection;
+
+pub use mml_player::MmlPlayer;
+pub use mml_player::MmlPlayerOptions;
+
 pub use note_event::NoteEvent;
 pub use parser::Parser;

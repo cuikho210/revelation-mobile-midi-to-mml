@@ -24,10 +24,10 @@ impl Parser {
         result
     }
 
-    pub fn play(&self, connection: &mut SynthOutputConnection, channel: u8) {
+    pub fn play(&self, mut connection: SynthOutputConnection, channel: u8) {
         let mut before: Option<NoteEvent> = None;
         let mut current_chord: Vec<NoteEvent> = Vec::new();
-        let mut absolute_duration: isize = 0;
+        let mut absolute_duration: Duration = Duration::from_millis(0);
         let time = Instant::now();
 
         for note in self.notes.iter() {
@@ -42,51 +42,55 @@ impl Parser {
                 continue;
             }
 
-            let correct_duration = time.elapsed().as_millis() as isize;
-            let duration_diff = correct_duration - absolute_duration;
+            let correct_duration = time.elapsed();
+
+            let duration_diff = if absolute_duration > correct_duration {
+                absolute_duration - correct_duration
+            } else {
+                Duration::from_millis(0)
+            };
 
             if current_chord.len() > 0 {
-                let duration_isize = current_chord.first().unwrap().duration_in_ms as isize;
-                let duration = duration_isize - duration_diff;
-                let duration = Duration::from_millis(duration as u64);
+                let duration_u64 = current_chord.first().unwrap().duration_in_ms as u64;
+                let note_duration = Duration::from_millis(duration_u64);
+                let duration = note_duration - duration_diff;
 
                 utils::play_chord(
-                    connection,
+                    &mut connection,
                     &current_chord,
                     channel,
                     Some(duration),
                 );
 
-                absolute_duration += duration_isize;
+                absolute_duration += note_duration;
                 current_chord.clear();
                 before = Some(note.to_owned());
                 continue;
             }
 
             if let Some(before_note) = &before {
-                let duration_isize = before_note.duration_in_ms as isize;
-                let duration = duration_isize - duration_diff;
-                let duration = Duration::from_millis(duration as u64);
+                let duration_u64 = before_note.duration_in_ms as u64;
+                let note_duration = Duration::from_millis(duration_u64);
+                let duration = note_duration - duration_diff;
 
                 utils::play_note(
-                    connection,
+                    &mut connection,
                     before_note,
                     channel,
                     Some(duration),
                 );
 
-                absolute_duration += duration_isize;
+                absolute_duration += note_duration;
             }
 
             before = Some(note.to_owned());
         }
 
-
         if current_chord.len() > 0 {
-            utils::play_chord(connection, &current_chord, channel, None);
+            utils::play_chord(&mut connection, &current_chord, channel, None);
         }
 
-        utils::play_note(connection, &before.unwrap(), channel, None);
+        utils::play_note(&mut connection, &before.unwrap(), channel, None);
     }
 
     fn parse_note_events(&mut self) {

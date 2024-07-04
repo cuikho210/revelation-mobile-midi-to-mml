@@ -1,23 +1,15 @@
 use std::{
-    thread::{self, sleep, JoinHandle},
+    thread::sleep,
     time::{Duration, Instant},
 };
-use lib_player::{Parser, Synth, SynthOutputConnection};
+use lib_player::{Parser, Synth, MmlPlayer, MmlPlayerOptions};
+use revelation_mobile_midi_to_mml::{Song, SongOptions};
 
 fn main() {
     test_from_midi();
 }
 
 fn test_from_midi() {
-    use revelation_mobile_midi_to_mml::{Song, SongOptions};
-
-    let synth = Synth::new();
-
-    let (_stream, connection) = synth.new_stream(
-        String::from("./test_resouces/East_West_-_The_Ultimate_Piano_Collection.sf2")
-        // String::from("./test_resouces/Yamaha_C3_Grand_Piano.sf2")
-    );
-
     // let midi_path = std::path::PathBuf::from("./test_resouces/rex_incognito.mid");
     // let midi_path = std::path::PathBuf::from("./test_resouces/Hitchcock.mid");
     // let midi_path = std::path::PathBuf::from("./test_resouces/Cloudless_Yorushika.mid");
@@ -25,38 +17,27 @@ fn test_from_midi() {
     // let midi_path = std::path::PathBuf::from("./test_resouces/ghost_in_a_flower.mid");
     // let midi_path = std::path::PathBuf::from("./test_resouces/Senbonzakura.mid");
     let midi_path = std::path::PathBuf::from("./test_resouces/Kirameki_Your_Lie_in_April_ED_.mid");
+    // let midi_path = std::path::PathBuf::from("./test_resouces/Yorushika_-_Rain_with_Cappuccino.mid");
 
     let song = Song::from_path(midi_path, SongOptions {
         auto_boot_velocity: true,
         ..Default::default()
     }).unwrap();
+    let mmls: Vec<String> = song.tracks.iter().map::<String, _>(|track| track.to_mml()).collect();
+    let track_length = mmls.len();
 
-    let mut parses: Vec<(SynthOutputConnection, Parser)> = Vec::new();
-    let mut max_duration = 0;
+    let sf2 = String::from("./test_resouces/East_West_-_The_Ultimate_Piano_Collection.sf2");
+    // let sf2 = String::from("./test_resouces/Yamaha_C3_Grand_Piano.sf2");
+    
+    let time = Instant::now();
 
-    for track in song.tracks.iter() {
-        let mml = track.to_mml();
-        let conn = connection.clone();
-        let parsed = Parser::parse(mml);
+    let player = MmlPlayer::from_mmls(mmls, MmlPlayerOptions {
+        soundfont_path: sf2,
+    });
 
-        if parsed.duration_in_ms > max_duration {
-            max_duration = parsed.duration_in_ms;
-        }
+    println!("Created player with {} tracks in {}ms", track_length, time.elapsed().as_millis());
 
-        parses.push((conn, parsed));
-    }
-
-    let mut index = 0;
-    let mut handles: Vec<JoinHandle<()>> = Vec::new();
-    for (mut conn, parsed) in parses {
-        let handle = thread::spawn(move || parsed.play(&mut conn, index));
-        handles.push(handle);
-        index += 1;
-    }
-
-    for handle in handles {
-        handle.join().unwrap();
-    }
+    player.play();
 }
 
 fn _test_simple() {
@@ -67,10 +48,10 @@ fn _test_simple() {
     println!("parse 1: {}", time.elapsed().as_nanos());
 
     let synth = Synth::new();
-    let (_stream, mut connection) = synth.new_stream(
+    let (_stream, connection) = synth.new_stream(
         String::from("./test_resouces/YDP-GrandPiano-SF2-20160804/YDP-GrandPiano-20160804.sf2")
     );
 
-    parsed.play(&mut connection, 0);
+    parsed.play(connection, 0);
     sleep(Duration::from_millis(parsed.duration_in_ms as u64));
 }
