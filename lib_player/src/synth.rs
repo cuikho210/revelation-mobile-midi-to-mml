@@ -1,8 +1,7 @@
 use std::sync::mpsc::Receiver;
 
 use cpal::{
-    traits::{HostTrait, DeviceTrait},
-    SizedSample, FromSample,
+    traits::{DeviceTrait, HostTrait, StreamTrait}, FromSample, SizedSample
 };
 use oxisynth::MidiEvent;
 
@@ -118,6 +117,7 @@ impl Synth {
                 None,
             ).unwrap();
 
+        stream.play().unwrap();
         stream
     }
 }
