@@ -32,7 +32,7 @@ fn test_from_midi() {
             PathBuf::from("./test_resources/soundfonts/AMS_Grand_Piano_-_Remastered.sf2"), // Acoustic grand piano only
             PathBuf::from("./test_resources/soundfonts/megalovania_drums.sf2"), // Percussions
             PathBuf::from("./test_resources/soundfonts/Red_Pilled_Based_Gui.sf2"), // Guitars
-            PathBuf::from("/home/cuikho210/Downloads/Valiant_Violin_V2.sf2"), // Strings
+            PathBuf::from("./test_resources/soundfonts/Valiant_Violin_V2.sf2"), // Strings
         ],
     });
 
