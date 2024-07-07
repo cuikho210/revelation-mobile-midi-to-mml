@@ -7,9 +7,8 @@ fn main() {
 }
 
 fn test_from_midi() {
-    let midi_path = PathBuf::from("./test_resouces/midi/Itte.mid");
-    let sf2 = PathBuf::from("./test_resouces/soundfonts/merlin_vienna_v3.20.sf2");
-    println!("{}", midi_path.display());
+    let midi_path = PathBuf::from("./test_resouces/midi/Hitchcock.mid");
+    let sf2 = PathBuf::from("./test_resouces/soundfonts/gm.sf2");
 
     let song = Song::from_path(midi_path, SongOptions {
         auto_boot_velocity: true,

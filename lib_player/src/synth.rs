@@ -80,7 +80,7 @@ impl Synth {
 
             synth.add_font(font, true);
             synth.set_sample_rate(sample_rate);
-            synth.set_gain(1.0);
+            synth.set_gain(0.5);
 
             synth
         };
