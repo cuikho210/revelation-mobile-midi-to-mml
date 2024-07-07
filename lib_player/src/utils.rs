@@ -129,3 +129,17 @@ pub fn log_note_on(note: &NoteEvent, channel: u8) {
         channel,
     );
 }
+
+pub fn get_longest_note_duration(notes: &Vec<NoteEvent>) -> Duration {
+    let mut max: u64 = 0;
+    
+    for note in notes {
+        let duration = note.duration_in_ms as u64;
+
+        if duration > max {
+            max = duration;
+        }
+    }
+
+    Duration::from_millis(max)
+}

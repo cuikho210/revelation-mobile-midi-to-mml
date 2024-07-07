@@ -10,7 +10,6 @@ use crate::{
 pub struct Parser {
     pub raw_mml: String,
     pub notes: Vec<NoteEvent>,
-    pub duration_in_ms: usize,
     pub instrument: Instrument,
     pub connection: SynthOutputConnection,
 }
@@ -23,7 +22,6 @@ impl Parser {
         let mut result = Self {
             raw_mml: mml,
             notes: Vec::new(),
-            duration_in_ms: 0,
             instrument,
             connection,
         };
@@ -60,9 +58,8 @@ impl Parser {
             };
 
             if current_chord.len() > 0 {
-                let duration_u64 = current_chord.first().unwrap().duration_in_ms as u64;
-                let note_duration = Duration::from_millis(duration_u64);
-                let duration = note_duration - duration_diff;
+                let chord_duration = utils::get_longest_note_duration(&current_chord);
+                let duration = chord_duration - duration_diff;
 
                 utils::play_chord(
                     &mut connection,
@@ -71,7 +68,7 @@ impl Parser {
                     Some(duration),
                 );
 
-                absolute_duration += note_duration;
+                absolute_duration += chord_duration;
                 current_chord.clear();
                 before = Some(note.to_owned());
                 continue;
@@ -128,13 +125,7 @@ impl Parser {
                 &mut is_connect_chord,
             ) {
                 match event {
-                    MmlEvent::SetNote(note) => {
-                        if note.is_connected_to_prev_note == false {
-                            self.duration_in_ms += note.duration_in_ms;
-                        }
-
-                        self.notes.push(note);
-                    },
+                    MmlEvent::SetNote(note) => self.notes.push(note),
                     MmlEvent::SetTempo(tempo) => current_tempo = tempo,
                     MmlEvent::SetOctave(octave) => current_octave = octave,
                     MmlEvent::IncreOctave => current_octave += 1,
