@@ -1,5 +1,6 @@
 use std::{
-    path::PathBuf, sync::Arc, thread::{self, JoinHandle}, time::Instant
+    path::PathBuf, sync::Arc,
+    thread::{self, JoinHandle},
 };
 use cpal::Stream;
 use revelation_mobile_midi_to_mml::Instrument;
@@ -46,13 +47,10 @@ impl MmlPlayer {
 
     pub fn play(&self) {
         let mut handles: Vec<JoinHandle<()>> = Vec::new();
-        let time = Instant::now();
-        
+
         for track in self.tracks.iter() {
             let parsed = track.clone();
-            let time = time.to_owned();
-
-            let handle = thread::spawn(move || parsed.play(time));
+            let handle = thread::spawn(move || parsed.play());
             handles.push(handle);
         }
 

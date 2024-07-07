@@ -31,10 +31,11 @@ impl Parser {
         result
     }
 
-    pub fn play(&self, time: Instant) {
+    pub fn play(&self) {
+        let time = Instant::now();
         let mut before: Option<NoteEvent> = None;
         let mut current_chord: Vec<NoteEvent> = Vec::new();
-        let mut absolute_duration: Duration = Duration::from_millis(0);
+        let mut absolute_duration: isize = 0;
         let mut connection = self.connection.clone();
 
         for note in self.notes.iter() {
@@ -49,17 +50,13 @@ impl Parser {
                 continue;
             }
 
-            let correct_duration = time.elapsed();
-
-            let duration_diff = if absolute_duration > correct_duration {
-                absolute_duration - correct_duration
-            } else {
-                Duration::from_millis(0)
-            };
+            let correct_duration = time.elapsed().as_millis() as isize;
+            let duration_diff = correct_duration - absolute_duration;
 
             if current_chord.len() > 0 {
                 let chord_duration = utils::get_longest_note_duration(&current_chord);
                 let duration = chord_duration - duration_diff;
+                let duration = Duration::from_millis(duration as u64);
 
                 utils::play_chord(
                     &mut connection,
@@ -75,9 +72,9 @@ impl Parser {
             }
 
             if let Some(before_note) = &before {
-                let duration_u64 = before_note.duration_in_ms as u64;
-                let note_duration = Duration::from_millis(duration_u64);
+                let note_duration = before_note.duration_in_ms as isize;
                 let duration = note_duration - duration_diff;
+                let duration = Duration::from_millis(duration as u64);
 
                 utils::play_note(
                     &mut connection,
