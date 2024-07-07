@@ -7,7 +7,7 @@ use revelation_mobile_midi_to_mml::{Instrument, Song};
 use crate::{Parser, SynthOutputConnection, Synth};
 
 pub struct MmlPlayerOptions {
-    pub soundfont_path: PathBuf,
+    pub soundfont_path: Vec<PathBuf>,
 }
 
 pub struct MmlPlayer {
