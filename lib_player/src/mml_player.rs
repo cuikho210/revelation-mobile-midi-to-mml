@@ -1,9 +1,11 @@
-use std::{sync::Arc, thread::{self, JoinHandle}};
+use std::{
+    path::PathBuf, sync::Arc, thread::{self, JoinHandle}
+};
 use cpal::Stream;
 use crate::{Parser, SynthOutputConnection, Synth};
 
 pub struct MmlPlayerOptions {
-    pub soundfont_path: String,
+    pub soundfont_path: PathBuf,
 }
 
 pub struct MmlPlayer {

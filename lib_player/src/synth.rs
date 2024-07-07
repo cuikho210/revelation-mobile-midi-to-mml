@@ -1,4 +1,4 @@
-use std::sync::mpsc::Receiver;
+use std::{path::Path, sync::mpsc::Receiver};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait}, FromSample, SizedSample
@@ -35,29 +35,33 @@ impl Synth {
         Self { host, device, config }
     }
 
-    pub fn new_stream(&self, soundfont_path: String) -> (cpal::Stream, SynthOutputConnection) {
+    pub fn new_stream<P>(&self, soundfont_path: P)
+        -> (cpal::Stream, SynthOutputConnection)
+        where P: AsRef<Path>
+    {
         let (tx, rx) = std::sync::mpsc::channel::<MidiEvent>();
 
         let stream = match self.config.sample_format() {
-            cpal::SampleFormat::I8 => self.make_stream::<i8>(rx, soundfont_path),
-            cpal::SampleFormat::I16 => self.make_stream::<i16>(rx, soundfont_path),
-            cpal::SampleFormat::I32 => self.make_stream::<i32>(rx, soundfont_path),
-            cpal::SampleFormat::I64 => self.make_stream::<i64>(rx, soundfont_path),
-            cpal::SampleFormat::U8 => self.make_stream::<u8>(rx, soundfont_path),
-            cpal::SampleFormat::U16 => self.make_stream::<u16>(rx, soundfont_path),
-            cpal::SampleFormat::U32 => self.make_stream::<u32>(rx, soundfont_path),
-            cpal::SampleFormat::U64 => self.make_stream::<u64>(rx, soundfont_path),
-            cpal::SampleFormat::F32 => self.make_stream::<f32>(rx, soundfont_path),
-            cpal::SampleFormat::F64 => self.make_stream::<f64>(rx, soundfont_path),
+            cpal::SampleFormat::I8 => self.make_stream::<i8, _>(rx, soundfont_path),
+            cpal::SampleFormat::I16 => self.make_stream::<i16, _>(rx, soundfont_path),
+            cpal::SampleFormat::I32 => self.make_stream::<i32, _>(rx, soundfont_path),
+            cpal::SampleFormat::I64 => self.make_stream::<i64, _>(rx, soundfont_path),
+            cpal::SampleFormat::U8 => self.make_stream::<u8, _>(rx, soundfont_path),
+            cpal::SampleFormat::U16 => self.make_stream::<u16, _>(rx, soundfont_path),
+            cpal::SampleFormat::U32 => self.make_stream::<u32, _>(rx, soundfont_path),
+            cpal::SampleFormat::U64 => self.make_stream::<u64, _>(rx, soundfont_path),
+            cpal::SampleFormat::F32 => self.make_stream::<f32, _>(rx, soundfont_path),
+            cpal::SampleFormat::F64 => self.make_stream::<f64, _>(rx, soundfont_path),
             _ => panic!("[Synth.new_stream] Unsupported format")
         };
 
         (stream, SynthOutputConnection { tx })
     }
     
-    fn make_stream<T>(&self, rx: Receiver<MidiEvent>, soundfont_path: String) -> cpal::Stream
+    fn make_stream<T, P>(&self, rx: Receiver<MidiEvent>, soundfont_path: P) -> cpal::Stream
     where
         T: SizedSample + FromSample<f32>,
+        P: AsRef<Path>
     {
         let config: cpal::StreamConfig = self.config.to_owned().into();
 
