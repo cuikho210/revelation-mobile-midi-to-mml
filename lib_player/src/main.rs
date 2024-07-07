@@ -1,6 +1,6 @@
-use std::{path::PathBuf, time::Instant};
+use std::path::PathBuf;
 use lib_player::{MmlPlayer, MmlPlayerOptions};
-use revelation_mobile_midi_to_mml::{Instrument, Song, SongOptions};
+use revelation_mobile_midi_to_mml::{Song, SongOptions};
 
 fn main() {
     test_from_midi();
@@ -19,23 +19,9 @@ fn test_from_midi() {
         ..Default::default()
     }).unwrap();
 
-    let mut char_length = 0usize;
-
-    let mmls: Vec<(String, Instrument)> = song.tracks.iter().map::<(String, Instrument), _>(|track| {
-        let mml = track.to_mml();
-        char_length += mml.len();
-
-        (mml, track.instrument.to_owned())
-    }).collect();
-
-    let track_length = mmls.len();
-    let time = Instant::now();
-
-    let player = MmlPlayer::from_mmls(mmls, MmlPlayerOptions {
+    let player = MmlPlayer::from_song(&song, MmlPlayerOptions {
         soundfont_path: sf2,
     });
-
-    println!("Created player with {} tracks and {} chars in {}ms\n", track_length, char_length, time.elapsed().as_millis());
 
     player.play();
 }
