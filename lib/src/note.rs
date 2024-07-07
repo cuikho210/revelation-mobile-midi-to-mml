@@ -72,7 +72,7 @@ impl Note {
         let position_in_smallest_unit = utils::tick_to_smallest_unit(current_tick, ppq);
         let is_percussion = midi_channel == 10;
 
-        let mut result = Self {
+        let result = Self {
             midi_channel,
             midi_key,
             midi_velocity,
@@ -86,10 +86,6 @@ impl Note {
             duration_in_tick: 0,
             duration_in_smallest_unit: 0,
         };
-
-        if is_percussion {
-            result.to_percussion_note();
-        }
 
         result
     }

@@ -18,6 +18,10 @@ impl SynthOutputConnection {
     pub fn note_off(&mut self, channel: u8, key: u8) {
         self.tx.send(MidiEvent::NoteOff { channel, key }).unwrap();
     }
+
+    pub fn program_change(&mut self, channel: u8, program_id: u8) {
+        self.tx.send(MidiEvent::ProgramChange { channel, program_id }).unwrap();
+    }
 }
 
 pub struct Synth {

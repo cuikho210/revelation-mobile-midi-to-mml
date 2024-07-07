@@ -1,7 +1,8 @@
 use std::{
-    path::PathBuf, sync::Arc, thread::{self, JoinHandle}
+    path::PathBuf, sync::Arc, thread::{self, JoinHandle}, time::Instant
 };
 use cpal::Stream;
+use revelation_mobile_midi_to_mml::Instrument;
 use crate::{Parser, SynthOutputConnection, Synth};
 
 pub struct MmlPlayerOptions {
@@ -15,9 +16,8 @@ pub struct MmlPlayer {
     pub tracks: Vec<Arc<Parser>>,
 }
 
-
 impl MmlPlayer {
-    pub fn from_mmls(mmls: Vec<String>, options: MmlPlayerOptions) -> Self {
+    pub fn from_mmls(mmls: Vec<(String, Instrument)>, options: MmlPlayerOptions) -> Self {
         let mut handles: Vec<JoinHandle<Parser>> = Vec::new();
         let mut tracks: Vec<Arc<Parser>> = Vec::new();
 
@@ -25,7 +25,11 @@ impl MmlPlayer {
         let (stream, connection) = synth.new_stream(options.soundfont_path);
 
         for mml in mmls {
-            let handle = thread::spawn::<_, Parser>(move || Parser::parse(mml));
+            let conn = connection.clone();
+
+            let handle = thread::spawn::<_, Parser>(move || {
+                Parser::parse(mml.0, mml.1, conn)
+            });
             handles.push(handle);
         }
 
@@ -42,15 +46,13 @@ impl MmlPlayer {
 
     pub fn play(&self) {
         let mut handles: Vec<JoinHandle<()>> = Vec::new();
+        let time = Instant::now();
         
-        for (i, track) in self.tracks.iter().enumerate() {
-            let conn = self.connection.clone();
+        for track in self.tracks.iter() {
             let parsed = track.clone();
+            let time = time.to_owned();
 
-            let handle = thread::spawn(move || {
-                parsed.play(conn, i as u8)
-            });
-
+            let handle = thread::spawn(move || parsed.play(time));
             handles.push(handle);
         }
 

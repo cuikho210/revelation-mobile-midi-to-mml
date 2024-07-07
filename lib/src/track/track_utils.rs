@@ -126,7 +126,7 @@ pub fn get_instrument_from_track(smf_track: &midly::Track) -> Instrument {
             TrackEventKind::Midi { message, channel } => match message {
                 MidiMessage::ProgramChange { program } => {
                     instrument_id = program.as_int();
-                    midi_channel = channel.as_int() + 1;
+                    midi_channel = channel.as_int();
                 }
                 _ => (),
             },

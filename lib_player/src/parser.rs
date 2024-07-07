@@ -1,4 +1,5 @@
 use std::time::{Duration, Instant};
+use revelation_mobile_midi_to_mml::Instrument;
 
 use crate::{
     mml_event::MmlEvent,
@@ -10,25 +11,33 @@ pub struct Parser {
     pub raw_mml: String,
     pub notes: Vec<NoteEvent>,
     pub duration_in_ms: usize,
+    pub instrument: Instrument,
+    pub connection: SynthOutputConnection,
 }
 
 impl Parser {
-    pub fn parse(mml: String) -> Self {
+    pub fn parse(mml: String, instrument: Instrument, connection: SynthOutputConnection) -> Self {
+        let program_id = instrument.instrument_id;
+        let channel = instrument.midi_channel;
+
         let mut result = Self {
             raw_mml: mml,
             notes: Vec::new(),
             duration_in_ms: 0,
+            instrument,
+            connection,
         };
 
         result.parse_note_events();
+        result.connection.program_change(channel, program_id);
         result
     }
 
-    pub fn play(&self, mut connection: SynthOutputConnection, channel: u8) {
+    pub fn play(&self, time: Instant) {
         let mut before: Option<NoteEvent> = None;
         let mut current_chord: Vec<NoteEvent> = Vec::new();
         let mut absolute_duration: Duration = Duration::from_millis(0);
-        let time = Instant::now();
+        let mut connection = self.connection.clone();
 
         for note in self.notes.iter() {
             if note.is_connected_to_prev_note {
@@ -58,7 +67,7 @@ impl Parser {
                 utils::play_chord(
                     &mut connection,
                     &current_chord,
-                    channel,
+                    self.instrument.midi_channel,
                     Some(duration),
                 );
 
@@ -76,7 +85,7 @@ impl Parser {
                 utils::play_note(
                     &mut connection,
                     before_note,
-                    channel,
+                    self.instrument.midi_channel,
                     Some(duration),
                 );
 
@@ -87,10 +96,20 @@ impl Parser {
         }
 
         if current_chord.len() > 0 {
-            utils::play_chord(&mut connection, &current_chord, channel, None);
+            utils::play_chord(
+                &mut connection,
+                &current_chord,
+                self.instrument.midi_channel,
+                None,
+            );
         }
 
-        utils::play_note(&mut connection, &before.unwrap(), channel, None);
+        utils::play_note(
+            &mut connection,
+            &before.unwrap(),
+            self.instrument.midi_channel,
+            None,
+        );
     }
 
     fn parse_note_events(&mut self) {
