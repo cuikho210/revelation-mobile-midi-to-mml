@@ -1,11 +1,11 @@
-use std::sync::mpsc::Receiver;
+use std::{path::{Path, PathBuf}, sync::mpsc::Receiver, thread::{self, JoinHandle}};
 
 use cpal::{
-    traits::{HostTrait, DeviceTrait},
-    SizedSample, FromSample,
+    traits::{DeviceTrait, HostTrait, StreamTrait}, FromSample, SizedSample
 };
-use oxisynth::MidiEvent;
+use oxisynth::{MidiEvent, SoundFont};
 
+#[derive(Clone, Debug)]
 pub struct SynthOutputConnection {
     pub tx: std::sync::mpsc::Sender<MidiEvent>,
 }
@@ -18,45 +18,50 @@ impl SynthOutputConnection {
     pub fn note_off(&mut self, channel: u8, key: u8) {
         self.tx.send(MidiEvent::NoteOff { channel, key }).unwrap();
     }
+
+    pub fn program_change(&mut self, channel: u8, program_id: u8) {
+        self.tx.send(MidiEvent::ProgramChange { channel, program_id }).unwrap();
+    }
 }
 
 pub struct Synth {
-    pub soundfont_path: String,
     pub host: cpal::Host,
     pub device: cpal::Device,
     pub config: cpal::SupportedStreamConfig,
 }
 
 impl Synth {
-    pub fn new(soundfont_path: String) -> Self {
+    pub fn new() -> Self {
         let host = cpal::default_host();
         let device = host.default_output_device().unwrap();
         let config = device.default_output_config().unwrap();
 
-        Self { host, device, config, soundfont_path }
+        Self { host, device, config }
     }
 
-    pub fn new_stream(&self) -> (cpal::Stream, SynthOutputConnection) {
+    pub fn new_stream(&self, soundfont_path: Vec<PathBuf>)
+        -> (cpal::Stream, SynthOutputConnection)
+    {
         let (tx, rx) = std::sync::mpsc::channel::<MidiEvent>();
 
         let stream = match self.config.sample_format() {
-            cpal::SampleFormat::I8 => self.make_stream::<i8>(rx),
-            cpal::SampleFormat::I16 => self.make_stream::<i16>(rx),
-            cpal::SampleFormat::I32 => self.make_stream::<i32>(rx),
-            cpal::SampleFormat::I64 => self.make_stream::<i64>(rx),
-            cpal::SampleFormat::U8 => self.make_stream::<u8>(rx),
-            cpal::SampleFormat::U16 => self.make_stream::<u16>(rx),
-            cpal::SampleFormat::U32 => self.make_stream::<u32>(rx),
-            cpal::SampleFormat::U64 => self.make_stream::<u64>(rx),
-            cpal::SampleFormat::F32 => self.make_stream::<f32>(rx),
-            cpal::SampleFormat::F64 => self.make_stream::<f64>(rx),
+            cpal::SampleFormat::I8 => self.make_stream::<i8>(rx, soundfont_path),
+            cpal::SampleFormat::I16 => self.make_stream::<i16>(rx, soundfont_path),
+            cpal::SampleFormat::I32 => self.make_stream::<i32>(rx, soundfont_path),
+            cpal::SampleFormat::I64 => self.make_stream::<i64>(rx, soundfont_path),
+            cpal::SampleFormat::U8 => self.make_stream::<u8>(rx, soundfont_path),
+            cpal::SampleFormat::U16 => self.make_stream::<u16>(rx, soundfont_path),
+            cpal::SampleFormat::U32 => self.make_stream::<u32>(rx, soundfont_path),
+            cpal::SampleFormat::U64 => self.make_stream::<u64>(rx, soundfont_path),
+            cpal::SampleFormat::F32 => self.make_stream::<f32>(rx, soundfont_path),
+            cpal::SampleFormat::F64 => self.make_stream::<f64>(rx, soundfont_path),
             _ => panic!("[Synth.new_stream] Unsupported format")
         };
 
         (stream, SynthOutputConnection { tx })
     }
     
-    fn make_stream<T>(&self, rx: Receiver<MidiEvent>) -> cpal::Stream
+    fn make_stream<T>(&self, rx: Receiver<MidiEvent>, soundfont_path: Vec<PathBuf>) -> cpal::Stream
     where
         T: SizedSample + FromSample<f32>,
     {
@@ -72,12 +77,21 @@ impl Synth {
             };
 
             let mut synth = oxisynth::Synth::new(settings).unwrap();
-            let mut file = std::fs::File::open(self.soundfont_path.to_owned()).unwrap();
-            let font = oxisynth::SoundFont::load(&mut file).unwrap();
+            let mut handles: Vec<JoinHandle<SoundFont>> = Vec::new();
 
-            synth.add_font(font, true);
-            synth.set_sample_rate(sample_rate);
-            synth.set_gain(1.0);
+            for path in soundfont_path {
+                let handle = thread::spawn(move || {
+                    let mut file = std::fs::File::open(path).unwrap();
+                    let font = oxisynth::SoundFont::load(&mut file).unwrap();
+                    font
+                });
+                handles.push(handle);
+            }
+
+            for handle in handles {
+                let font = handle.join().unwrap();
+                synth.add_font(font, false);
+            }
 
             synth
         };
@@ -118,6 +132,7 @@ impl Synth {
                 None,
             ).unwrap();
 
+        stream.play().unwrap();
         stream
     }
 }
