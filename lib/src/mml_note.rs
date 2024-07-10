@@ -13,10 +13,16 @@ pub struct MmlNote {
     pub velocity: u8,
     pub position_in_smallest_unit: usize,
     pub duration_in_smallest_unit: usize,
+    pub is_part_of_chord: bool,
 }
 
 impl MmlNote {
-    pub fn from_midi_state(midi_state: MidiNoteState, options: &MmlSongOptions, ppq: u16) -> Self {
+    pub fn from_midi_state(
+        midi_state: MidiNoteState,
+        options: &MmlSongOptions,
+        ppq: u16,
+        is_part_of_chord: bool,
+    ) -> Self {
         let (pitch_class, octave) = (
             utils::midi_key_to_pitch_class(midi_state.key),
             utils::midi_key_to_octave(midi_state.key),
@@ -45,6 +51,7 @@ impl MmlNote {
             velocity,
             position_in_smallest_unit,
             duration_in_smallest_unit,
+            is_part_of_chord,
         }
     }
 }

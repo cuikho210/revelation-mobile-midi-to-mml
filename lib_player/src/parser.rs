@@ -100,12 +100,14 @@ impl Parser {
             );
         }
 
-        utils::play_note(
-            &mut connection,
-            &before.unwrap(),
-            self.instrument.midi_channel,
-            None,
-        );
+        if let Some(before_note) = before {
+            utils::play_note(
+                &mut connection,
+                &before_note,
+                self.instrument.midi_channel,
+                None,
+            );
+        }
     }
 
     fn parse_note_events(&mut self) {
