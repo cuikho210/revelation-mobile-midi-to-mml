@@ -8,8 +8,8 @@ fn main() {
 
 fn test_from_midi() {
     // let path = "../test_resources/midi/Hitchcock.mid"; // Grand piano
-    let path = "../test_resources/midi/Yoasobi_-_Heart_Beat.mid"; // Grand piano
-    // let path = "../test_resources/midi/Senbonzakura.mid"; // Grand piano
+    // let path = "../test_resources/midi/Yoasobi_-_Heart_Beat.mid"; // Grand piano
+    let path = "../test_resources/midi/Senbonzakura.mid"; // Grand piano
     // let path = "../test_resources/midi/itumoHe_Du_demo_Always_with_Me_Simplified_version_for_kids.mid"; // Grand piano
     // let path = "../test_resources/midi/Milonga.mid"; // Nylon guitar
     // let path = "../test_resources/midi/Lost-one no Gokoku.mid"; // Elictric guitar

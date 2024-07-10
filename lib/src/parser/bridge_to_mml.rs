@@ -29,7 +29,7 @@ pub fn bridge_events_to_mml_events(
                         let before_note_pos_isize = before_note.position_in_smallest_unit as isize;
                         let start_pos_diff = (note_pos_isize - before_note_pos_isize).abs();
 
-                        if start_pos_diff <= 0 {
+                        if start_pos_diff <= options.min_gap_for_chord as isize {
                             mml_events.push(MmlEvent::ConnectChord);
                             note.is_part_of_chord = true;
                         }
