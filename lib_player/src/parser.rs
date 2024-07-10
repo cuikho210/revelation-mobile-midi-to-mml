@@ -7,6 +7,8 @@ use crate::{
     utils,
 };
 
+const NOTE_NAMES: [char; 8] = ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'r'];
+
 pub struct Parser {
     pub raw_mml: String,
     pub notes: Vec<NoteEvent>,
@@ -126,9 +128,14 @@ impl Parser {
                     MmlEvent::SetTempo(tempo) => current_tempo = tempo,
                     MmlEvent::SetOctave(octave) => current_octave = octave,
                     MmlEvent::IncreOctave => current_octave += 1,
-                    MmlEvent::DecreOctave => current_octave -= 1,
+                    MmlEvent::DecreOctave => {
+                        if current_octave > 0 {
+                            current_octave -= 1;
+                        }
+                    }
                     MmlEvent::SetVelocity(velocity) => current_mml_velocity = velocity,
                     MmlEvent::ConnectChord => is_connect_chord = true,
+                    MmlEvent::Empty => (),
                 }
             } else {
                 break;
@@ -153,29 +160,35 @@ impl Parser {
                     *index += value.len() + 1;
 
                     let tempo = value.parse::<usize>().unwrap();
-                    return Some(MmlEvent::SetTempo(tempo));
+
+                    Some(MmlEvent::SetTempo(tempo))
                 } else if char == 'o' {
                     let value = get_first_mml_value(mml);
                     *index += value.len() + 1;
 
                     let octave = value.parse::<u8>().unwrap();
-                    return Some(MmlEvent::SetOctave(octave));
+
+                    Some(MmlEvent::SetOctave(octave))
                 } else if char == 'v' {
                     let value = get_first_mml_value(mml);
                     *index += value.len() + 1;
 
                     let velocity = value.parse::<u8>().unwrap();
-                    return Some(MmlEvent::SetVelocity(velocity));
+
+                    Some(MmlEvent::SetVelocity(velocity))
                 } else if char == '>' {
                     *index += 1;
-                    return Some(MmlEvent::IncreOctave);
+
+                    Some(MmlEvent::IncreOctave)
                 } else if char == '<' {
                     *index += 1;
-                    return Some(MmlEvent::DecreOctave);
+
+                    Some(MmlEvent::DecreOctave)
                 } else if char == ':' {
                     *index += 1;
-                    return Some(MmlEvent::ConnectChord);
-                } else {
+
+                    Some(MmlEvent::ConnectChord)
+                } else if NOTE_NAMES.contains(&char) {
                     let mml_note = get_first_mml_note(mml);
                     *index += mml_note.len();
 
@@ -189,7 +202,10 @@ impl Parser {
                     );
 
                     *is_connect_chord = false;
-                    return Some(MmlEvent::SetNote(note));
+                    Some(MmlEvent::SetNote(note))
+                } else {
+                    *index += 1;
+                    Some(MmlEvent::Empty)
                 }
             },
             None => None

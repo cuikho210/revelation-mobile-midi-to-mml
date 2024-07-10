@@ -82,6 +82,7 @@ pub fn play_note(connection: &mut SynthOutputConnection, note: &NoteEvent, chann
     };
 
     if let Some(key) = note.midi_key {
+        log_note_on(note, channel);
         connection.note_on(channel, key, note.midi_velocity);
 
         sleep(duration);
@@ -98,6 +99,7 @@ pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>
     };
 
     for note in chord.iter() {
+        log_note_on(note, channel);
         if let Some(key) = note.midi_key {
             connection.note_on(channel, key, note.midi_velocity);
         }
@@ -112,7 +114,7 @@ pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>
     }
 }
 
-pub fn _log_note_on(note: &NoteEvent, channel: u8) {
+pub fn log_note_on(note: &NoteEvent, channel: u8) {
     let midi_key = match note.midi_key {
         Some(key) => key.to_string(),
         None => String::from("rest"),

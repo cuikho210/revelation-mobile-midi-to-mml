@@ -1,4 +1,4 @@
-use std::{path::{Path, PathBuf}, sync::mpsc::Receiver, thread::{self, JoinHandle}};
+use std::{path::PathBuf, sync::mpsc::Receiver, thread::{self, JoinHandle}};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait}, FromSample, SizedSample

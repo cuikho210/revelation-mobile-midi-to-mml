@@ -1,16 +1,16 @@
-extern crate serde;
 extern crate midly;
 
-mod note;
-mod song;
-mod track;
-mod track_event;
-mod utils;
-mod instrument;
-mod instrument_map;
+pub mod mml_event;
+pub mod mml_note;
+pub mod mml_track;
+pub mod mml_song;
 
-pub use note::Note;
-pub use song::{Song, SongOptions};
-pub use track::Track;
-pub use track_event::TrackEvent;
+pub mod utils;
+pub mod parser;
+pub mod pitch_class;
+
+pub mod instrument;
+pub mod instrument_map;
+
 pub use instrument::Instrument;
+pub use mml_song::{MmlSongOptions, MmlSong};
