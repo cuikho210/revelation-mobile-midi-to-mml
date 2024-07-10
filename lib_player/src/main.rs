@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Instant};
 use lib_player::{MmlPlayer, MmlPlayerOptions};
 use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 
@@ -20,10 +20,12 @@ fn test_from_midi() {
     // let path = "../test_resources/midi/_Racing_into_the_NIght_Full_score.mid";
     let midi_path = PathBuf::from(path[1..].to_string());
 
+    let time = Instant::now();
     let song = MmlSong::from_path(midi_path, MmlSongOptions {
         velocity_min: 8,
         ..Default::default()
     }).unwrap();
+    println!("Generate MML from MIDI in {}ms", time.elapsed().as_millis());
 
     let player = MmlPlayer::from_song(&song, MmlPlayerOptions {
         soundfont_path: vec![

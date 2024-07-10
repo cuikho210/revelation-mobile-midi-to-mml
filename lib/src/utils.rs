@@ -107,12 +107,12 @@ pub fn tick_to_smallest_unit(tick: usize, ppq: u16) -> usize {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct MMLNote {
+struct CustomMmlNote {
     duration_in_smallest_unit: usize,
     mml_value: usize,
 }
 
-impl MMLNote {
+impl CustomMmlNote {
     pub fn new(smallest_unit: usize, duration_in_smallest_unit: usize) -> Self {
         Self {
             duration_in_smallest_unit,
@@ -121,15 +121,15 @@ impl MMLNote {
     }
 }
 
-fn get_list_of_mml_notes(smallest_unit: usize) -> Vec<MMLNote> {
-    let mut notes: Vec<MMLNote> = Vec::new();
+fn get_list_of_mml_notes(smallest_unit: usize) -> Vec<CustomMmlNote> {
+    let mut notes: Vec<CustomMmlNote> = Vec::new();
     let mut remainder = smallest_unit;
 
     while remainder > 1 {
-        notes.push(MMLNote::new(smallest_unit, remainder));
+        notes.push(CustomMmlNote::new(smallest_unit, remainder));
         remainder = remainder / 2;
     }
-    notes.push(MMLNote::new(smallest_unit, remainder));
+    notes.push(CustomMmlNote::new(smallest_unit, remainder));
 
     notes
 }

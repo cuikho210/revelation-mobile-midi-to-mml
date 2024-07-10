@@ -108,7 +108,7 @@ impl PartialOrd for BridgeEvent {
 #[derive(Debug, Clone)]
 pub enum MmlEvent {
     Note(MmlNote),
-    Rest(u8),
+    Rest(usize),
     Tempo(u32),
     Octave(u8),
     IncreOctave,
@@ -135,22 +135,22 @@ impl MmlEvent {
 
     pub fn to_mml_debug(&self) -> String {
         match self {
-            Self::ConnectChord => String::from(":"),
+            Self::ConnectChord => String::from(" : "),
             Self::IncreOctave => String::from(">"),
             Self::DecreOctave => String::from("<"),
-            Self::Tempo(tempo) => format!("t{tempo}\n"),
-            Self::Octave(octave) => format!("o{octave} "),
+            Self::Tempo(tempo) => format!("\nt{tempo}\n"),
+            Self::Octave(octave) => format!(" o{octave} "),
             Self::Note(note) => {
                 utils::get_display_mml(note.duration_in_smallest_unit, &note.pitch_class)
             }
             Self::Rest(rest) => {
                 format!(
-                    "{}\n",
+                    "\n{}\n",
                     utils::get_display_mml(rest.to_owned().into(), &PitchClass::Rest)
                 )
             },
-            Self::Velocity(vel) => format!("v{} ", vel),
-            Self::NoteLength(length) => format!("l{}\n", length),
+            Self::Velocity(vel) => format!(" v{} ", vel),
+            Self::NoteLength(length) => format!("\nl{}\n", length),
         }
     }
 }
