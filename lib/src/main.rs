@@ -8,6 +8,6 @@ fn main() {
 
     for track in song.tracks.iter() {
         println!("Track ... --------------------------\n");
-        println!("{}\n", track.to_mml());
+        println!("{}\n", track.to_mml_debug());
     }
 }

@@ -1,12 +1,15 @@
 use std::convert::TryInto;
 use crate::{
     mml_note::MmlNote,
-    mml_event::MmlEvent,
     pitch_class::PitchClass,
 };
 
 // Note 64. Is whole_note/64 or quarter_note/16
 const SMALLEST_UNIT: usize = 128;
+
+pub fn count_mml_notes(mml: &String) -> usize {
+    mml.split('&').count()
+}
 
 pub fn midi_velocity_to_mml_velocity(
     midi_velocity: u8,
@@ -30,46 +33,6 @@ pub fn get_highest_velocity(notes: &Vec<MmlNote>) -> u8 {
     }
 
     max
-}
-
-/// When a NoteOn event is emitted while another note is playing,
-/// it must either be joined with the previous note to form a chord,
-/// or the previous note must be cut short.
-/// This is because MML code can only play one note or chord at a time.
-pub fn try_connect_to_chord(
-    events: &mut Vec<MmlEvent>,
-    current_note: &MmlNote,
-    before_note: &MmlNote,
-) -> bool {
-    return if is_can_connect_to_chord(current_note, before_note) {
-        events.push(MmlEvent::ConnectChord);
-        true
-    } else {
-        false
-    };
-}
-
-pub fn is_can_connect_to_chord(current_note: &MmlNote, before_note: &MmlNote) -> bool {
-    let position_diff =
-        current_note.position_in_smallest_unit - before_note.position_in_smallest_unit;
-    let is_same_position = position_diff < 1;
-
-    is_same_position
-}
-
-/// Cut the duration of all previous notes by a position in ticks
-pub fn cut_previous_notes(events: &mut Vec<MmlEvent>, position: usize) {
-    for event in events.iter_mut() {
-        if let MmlEvent::Note(note) = event {
-            let note_end_position = note.position_in_smallest_unit + note.duration_in_smallest_unit;
-
-            if note_end_position > position {
-                let position_diff = note_end_position - position;
-                let duration = note.duration_in_smallest_unit - position_diff;
-                note.duration_in_smallest_unit = duration;
-            }
-        }
-    }
 }
 
 pub fn midi_key_to_pitch_class(midi_key: u8) -> PitchClass {

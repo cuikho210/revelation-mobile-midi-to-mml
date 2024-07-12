@@ -135,22 +135,34 @@ impl MmlEvent {
 
     pub fn to_mml_debug(&self) -> String {
         match self {
-            Self::ConnectChord => String::from(" : "),
+            Self::ConnectChord => String::from(":"),
             Self::IncreOctave => String::from(">"),
             Self::DecreOctave => String::from("<"),
-            Self::Tempo(tempo) => format!("\nt{tempo}\n"),
+            Self::Tempo(tempo) => format!(" t{tempo} "),
             Self::Octave(octave) => format!(" o{octave} "),
             Self::Note(note) => {
-                utils::get_display_mml(note.duration_in_smallest_unit, &note.pitch_class)
+                format!(
+                    "{} ",
+                    utils::get_display_mml(note.duration_in_smallest_unit, &note.pitch_class)
+                )
             }
             Self::Rest(rest) => {
                 format!(
-                    "\n{}\n",
+                    "{} ",
                     utils::get_display_mml(rest.to_owned().into(), &PitchClass::Rest)
                 )
             },
             Self::Velocity(vel) => format!(" v{} ", vel),
-            Self::NoteLength(length) => format!("\nl{}\n", length),
+            Self::NoteLength(length) => format!(" l{} ", length),
+        }
+    }
+
+    /// Get duration in smallest unit
+    pub fn get_duration(&self) -> usize {
+        match self {
+            Self::Note(note) => note.duration_in_smallest_unit,
+            Self::Rest(rest) => rest.to_owned(),
+            _ => 0
         }
     }
 }
