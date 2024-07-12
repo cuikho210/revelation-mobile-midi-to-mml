@@ -6,7 +6,7 @@ use crate::{
 };
 
 // Note 64. Is whole_note/64 or quarter_note/16
-const SMALLEST_UNIT: usize = 64;
+const SMALLEST_UNIT: usize = 128;
 
 pub fn midi_velocity_to_mml_velocity(
     midi_velocity: u8,
