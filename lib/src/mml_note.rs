@@ -36,12 +36,14 @@ impl MmlNote {
 
         let position_in_smallest_unit = utils::tick_to_smallest_unit(
             midi_state.midi_state.position_in_tick,
-            ppq
+            ppq,
+            options.smallest_unit,
         );
 
         let duration_in_smallest_unit = utils::tick_to_smallest_unit(
             midi_state.midi_state.duration_in_tick,
-            ppq
+            ppq,
+            options.smallest_unit,
         );
 
         Self {

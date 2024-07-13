@@ -1,11 +1,10 @@
-use crate::{
-    mml_event::{BridgeEvent, MmlEvent}, mml_song::MmlSongOptions, parser::bridge_events_to_mml_events, utils, Instrument
-};
+use crate::{mml_event::{BridgeEvent, MmlEvent}, mml_song::MmlSongOptions, parser::bridge_events_to_mml_events, Instrument};
 
 #[derive(Debug, Clone)]
 pub struct MmlTrack {
     pub instrument: Instrument,
-    pub events: Vec<MmlEvent>
+    pub events: Vec<MmlEvent>,
+    pub song_options: MmlSongOptions,
 }
 
 impl MmlTrack {
@@ -20,14 +19,14 @@ impl MmlTrack {
             ppq,
         );
 
-        Self { events, instrument }
+        Self { events, instrument, song_options }
     }
 
     pub fn to_mml(&self) -> String {
         let mut mml = String::new();
 
         for event in self.events.iter() {
-            mml.push_str(&event.to_mml());
+            mml.push_str(&event.to_mml(self.song_options.smallest_unit as usize));
         }
 
         mml
@@ -38,7 +37,7 @@ impl MmlTrack {
         let mut notes_on_row: usize = 0;
 
         for event in self.events.iter() {
-            let current_mml = &event.to_mml_debug();
+            let current_mml = &event.to_mml_debug(self.song_options.smallest_unit as usize);
             mml.push_str(&current_mml);
 
             notes_on_row += event.get_duration();

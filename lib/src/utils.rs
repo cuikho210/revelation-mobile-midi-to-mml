@@ -4,9 +4,6 @@ use crate::{
     pitch_class::PitchClass,
 };
 
-// Note 64. Is whole_note/64 or quarter_note/16
-const SMALLEST_UNIT: usize = 128;
-
 pub fn count_mml_notes(mml: &String) -> usize {
     mml.split('&').count()
 }
@@ -58,12 +55,12 @@ pub fn midi_key_to_octave(midi_key: u8) -> u8 {
     (midi_key / 12) - 1
 }
 
-pub fn get_smallest_unit_in_tick(ppq: u16) -> f32 {
-    ppq as f32 / (SMALLEST_UNIT as f32 / 4.)
+pub fn get_smallest_unit_in_tick(ppq: u16, smallest_unit: u8) -> f32 {
+    ppq as f32 / (smallest_unit as f32 / 4.)
 }
 
-pub fn tick_to_smallest_unit(tick: usize, ppq: u16) -> usize {
-    let note = get_smallest_unit_in_tick(ppq);
+pub fn tick_to_smallest_unit(tick: usize, ppq: u16, smallest_unit: u8) -> usize {
+    let note = get_smallest_unit_in_tick(ppq, smallest_unit);
     let duration_in_note = tick as f32 / note;
 
     duration_in_note.round() as usize
@@ -97,9 +94,9 @@ fn get_list_of_mml_notes(smallest_unit: usize) -> Vec<CustomMmlNote> {
     notes
 }
 
-pub fn get_display_mml(mut duration_in_smallest_unit: usize, note_class: &PitchClass) -> String {
+pub fn get_display_mml(mut duration_in_smallest_unit: usize, note_class: &PitchClass, smallest_unit: usize) -> String {
     let mut result: Vec<String> = Vec::new();
-    let notes = get_list_of_mml_notes(SMALLEST_UNIT.to_owned());
+    let notes = get_list_of_mml_notes(smallest_unit);
 
     while duration_in_smallest_unit > 0 {
         let mut current_note: usize = 0;
@@ -114,7 +111,7 @@ pub fn get_display_mml(mut duration_in_smallest_unit: usize, note_class: &PitchC
 
         result.push(format!("{}{}", note_class, current_note));
 
-        let half_of_current_note = SMALLEST_UNIT / (current_note * 2);
+        let half_of_current_note = smallest_unit / (current_note * 2);
         if duration_in_smallest_unit > 0 && duration_in_smallest_unit >= half_of_current_note {
             result.push(".".to_string());
             duration_in_smallest_unit -= half_of_current_note;

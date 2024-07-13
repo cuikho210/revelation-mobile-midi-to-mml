@@ -8,6 +8,7 @@ pub struct MmlSongOptions {
     pub velocity_min: u8,
     pub velocity_max: u8,
     pub min_gap_for_chord: u8,
+    pub smallest_unit: u8,
 }
 
 impl Default for MmlSongOptions {
@@ -17,6 +18,7 @@ impl Default for MmlSongOptions {
             velocity_min: 0,
             velocity_max: 15,
             min_gap_for_chord: 1,
+            smallest_unit: 64,
         }
     }
 }

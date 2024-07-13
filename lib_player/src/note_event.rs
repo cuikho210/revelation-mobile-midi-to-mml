@@ -6,7 +6,7 @@ pub struct NoteEvent {
     pub tempo: usize,
     pub midi_key: Option<u8>,
     pub midi_velocity: u8,
-    pub duration_in_note_128: usize,
+    pub duration_in_smallest_unit: usize,
     pub duration_in_ms: usize,
     pub is_connected_to_prev_note: bool,
     pub char_index: usize,
@@ -26,7 +26,7 @@ impl NoteEvent {
         let mut mml_key: Option<String> = None;
         let mut key_length: usize = 1;
         let mut midi_key: Option<u8> = None;
-        let mut duration_in_note_128: usize = 0;
+        let mut duration_in_smallest_unit: usize = 0;
         let midi_velocity = utils::mml_velocity_to_midi_velocity(velocity);
         
         while let Some(part) = parts.next() {
@@ -39,17 +39,17 @@ impl NoteEvent {
             }
 
             let duration_part = &part[key_length..];
-            let duration = utils::mml_duration_to_duration_in_note_128(duration_part);
-            duration_in_note_128 += duration;
+            let duration = utils::mml_duration_to_duration_in_smallest_unit(duration_part);
+            duration_in_smallest_unit += duration;
         }
 
-        let duration_in_ms: usize = utils::duration_in_note_128_to_ms(duration_in_note_128, tempo);
+        let duration_in_ms: usize = utils::duration_in_smallest_unit_to_ms(duration_in_smallest_unit, tempo);
 
         Self {
             tempo,
             midi_key,
             midi_velocity,
-            duration_in_note_128,
+            duration_in_smallest_unit,
             duration_in_ms,
             is_connected_to_prev_note,
             char_index,

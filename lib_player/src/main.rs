@@ -15,10 +15,11 @@ fn test_from_midi() {
     // let path = "../test_resources/midi/Lost-one no Gokoku.mid"; // Elictric guitar
     // let path = "../test_resources/midi/Sir_Duke_Bass_Guitar.mid"; // Bass
     // let path = "../test_resources/midi/Kirameki_Piano_and_Violin_Duet.mid"; // Violin
-    let path = "../test_resources/midi/グッバイ宣言.mid"; // Drumset
+    // let path = "../test_resources/midi/グッバイ宣言.mid"; // Drumset
     // let path = "../test_resources/midi/always_with_me_flute.mid"; // Flute
     // let path = "../test_resources/midi/_Racing_into_the_NIght_Full_score.mid";
-    let midi_path = PathBuf::from(path[1..].to_string());
+    let path = "/home/cuikho210/Downloads/Night_of_nights__Marasy8.mid";
+    let midi_path = PathBuf::from(path.to_string());
 
     let time = Instant::now();
     let song = MmlSong::from_path(midi_path, MmlSongOptions {

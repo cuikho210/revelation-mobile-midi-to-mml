@@ -119,21 +119,21 @@ pub enum MmlEvent {
 }
 
 impl MmlEvent {
-    pub fn to_mml(&self) -> String {
+    pub fn to_mml(&self, smallest_unit: usize) -> String {
         match self {
             Self::ConnectChord => String::from(":"),
             Self::IncreOctave => String::from(">"),
             Self::DecreOctave => String::from("<"),
             Self::Tempo(tempo) => format!("t{tempo}"),
             Self::Octave(octave) => format!("o{octave}"),
-            Self::Note(note) => utils::get_display_mml(note.duration_in_smallest_unit, &note.pitch_class),
-            Self::Rest(rest) => utils::get_display_mml(rest.to_owned().into(), &PitchClass::Rest),
+            Self::Note(note) => utils::get_display_mml(note.duration_in_smallest_unit, &note.pitch_class, smallest_unit),
+            Self::Rest(rest) => utils::get_display_mml(rest.to_owned().into(), &PitchClass::Rest, smallest_unit),
             Self::Velocity(vel) => format!("v{}", vel),
             Self::NoteLength(length) => format!("l{}", length),
         }
     }
 
-    pub fn to_mml_debug(&self) -> String {
+    pub fn to_mml_debug(&self, smallest_unit: usize) -> String {
         match self {
             Self::ConnectChord => String::from(":"),
             Self::IncreOctave => String::from(">"),
@@ -143,13 +143,13 @@ impl MmlEvent {
             Self::Note(note) => {
                 format!(
                     "{} ",
-                    utils::get_display_mml(note.duration_in_smallest_unit, &note.pitch_class)
+                    utils::get_display_mml(note.duration_in_smallest_unit, &note.pitch_class, smallest_unit)
                 )
             }
             Self::Rest(rest) => {
                 format!(
                     "{} ",
-                    utils::get_display_mml(rest.to_owned().into(), &PitchClass::Rest)
+                    utils::get_display_mml(rest.to_owned().into(), &PitchClass::Rest, smallest_unit)
                 )
             },
             Self::Velocity(vel) => format!(" v{} ", vel),
