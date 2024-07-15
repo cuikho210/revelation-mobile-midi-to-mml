@@ -138,7 +138,7 @@ impl MmlEvent {
             Self::ConnectChord => String::from(":"),
             Self::IncreOctave => String::from(">"),
             Self::DecreOctave => String::from("<"),
-            Self::Tempo(tempo) => format!(" t{tempo} "),
+            Self::Tempo(tempo) => format!("\nt{tempo}\n"),
             Self::Octave(octave) => format!(" o{octave} "),
             Self::Note(note) => {
                 format!(

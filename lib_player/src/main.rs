@@ -8,7 +8,7 @@ fn main() {
 
 fn test_from_midi() {
     // let path = "../test_resources/midi/Hitchcock.mid"; // Grand piano
-    // let path = "../test_resources/midi/Yoasobi_-_Heart_Beat.mid"; // Grand piano
+    let path = "../test_resources/midi/Yoasobi_-_Heart_Beat.mid"; // Grand piano
     // let path = "../test_resources/midi/Senbonzakura.mid"; // Grand piano
     // let path = "../test_resources/midi/itumoHe_Du_demo_Always_with_Me_Simplified_version_for_kids.mid"; // Grand piano
     // let path = "../test_resources/midi/Milonga.mid"; // Nylon guitar
@@ -18,13 +18,16 @@ fn test_from_midi() {
     // let path = "../test_resources/midi/グッバイ宣言.mid"; // Drumset
     // let path = "../test_resources/midi/always_with_me_flute.mid"; // Flute
     // let path = "../test_resources/midi/_Racing_into_the_NIght_Full_score.mid";
-    let path = "/home/cuikho210/Downloads/Night_of_nights__Marasy8.mid";
-    let midi_path = PathBuf::from(path.to_string());
+    let midi_path = PathBuf::from(path[1..].to_string());
+
+    // let path = "/home/cuikho210/Downloads/My_Neighbor_Totoro_-_Joe_Hisaishi1900_followers_SP.mid";
+    // let midi_path = PathBuf::from(path.to_string());
 
     let time = Instant::now();
     let song = MmlSong::from_path(midi_path, MmlSongOptions {
         velocity_min: 8,
         min_gap_for_chord: 0,
+        smallest_unit: 64,
         ..Default::default()
     }).unwrap();
     println!("Generate MML from MIDI in {}ms", time.elapsed().as_millis());

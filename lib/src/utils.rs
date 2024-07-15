@@ -55,11 +55,11 @@ pub fn midi_key_to_octave(midi_key: u8) -> u8 {
     (midi_key / 12) - 1
 }
 
-pub fn get_smallest_unit_in_tick(ppq: u16, smallest_unit: u8) -> f32 {
+pub fn get_smallest_unit_in_tick(ppq: u16, smallest_unit: usize) -> f32 {
     ppq as f32 / (smallest_unit as f32 / 4.)
 }
 
-pub fn tick_to_smallest_unit(tick: usize, ppq: u16, smallest_unit: u8) -> usize {
+pub fn tick_to_smallest_unit(tick: usize, ppq: u16, smallest_unit: usize) -> usize {
     let note = get_smallest_unit_in_tick(ppq, smallest_unit);
     let duration_in_note = tick as f32 / note;
 

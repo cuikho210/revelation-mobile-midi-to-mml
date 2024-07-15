@@ -27,7 +27,7 @@ pub fn bridge_events_to_mml_events(
                     } else if position_diff < 0 {
                         let note_pos_isize = note.position_in_smallest_unit as isize;
                         let before_note_pos_isize = before_note.position_in_smallest_unit as isize;
-                        let start_pos_diff = (note_pos_isize - before_note_pos_isize).abs();
+                        let start_pos_diff = note_pos_isize - before_note_pos_isize;
 
                         if start_pos_diff <= options.min_gap_for_chord as isize {
                             mml_events.push(MmlEvent::ConnectChord);
@@ -128,6 +128,8 @@ fn get_current_position(events: &Vec<MmlEvent>, current_index: usize) -> usize {
 }
 
 fn modify_before_duration(events: &mut Vec<MmlEvent>, mut current_index: usize, mut to_modify: isize) {
+    let mut to_insert_connect_chord: Vec<usize> = Vec::new();
+
     loop {
         if current_index > 0 {
             current_index -= 1;
@@ -161,11 +163,25 @@ fn modify_before_duration(events: &mut Vec<MmlEvent>, mut current_index: usize, 
                         note.duration_in_smallest_unit = new_duration as usize;
                         break;
                     } else {
-                        note.duration_in_smallest_unit = 1;
-                        to_modify += duration_isize - 1;
+                        to_modify += duration_isize;
+                        to_insert_connect_chord.push(current_index);
                     }
                 }
                 _ => ()
+            }
+        }
+    }
+
+    for index in to_insert_connect_chord {
+        events.insert(index, MmlEvent::ConnectChord);
+        
+        if let Some(event) = events.get_mut(index + 1) {
+            eprintln!("[modify_before_duration] Cannot get event");
+
+            if let MmlEvent::Note(note) = event {
+                eprintln!("[modify_before_duration] Cannot get note");
+
+                note.is_part_of_chord = true;
             }
         }
     }

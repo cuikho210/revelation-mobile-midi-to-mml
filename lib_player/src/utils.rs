@@ -1,7 +1,7 @@
 use std::{thread::sleep, time::Duration};
 use crate::{SynthOutputConnection, NoteEvent};
 
-const SMALLEST_UNIT: usize = 64;
+const SMALLEST_UNIT: usize = 256;
 
 pub fn mml_velocity_to_midi_velocity(mml_velocity: u8) -> u8 {
     let mml_f64: f64 = mml_velocity as f64;

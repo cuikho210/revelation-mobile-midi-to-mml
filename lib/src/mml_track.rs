@@ -26,7 +26,7 @@ impl MmlTrack {
         let mut mml = String::new();
 
         for event in self.events.iter() {
-            mml.push_str(&event.to_mml(self.song_options.smallest_unit as usize));
+            mml.push_str(&event.to_mml(self.song_options.smallest_unit));
         }
 
         mml
@@ -37,7 +37,7 @@ impl MmlTrack {
         let mut notes_on_row: usize = 0;
 
         for event in self.events.iter() {
-            let current_mml = &event.to_mml_debug(self.song_options.smallest_unit as usize);
+            let current_mml = &event.to_mml_debug(self.song_options.smallest_unit);
             mml.push_str(&current_mml);
 
             notes_on_row += event.get_duration();
