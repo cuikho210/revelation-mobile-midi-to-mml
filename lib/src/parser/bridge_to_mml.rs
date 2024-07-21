@@ -1,7 +1,7 @@
 use crate::{mml_event::{BridgeEvent, MmlEvent}, mml_note::MmlNote, mml_song::MmlSongOptions, Instrument};
 
 pub fn bridge_events_to_mml_events(
-    bridge_events: Vec<BridgeEvent>,
+    bridge_events: &Vec<BridgeEvent>,
     options: &MmlSongOptions,
     ppq: u16,
 ) -> (Vec<MmlEvent>, Instrument) {
@@ -9,13 +9,13 @@ pub fn bridge_events_to_mml_events(
     let mut before_note: Option<MmlNote> = None;
     let mut instrument = Instrument::default();
 
-    for event in bridge_events {
+    for event in bridge_events.iter() {
         match event {
             BridgeEvent::Tempo(tempo, .. ) => {
-                mml_events.push(MmlEvent::Tempo(tempo));
+                mml_events.push(MmlEvent::Tempo(tempo.to_owned()));
             }
             BridgeEvent::Note(midi_state) => {
-                let mut note = MmlNote::from_midi_state(midi_state, options, ppq, false);
+                let mut note = MmlNote::from_midi_state(midi_state.to_owned(), options, ppq, false);
 
                 if let Some(before_note) = &before_note {
                     // Rest and chord
@@ -63,7 +63,7 @@ pub fn bridge_events_to_mml_events(
                 mml_events.push(MmlEvent::Note(note));
             }
             BridgeEvent::ProgramChange(dest_instrument, _) => {
-                instrument = dest_instrument;
+                instrument = dest_instrument.to_owned();
             }
         }
     }

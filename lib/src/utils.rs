@@ -1,8 +1,23 @@
 use std::convert::TryInto;
-use crate::{
-    mml_note::MmlNote,
-    pitch_class::PitchClass,
-};
+use crate::{mml_event::MmlEvent, mml_track::MmlTrack, pitch_class::PitchClass, MmlSongOptions};
+
+pub fn auto_boot_song_velocity(song_options: &MmlSongOptions, tracks: &mut Vec<MmlTrack>) {
+    let mut velocity_max = 0u8;
+
+    for track in tracks.iter() {
+        let velocity = get_highest_velocity(&track.events);
+        if velocity > velocity_max {
+            velocity_max = velocity;
+        }
+    }
+
+    let diff = song_options.velocity_max - velocity_max;
+    println!("Velocity diff: {}", diff);
+
+    for track in tracks.iter_mut() {
+        track.apply_boot_velocity(diff);
+    }
+}
 
 pub fn count_mml_notes(mml: &String) -> usize {
     mml.split('&').count()
@@ -20,12 +35,14 @@ pub fn midi_velocity_to_mml_velocity(
     ((midi_velocity * range / 127) + velocity_min).try_into().unwrap()
 }
 
-pub fn get_highest_velocity(notes: &Vec<MmlNote>) -> u8 {
+pub fn get_highest_velocity(events: &Vec<MmlEvent>) -> u8 {
     let mut max = 0u8;
 
-    for note in notes.iter() {
-        if note.velocity > max {
-            max = note.velocity;
+    for event in events.iter() {
+        if let MmlEvent::Note(note) = event {
+            if note.velocity > max {
+                max = note.velocity;
+            }
         }
     }
 

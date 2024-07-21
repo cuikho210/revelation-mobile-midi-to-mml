@@ -5,7 +5,9 @@ pub struct MmlTrack {
     pub name: String,
     pub instrument: Instrument,
     pub events: Vec<MmlEvent>,
-    pub song_options: MmlSongOptions,
+    song_options: MmlSongOptions,
+    bridge_events: Vec<BridgeEvent>,
+    ppq: u16,
 }
 
 impl MmlTrack {
@@ -15,18 +17,18 @@ impl MmlTrack {
         song_options: MmlSongOptions,
         ppq: u16,
     ) -> Self {
-        let (events, instrument) = bridge_events_to_mml_events(
-            bridge_events,
-            &song_options,
-            ppq,
-        );
 
-        Self {
+        let mut mml_track = Self {
             name: index.to_string(),
-            events,
-            instrument,
+            events: Vec::new(),
+            instrument: Instrument::default(),
+            bridge_events,
             song_options,
-        }
+            ppq,
+        };
+
+        mml_track.generate_mml_events();
+        mml_track
     }
 
     pub fn to_mml(&self) -> String {
@@ -55,5 +57,26 @@ impl MmlTrack {
         }
 
         mml
+    }
+
+    pub fn apply_boot_velocity(&mut self, velocity_diff: u8) {
+        if velocity_diff > 0 {
+            for event in self.events.iter_mut() {
+                if let MmlEvent::Velocity(velocity) = event {
+                    *velocity += velocity_diff
+                }
+            }
+        }
+    }
+
+    fn generate_mml_events(&mut self) {
+        let (events, instrument) = bridge_events_to_mml_events(
+            &self.bridge_events,
+            &self.song_options,
+            self.ppq,
+        );
+
+        self.events = events;
+        self.instrument = instrument;
     }
 }

@@ -3,8 +3,11 @@ extern crate revelation_mobile_midi_to_mml;
 use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 
 fn main() {
-    let path = "/home/cuikho210/Projects/revelation-mobile-midi-to-mml/lib_player/test_resources/midi/The_cat_returns_-_Become_the_wind_-_Kaze_ni_naru.mid";
-    let song = MmlSong::from_path(path, MmlSongOptions::default()).unwrap();
+    let path = "/home/cuikho210/Projects/revelation-mobile-midi-to-mml/lib_player/test_resources/midi/Milonga.mid";
+    let song = MmlSong::from_path(path, MmlSongOptions {
+        auto_boot_velocity: true,
+        ..Default::default()
+    }).unwrap();
 
     for track in song.tracks.iter() {
         println!(

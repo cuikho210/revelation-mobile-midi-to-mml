@@ -1,6 +1,6 @@
 use std::{fmt::Debug, fs, io::{Error, ErrorKind}, path::Path, thread::{self, JoinHandle}};
 use midly::{Smf, Timing, TrackEvent};
-use crate::{mml_event::BridgeEvent, parser::{bridge_notes_from_midi_track, bridge_meta_from_midi_track}, mml_track::MmlTrack};
+use crate::{mml_event::BridgeEvent, mml_track::MmlTrack, parser::{bridge_meta_from_midi_track, bridge_notes_from_midi_track}, utils};
 
 #[derive(Debug, Clone)]
 pub struct MmlSongOptions {
@@ -59,7 +59,11 @@ impl MmlSong {
         let mut bridge_note_events = get_bridge_note_events(smf_tracks);
         apply_meta_events(&mut bridge_note_events, &meta_events);
 
-        let tracks = bridge_events_to_tracks(bridge_note_events, &options, ppq);
+        let mut tracks = bridge_events_to_tracks(bridge_note_events, &options, ppq);
+
+        if options.auto_boot_velocity {
+            utils::auto_boot_song_velocity(&options, &mut tracks);
+        }
 
         let result = Self { ppq, tracks };
         Ok(result)
