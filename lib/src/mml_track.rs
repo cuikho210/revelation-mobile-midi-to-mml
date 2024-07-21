@@ -2,6 +2,7 @@ use crate::{mml_event::{BridgeEvent, MmlEvent}, mml_song::MmlSongOptions, parser
 
 #[derive(Debug, Clone)]
 pub struct MmlTrack {
+    pub name: String,
     pub instrument: Instrument,
     pub events: Vec<MmlEvent>,
     pub song_options: MmlSongOptions,
@@ -9,6 +10,7 @@ pub struct MmlTrack {
 
 impl MmlTrack {
     pub fn from_bridge_events(
+        index: usize,
         bridge_events: Vec<BridgeEvent>,
         song_options: MmlSongOptions,
         ppq: u16,
@@ -19,7 +21,12 @@ impl MmlTrack {
             ppq,
         );
 
-        Self { events, instrument, song_options }
+        Self {
+            name: index.to_string(),
+            events,
+            instrument,
+            song_options,
+        }
     }
 
     pub fn to_mml(&self) -> String {

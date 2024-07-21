@@ -17,7 +17,7 @@ impl Default for MmlSongOptions {
             auto_boot_velocity: false,
             velocity_min: 0,
             velocity_max: 15,
-            min_gap_for_chord: 1,
+            min_gap_for_chord: 0,
             smallest_unit: 64,
         }
     }
@@ -76,8 +76,10 @@ fn bridge_events_to_tracks(
 
     for events in bridge_events {
         let options = song_options.to_owned();
+        let index = handles.len();
+
         let handle = thread::spawn::<_, MmlTrack>(move || {
-            MmlTrack::from_bridge_events(events, options, ppq)
+            MmlTrack::from_bridge_events(index, events, options, ppq)
         });
         handles.push(handle);
     }

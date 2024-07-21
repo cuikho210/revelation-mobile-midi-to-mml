@@ -3,11 +3,16 @@ extern crate revelation_mobile_midi_to_mml;
 use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 
 fn main() {
-    let path = "/home/cuikho210/Downloads/My_Neighbor_Totoro_-_Joe_Hisaishi1900_followers_SP.mid";
+    let path = "/home/cuikho210/Projects/revelation-mobile-midi-to-mml/lib_player/test_resources/midi/The_cat_returns_-_Become_the_wind_-_Kaze_ni_naru.mid";
     let song = MmlSong::from_path(path, MmlSongOptions::default()).unwrap();
 
     for track in song.tracks.iter() {
-        println!("Track ... --------------------------\n");
+        println!(
+            "Track {} - {} --------------------------",
+            track.name,
+            track.instrument.name,
+        );
+
         println!("{}\n", track.to_mml_debug());
     }
 }
