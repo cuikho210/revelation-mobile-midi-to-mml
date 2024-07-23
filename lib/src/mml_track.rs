@@ -31,6 +31,14 @@ impl MmlTrack {
         mml_track
     }
 
+    pub fn merge(&mut self, other: &mut Self) {
+        self.bridge_events.append(&mut other.bridge_events);
+        self.bridge_events.sort();
+
+        self.name = format!("{}+{}", &self.name, other.name);
+        self.generate_mml_events();
+    }
+
     pub fn to_mml(&self) -> String {
         let mut mml = String::new();
 

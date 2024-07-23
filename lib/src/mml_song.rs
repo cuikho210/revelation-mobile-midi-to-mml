@@ -1,4 +1,4 @@
-use std::{fmt::Debug, fs, io::{Error, ErrorKind}, path::Path, thread::{self, JoinHandle}};
+use std::{fmt::Debug, fs, path::Path, thread::{self, JoinHandle}};
 use midly::{Smf, Timing, TrackEvent};
 use crate::{mml_event::BridgeEvent, mml_track::MmlTrack, parser::{bridge_meta_from_midi_track, bridge_notes_from_midi_track}, utils};
 
@@ -27,25 +27,26 @@ impl Default for MmlSongOptions {
 pub struct MmlSong {
     pub ppq: u16,
     pub tracks: Vec<MmlTrack>,
+    pub options: MmlSongOptions,
 }
 
 impl MmlSong {
-    pub fn from_path<P>(path: P, options: MmlSongOptions) -> Result<Self, Error>
+    pub fn from_path<P>(path: P, options: MmlSongOptions) -> Result<Self, String>
     where
         P: AsRef<Path>,
     {
         let bytes = match fs::read(path) {
             Ok(bytes) => bytes,
-            Err(err) => return Err(err),
+            Err(err) => return Err(err.to_string()),
         };
 
         Self::from_bytes(bytes, options)
     }
 
-    pub fn from_bytes(bytes: Vec<u8>, options: MmlSongOptions) -> Result<Self, Error> {
+    pub fn from_bytes(bytes: Vec<u8>, options: MmlSongOptions) -> Result<Self, String> {
         let smf = match Smf::parse(&bytes) {
             Ok(smf) => smf,
-            Err(err) => return Err(Error::new(ErrorKind::Other, err)),
+            Err(err) => return Err(err.to_string()),
         };
 
         let ppq = match get_ppq_from_smf(&smf) {
@@ -65,8 +66,27 @@ impl MmlSong {
             utils::auto_boot_song_velocity(&options, &mut tracks);
         }
 
-        let result = Self { ppq, tracks };
+        let result = Self {
+            ppq,
+            tracks,
+            options,
+        };
         Ok(result)
+    }
+
+    pub fn merge_tracks(&mut self, index_a: usize, index_b: usize) -> Result<(), String> {
+        let mut track_b = self.tracks.get(index_b).ok_or(
+            format!("Cannot get track by index_b = {}", index_b)
+        )?.to_owned();
+
+        let track_a = self.tracks.get_mut(index_a).ok_or(
+            format!("Cannot get track by index_a = {}", index_a)
+        )?;
+
+        track_a.merge(&mut track_b);
+        self.tracks.remove(index_b);
+
+        Ok(())
     }
 }
 

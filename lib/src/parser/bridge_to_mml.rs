@@ -176,13 +176,13 @@ fn modify_before_duration(events: &mut Vec<MmlEvent>, mut current_index: usize, 
         events.insert(index, MmlEvent::ConnectChord);
         
         if let Some(event) = events.get_mut(index + 1) {
-            eprintln!("[modify_before_duration] Cannot get event");
-
             if let MmlEvent::Note(note) = event {
-                eprintln!("[modify_before_duration] Cannot get note");
-
                 note.is_part_of_chord = true;
+            } else {
+                eprintln!("[modify_before_duration] Cannot get note");
             }
+        } else {
+            eprintln!("[modify_before_duration] Cannot get event");
         }
     }
 }
