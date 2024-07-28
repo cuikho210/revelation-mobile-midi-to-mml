@@ -110,6 +110,7 @@ impl MmlSong {
     fn appy_song_options(&mut self) {
         if self.options.auto_boot_velocity {
             let velocity_diff = utils::get_song_velocity_diff(&self.options, &self.tracks);
+            self.velocity_diff = Some(velocity_diff);
             utils::auto_boot_song_velocity(&mut self.tracks, velocity_diff);
         }
     }
