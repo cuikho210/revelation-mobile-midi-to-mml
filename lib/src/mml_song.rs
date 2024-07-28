@@ -28,6 +28,7 @@ pub struct MmlSong {
     pub ppq: u16,
     pub tracks: Vec<MmlTrack>,
     pub options: MmlSongOptions,
+    velocity_diff: Option<u8>,
 }
 
 impl MmlSong {
@@ -59,18 +60,17 @@ impl MmlSong {
         let smf_tracks = smf.make_static().tracks;
         let bridge_note_events = get_bridge_note_events(smf_tracks);
 
-        let mut tracks = bridge_events_to_tracks(meta_events, bridge_note_events, &options, ppq);
+        let tracks = bridge_events_to_tracks(meta_events, bridge_note_events, &options, ppq);
 
-        if options.auto_boot_velocity {
-            utils::auto_boot_song_velocity(&options, &mut tracks);
-        }
-
-        let result = Self {
+        let mut song = Self {
             ppq,
             tracks,
             options,
+            velocity_diff: None,
         };
-        Ok(result)
+        song.appy_song_options();
+
+        Ok(song)
     }
 
     pub fn merge_tracks(&mut self, index_a: usize, index_b: usize) -> Result<(), String> {
@@ -92,12 +92,26 @@ impl MmlSong {
         let track = self.tracks.get_mut(index).ok_or(
             format!("Cannot get track by index {}", index)
         )?;
+        let (mut track_a, mut track_b) = track.split();
 
-        let (track_a, track_b) = track.split();
+        if self.options.auto_boot_velocity {
+            if let Some(velocity_diff) = self.velocity_diff {
+                track_a.apply_boot_velocity(velocity_diff);
+                track_b.apply_boot_velocity(velocity_diff);
+            }
+        }
+
         *track = track_a;
         self.tracks.insert(index + 1, track_b);
 
         Ok(())
+    }
+
+    fn appy_song_options(&mut self) {
+        if self.options.auto_boot_velocity {
+            let velocity_diff = utils::get_song_velocity_diff(&self.options, &self.tracks);
+            utils::auto_boot_song_velocity(&mut self.tracks, velocity_diff);
+        }
     }
 }
 

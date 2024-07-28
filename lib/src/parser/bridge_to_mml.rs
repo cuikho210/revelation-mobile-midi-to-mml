@@ -70,8 +70,17 @@ pub fn bridge_events_to_mml_events(
 
     fix_note_position(&mut mml_events);
     update_chord_duration(&mut mml_events);
+    update_note_mml(&mut mml_events);
 
     (mml_events, instrument)
+}
+
+fn update_note_mml(events: &mut Vec<MmlEvent>) {
+    for event in events.iter_mut() {
+        if let MmlEvent::Note(note) = event {
+            note.update_mml_string();
+        }
+    }
 }
 
 fn fix_note_position(events: &mut Vec<MmlEvent>) {

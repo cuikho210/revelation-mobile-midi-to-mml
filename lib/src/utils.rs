@@ -43,7 +43,7 @@ pub fn equalize_tracks(track_a: &mut MmlTrack, track_b: &mut MmlTrack) {
     }
 }
 
-pub fn auto_boot_song_velocity(song_options: &MmlSongOptions, tracks: &mut Vec<MmlTrack>) {
+pub fn get_song_velocity_diff(song_options: &MmlSongOptions, tracks: &Vec<MmlTrack>) -> u8 {
     let mut velocity_max = 0u8;
 
     for track in tracks.iter() {
@@ -54,10 +54,12 @@ pub fn auto_boot_song_velocity(song_options: &MmlSongOptions, tracks: &mut Vec<M
     }
 
     let diff = song_options.velocity_max - velocity_max;
-    println!("Velocity diff: {}", diff);
+    diff
+}
 
+pub fn auto_boot_song_velocity(tracks: &mut Vec<MmlTrack>, velocity_diff: u8) {
     for track in tracks.iter_mut() {
-        track.apply_boot_velocity(diff);
+        track.apply_boot_velocity(velocity_diff);
     }
 }
 
@@ -81,9 +83,9 @@ pub fn get_highest_velocity(events: &Vec<MmlEvent>) -> u8 {
     let mut max = 0u8;
 
     for event in events.iter() {
-        if let MmlEvent::Note(note) = event {
-            if note.velocity > max {
-                max = note.velocity;
+        if let MmlEvent::Velocity(vel) = event {
+            if *vel > max {
+                max = *vel;
             }
         }
     }

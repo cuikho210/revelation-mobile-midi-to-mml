@@ -110,11 +110,7 @@ impl MmlTrack {
 
     fn apply_meta_events(&mut self) {
         self.bridge_events = self.bridge_note_events.to_owned();
-
-        for meta_event in self.bridge_meta_events.iter() {
-            self.bridge_events.push(meta_event.to_owned());
-        }
-
+        self.bridge_events.append(&mut self.bridge_meta_events.to_owned());
         self.bridge_events.sort();
     }
 
@@ -137,9 +133,10 @@ impl MmlTrack {
         let mut bridges_b: Vec<BridgeEvent> = Vec::new();
 
         for i in 0..self.bridge_note_events.len() {
-            let current_bridge_event = self.bridge_events.get(i).unwrap();
+            let current_bridge_event_ref = self.bridge_note_events.get(i).unwrap();
+            let current_bridge_event = current_bridge_event_ref.to_owned();
 
-            if let BridgeEvent::Note(current_note) = current_bridge_event {
+            if let BridgeEvent::Note(current_note) = current_bridge_event_ref {
                 let current_end_position =
                     current_note.midi_state.position_in_tick
                     + current_note.midi_state.duration_in_tick;
@@ -152,18 +149,20 @@ impl MmlTrack {
                     let note_pos_isize = current_note.midi_state.position_in_tick as isize;
                     let before_note_pos_isize = before_note.midi_state.position_in_tick as isize;
                     let start_pos_diff = note_pos_isize - before_note_pos_isize;
+                    let min_gap_for_chord_isize = self.song_options.min_gap_for_chord as isize;
+                    let min_gap_for_chord_in_smallest_unit = min_gap_for_chord_isize * self.song_options.smallest_unit as isize;
 
-                    if start_pos_diff <= self.song_options.min_gap_for_chord as isize {
-                        bridges_a.push(BridgeEvent::Note(current_note.to_owned()));
+                    if start_pos_diff <= min_gap_for_chord_in_smallest_unit {
+                        bridges_a.push(current_bridge_event);
                     } else {
                         if current_note.midi_state.position_in_tick < max_end_position {
-                            bridges_b.push(BridgeEvent::Note(current_note.to_owned()));
+                            bridges_b.push(current_bridge_event);
                         } else {
-                            bridges_a.push(BridgeEvent::Note(current_note.to_owned()));
+                            bridges_a.push(current_bridge_event);
                         }
                     }
                 } else {
-                    bridges_a.push(BridgeEvent::Note(current_note.to_owned()));
+                    bridges_a.push(current_bridge_event);
                 }
 
                 before_note = Some(current_note.to_owned());

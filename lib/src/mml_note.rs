@@ -71,8 +71,12 @@ impl MmlNote {
         }
     }
 
-    pub fn update_mml_string(&mut self, smallest_unit: usize) {
-        self.mml_string = utils::get_display_mml(self.duration_in_smallest_unit, &self.pitch_class, smallest_unit);
+    pub fn update_mml_string(&mut self) {
+        self.mml_string = utils::get_display_mml(
+            self.duration_in_smallest_unit,
+            &self.pitch_class,
+            self.song_options.smallest_unit,
+        );
         self.mml_note_length = utils::count_mml_note(&self.mml_string);
     }
 }
