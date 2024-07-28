@@ -8,14 +8,14 @@ fn main() {
 
 fn test_from_midi() {
     // let path = "../test_resources/midi/Hitchcock.mid"; // Grand piano
-    // let path = "../test_resources/midi/Yoasobi_-_Heart_Beat.mid"; // Grand piano
+    let path = "../test_resources/midi/Yoasobi_-_Heart_Beat.mid"; // Grand piano
     // let path = "../test_resources/midi/Senbonzakura.mid"; // Grand piano
     // let path = "../test_resources/midi/itumoHe_Du_demo_Always_with_Me_Simplified_version_for_kids.mid"; // Grand piano
     // let path = "../test_resources/midi/Milonga.mid"; // Nylon guitar
     // let path = "../test_resources/midi/Lost-one no Gokoku.mid"; // Elictric guitar
     // let path = "../test_resources/midi/Sir_Duke_Bass_Guitar.mid"; // Bass
     // let path = "../test_resources/midi/Kirameki_Piano_and_Violin_Duet.mid"; // Violin
-    let path = "../test_resources/midi/The_cat_returns_-_Become_the_wind_-_Kaze_ni_naru.mid"; // Violin
+    // let path = "../test_resources/midi/The_cat_returns_-_Become_the_wind_-_Kaze_ni_naru.mid"; // Violin
     // let path = "../test_resources/midi/グッバイ宣言.mid"; // Drumset
     // let path = "../test_resources/midi/always_with_me_flute.mid"; // Flute
     // let path = "../test_resources/midi/_Racing_into_the_NIght_Full_score.mid";
@@ -25,14 +25,12 @@ fn test_from_midi() {
     // let midi_path = PathBuf::from(path.to_string());
 
     let time = Instant::now();
-    let mut song = MmlSong::from_path(midi_path, MmlSongOptions {
-        // velocity_min: 8,
+    let song = MmlSong::from_path(midi_path, MmlSongOptions {
         min_gap_for_chord: 1,
         smallest_unit: 64,
+        auto_boot_velocity: true,
         ..Default::default()
     }).unwrap();
-
-    song.merge_tracks(0, 1).unwrap();
 
     println!("Generate MML from MIDI in {}ms", time.elapsed().as_millis());
 

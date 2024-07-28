@@ -9,7 +9,7 @@ fn main() {
         ..Default::default()
     }).unwrap();
 
-    song.merge_tracks(0, 1).unwrap();
+    song.split_track(1).unwrap();
 
     for track in song.tracks.iter() {
         println!(

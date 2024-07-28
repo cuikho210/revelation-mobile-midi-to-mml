@@ -126,7 +126,7 @@ impl MmlEvent {
             Self::DecreOctave => String::from("<"),
             Self::Tempo(tempo) => format!("t{tempo}"),
             Self::Octave(octave) => format!("o{octave}"),
-            Self::Note(note) => utils::get_display_mml(note.duration_in_smallest_unit, &note.pitch_class, smallest_unit),
+            Self::Note(note) => note.mml_string.to_owned(),
             Self::Rest(rest) => utils::get_display_mml(rest.to_owned().into(), &PitchClass::Rest, smallest_unit),
             Self::Velocity(vel) => format!("v{}", vel),
             Self::NoteLength(length) => format!("l{}", length),

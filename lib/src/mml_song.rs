@@ -57,10 +57,9 @@ impl MmlSong {
         let meta_events = get_bridge_meta_events(&smf.tracks);
 
         let smf_tracks = smf.make_static().tracks;
-        let mut bridge_note_events = get_bridge_note_events(smf_tracks);
-        apply_meta_events(&mut bridge_note_events, &meta_events);
+        let bridge_note_events = get_bridge_note_events(smf_tracks);
 
-        let mut tracks = bridge_events_to_tracks(bridge_note_events, &options, ppq);
+        let mut tracks = bridge_events_to_tracks(meta_events, bridge_note_events, &options, ppq);
 
         if options.auto_boot_velocity {
             utils::auto_boot_song_velocity(&options, &mut tracks);
@@ -88,9 +87,22 @@ impl MmlSong {
 
         Ok(())
     }
+
+    pub fn split_track(&mut self, index: usize) -> Result<(), String> {
+        let track = self.tracks.get_mut(index).ok_or(
+            format!("Cannot get track by index {}", index)
+        )?;
+
+        let (track_a, track_b) = track.split();
+        *track = track_a;
+        self.tracks.insert(index + 1, track_b);
+
+        Ok(())
+    }
 }
 
 fn bridge_events_to_tracks(
+    bridge_meta_events: Vec<BridgeEvent>,
     bridge_events: Vec<Vec<BridgeEvent>>,
     song_options: &MmlSongOptions,
     ppq: u16,
@@ -101,9 +113,10 @@ fn bridge_events_to_tracks(
     for events in bridge_events {
         let options = song_options.to_owned();
         let index = handles.len();
+        let meta_events = bridge_meta_events.to_owned();
 
         let handle = thread::spawn::<_, MmlTrack>(move || {
-            MmlTrack::from_bridge_events(index, events, options, ppq)
+            MmlTrack::from_bridge_events(index.to_string(), meta_events, events, options, ppq)
         });
         handles.push(handle);
     }
@@ -120,18 +133,6 @@ fn bridge_events_to_tracks(
     }
 
     tracks
-}
-
-fn apply_meta_events(list_note_events: &mut Vec<Vec<BridgeEvent>>, meta_events: &Vec<BridgeEvent>) {
-    for meta_event in meta_events.iter() {
-        for note_events in list_note_events.iter_mut() {
-            note_events.push(meta_event.to_owned());
-        }
-    }
-
-    for note_events in list_note_events.iter_mut() {
-        note_events.sort();
-    }
 }
 
 fn get_bridge_note_events(smf_tracks: Vec<Vec<TrackEvent<'static>>>) -> Vec<Vec<BridgeEvent>> {

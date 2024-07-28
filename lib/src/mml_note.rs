@@ -14,6 +14,9 @@ pub struct MmlNote {
     pub position_in_smallest_unit: usize,
     pub duration_in_smallest_unit: usize,
     pub is_part_of_chord: bool,
+    pub mml_string: String,
+    pub mml_note_length: usize,
+    pub song_options: MmlSongOptions,
 }
 
 impl MmlNote {
@@ -46,6 +49,14 @@ impl MmlNote {
             options.smallest_unit,
         );
 
+        let mml_string = utils::get_display_mml(
+            duration_in_smallest_unit,
+            &pitch_class,
+            options.smallest_unit,
+        );
+
+        let mml_note_length = utils::count_mml_note(&mml_string);
+
         Self {
             midi_state,
             pitch_class,
@@ -54,6 +65,14 @@ impl MmlNote {
             position_in_smallest_unit,
             duration_in_smallest_unit,
             is_part_of_chord,
+            mml_string,
+            mml_note_length,
+            song_options: options.to_owned(), 
         }
+    }
+
+    pub fn update_mml_string(&mut self, smallest_unit: usize) {
+        self.mml_string = utils::get_display_mml(self.duration_in_smallest_unit, &self.pitch_class, smallest_unit);
+        self.mml_note_length = utils::count_mml_note(&self.mml_string);
     }
 }

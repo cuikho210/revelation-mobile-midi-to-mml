@@ -1,34 +1,51 @@
-use crate::{mml_event::{BridgeEvent, MmlEvent}, mml_song::MmlSongOptions, parser::bridge_events_to_mml_events, Instrument};
+use crate::{mml_event::{BridgeEvent, MidiNoteState, MmlEvent}, mml_song::MmlSongOptions, parser::bridge_events_to_mml_events, Instrument, utils};
 
 #[derive(Debug, Clone)]
 pub struct MmlTrack {
     pub name: String,
     pub instrument: Instrument,
     pub events: Vec<MmlEvent>,
-    song_options: MmlSongOptions,
-    bridge_events: Vec<BridgeEvent>,
-    ppq: u16,
+    pub song_options: MmlSongOptions,
+    pub bridge_meta_events: Vec<BridgeEvent>,
+    pub bridge_note_events: Vec<BridgeEvent>,
+    pub bridge_events: Vec<BridgeEvent>,
+    pub ppq: u16,
+    pub mml_note_length: usize,
 }
 
 impl MmlTrack {
     pub fn from_bridge_events(
-        index: usize,
-        bridge_events: Vec<BridgeEvent>,
+        name: String,
+        bridge_meta_events: Vec<BridgeEvent>,
+        bridge_note_events: Vec<BridgeEvent>,
         song_options: MmlSongOptions,
         ppq: u16,
     ) -> Self {
 
         let mut mml_track = Self {
-            name: index.to_string(),
+            name,
             events: Vec::new(),
             instrument: Instrument::default(),
-            bridge_events,
+            bridge_meta_events,
+            bridge_note_events,
+            bridge_events: Vec::new(),
             song_options,
             ppq,
+            mml_note_length: 0,
         };
 
         mml_track.generate_mml_events();
         mml_track
+    }
+
+    pub fn split(&self) -> (Self, Self) {
+        let (mut track_a, mut track_b) = self.split_track_by_override();
+        utils::equalize_tracks(&mut track_a, &mut track_b);
+
+        track_a.instrument = self.instrument.to_owned();
+        track_b.instrument = self.instrument.to_owned();
+
+        (track_a, track_b)
     }
 
     pub fn merge(&mut self, other: &mut Self) {
@@ -77,7 +94,9 @@ impl MmlTrack {
         }
     }
 
-    fn generate_mml_events(&mut self) {
+    pub fn generate_mml_events(&mut self) {
+        self.apply_meta_events();
+
         let (events, instrument) = bridge_events_to_mml_events(
             &self.bridge_events,
             &self.song_options,
@@ -86,5 +105,87 @@ impl MmlTrack {
 
         self.events = events;
         self.instrument = instrument;
+        self.update_mml_note_length();
+    }
+
+    fn apply_meta_events(&mut self) {
+        self.bridge_events = self.bridge_note_events.to_owned();
+
+        for meta_event in self.bridge_meta_events.iter() {
+            self.bridge_events.push(meta_event.to_owned());
+        }
+
+        self.bridge_events.sort();
+    }
+
+    fn update_mml_note_length(&mut self) {
+        let mut note_length = 0usize;
+
+        for event in self.events.iter() {
+            if let MmlEvent::Note(note) = event {
+                note_length += note.mml_note_length;
+            }
+        }
+
+        self.mml_note_length = note_length;
+    }
+
+    fn split_track_by_override(&self) -> (Self, Self) {
+        let mut max_end_position = 0usize;
+        let mut before_note: Option<MidiNoteState> = None;
+        let mut bridges_a: Vec<BridgeEvent> = Vec::new();
+        let mut bridges_b: Vec<BridgeEvent> = Vec::new();
+
+        for i in 0..self.bridge_note_events.len() {
+            let current_bridge_event = self.bridge_events.get(i).unwrap();
+
+            if let BridgeEvent::Note(current_note) = current_bridge_event {
+                let current_end_position =
+                    current_note.midi_state.position_in_tick
+                    + current_note.midi_state.duration_in_tick;
+
+                if current_end_position > max_end_position {
+                    max_end_position = current_end_position;
+                }
+
+                if let Some(before_note) = before_note {
+                    let note_pos_isize = current_note.midi_state.position_in_tick as isize;
+                    let before_note_pos_isize = before_note.midi_state.position_in_tick as isize;
+                    let start_pos_diff = note_pos_isize - before_note_pos_isize;
+
+                    if start_pos_diff <= self.song_options.min_gap_for_chord as isize {
+                        bridges_a.push(BridgeEvent::Note(current_note.to_owned()));
+                    } else {
+                        if current_note.midi_state.position_in_tick < max_end_position {
+                            bridges_b.push(BridgeEvent::Note(current_note.to_owned()));
+                        } else {
+                            bridges_a.push(BridgeEvent::Note(current_note.to_owned()));
+                        }
+                    }
+                } else {
+                    bridges_a.push(BridgeEvent::Note(current_note.to_owned()));
+                }
+
+                before_note = Some(current_note.to_owned());
+            }
+        }
+
+        let track_a = Self::from_bridge_events(
+            format!("{}.0", self.name),
+            self.bridge_meta_events.to_owned(),
+            bridges_a,
+            self.song_options.to_owned(),
+            self.ppq,
+        );
+
+        let track_b = Self::from_bridge_events(
+            format!("{}.1", self.name),
+            self.bridge_meta_events.to_owned(),
+            bridges_b,
+            self.song_options.to_owned(),
+            self.ppq,
+        );
+
+        (track_a, track_b)
     }
 }

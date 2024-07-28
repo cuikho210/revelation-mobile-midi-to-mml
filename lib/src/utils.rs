@@ -1,6 +1,48 @@
 use std::convert::TryInto;
 use crate::{mml_event::MmlEvent, mml_track::MmlTrack, pitch_class::PitchClass, MmlSongOptions};
 
+
+pub fn count_mml_note(mml_string: &String) -> usize {
+    mml_string.split("&").count()
+}
+
+pub fn equalize_tracks(track_a: &mut MmlTrack, track_b: &mut MmlTrack) {
+    let equalize = |a: &mut MmlTrack, b: &mut MmlTrack, gap: usize| {
+        let mut mml_counter = 0usize;
+        let mut index_counter = 0usize;
+
+        for (index, event) in a.events.iter().enumerate() {
+            if let MmlEvent::Note(note) = event {
+                mml_counter += note.mml_note_length;
+
+                if mml_counter >= gap {
+                    index_counter = index + 1;
+                    break;
+                }
+            }
+        }
+        
+        let (left, right) = a.bridge_note_events.split_at(index_counter);
+        let mut left = left.to_vec();
+
+        a.bridge_note_events = right.to_vec();
+        a.generate_mml_events();
+
+        b.bridge_note_events.append(&mut left);
+        a.generate_mml_events();
+    };
+
+    let length_a = track_a.mml_note_length as isize;
+    let length_b = track_b.mml_note_length as isize;
+    let gap = (length_a - length_b) / 2;
+
+    if gap > 0 {
+        equalize(track_a, track_b, gap as usize);
+    } else {
+        equalize(track_b, track_a, gap.abs() as usize);
+    }
+}
+
 pub fn auto_boot_song_velocity(song_options: &MmlSongOptions, tracks: &mut Vec<MmlTrack>) {
     let mut velocity_max = 0u8;
 
