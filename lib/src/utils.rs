@@ -16,20 +16,24 @@ pub fn equalize_tracks(track_a: &mut MmlTrack, track_b: &mut MmlTrack) {
                 mml_counter += note.mml_note_length;
 
                 if mml_counter >= gap {
-                    index_counter = index + 1;
+                    index_counter = index;
                     break;
                 }
             }
         }
-        
-        let (left, right) = a.bridge_note_events.split_at(index_counter);
-        let mut left = left.to_vec();
 
-        a.bridge_note_events = right.to_vec();
+        let ratio = index_counter as f32 / a.events.len() as f32;
+        let bridge_event_center_index = a.bridge_note_events.len() as f32 * ratio;
+
+        let (left, right) = a.bridge_note_events.split_at(bridge_event_center_index.floor() as usize);
+        let mut left = left.to_vec();
+        let right = right.to_vec();
+
+        a.bridge_note_events = right;
         a.generate_mml_events();
 
         b.bridge_note_events.append(&mut left);
-        a.generate_mml_events();
+        b.generate_mml_events();
     };
 
     let length_a = track_a.mml_note_length as isize;

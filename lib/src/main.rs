@@ -13,9 +13,10 @@ fn main() {
 
     for track in song.tracks.iter() {
         println!(
-            "Track {} - {} --------------------------",
+            "Track {} - {} - {} notes --------------------------",
             track.name,
             track.instrument.name,
+            track.mml_note_length,
         );
 
         println!("{}\n", track.to_mml_debug());

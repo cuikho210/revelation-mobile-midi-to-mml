@@ -40,7 +40,19 @@ impl MmlTrack {
 
     pub fn split(&self) -> (Self, Self) {
         let (mut track_a, mut track_b) = self.split_track_by_override();
-        utils::equalize_tracks(&mut track_a, &mut track_b);
+
+        let is_out_of_range = track_a.mml_note_length > 3000 || track_b.mml_note_length > 3000;
+
+        let is_too_different = {
+            let ratio = 0.5_f32;
+            let diff_a = track_a.mml_note_length > (track_b.mml_note_length as f32 * ratio) as usize;
+            let diff_b = track_b.mml_note_length > (track_a.mml_note_length as f32 * ratio) as usize;
+            diff_a || diff_b
+        };
+
+        if is_out_of_range || is_too_different {
+            utils::equalize_tracks(&mut track_a, &mut track_b);
+        }
 
         track_a.instrument = self.instrument.to_owned();
         track_b.instrument = self.instrument.to_owned();
