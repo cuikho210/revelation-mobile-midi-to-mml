@@ -5,6 +5,7 @@ use crate::{mml_event::BridgeEvent, mml_track::MmlTrack, parser::{bridge_meta_fr
 #[derive(Debug, Clone)]
 pub struct MmlSongOptions {
     pub auto_boot_velocity: bool,
+    pub auto_equalize_note_length: bool,
     pub velocity_min: u8,
     pub velocity_max: u8,
     pub min_gap_for_chord: u8,
@@ -15,6 +16,7 @@ impl Default for MmlSongOptions {
     fn default() -> Self {
         Self {
             auto_boot_velocity: false,
+            auto_equalize_note_length: false,
             velocity_min: 0,
             velocity_max: 15,
             min_gap_for_chord: 0,

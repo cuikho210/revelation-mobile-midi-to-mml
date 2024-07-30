@@ -50,8 +50,10 @@ impl MmlTrack {
             diff_a || diff_b
         };
 
-        if is_out_of_range || is_too_different {
-            utils::equalize_tracks(&mut track_a, &mut track_b);
+        if self.song_options.auto_equalize_note_length {
+            if is_out_of_range || is_too_different {
+                utils::equalize_tracks(&mut track_a, &mut track_b);
+            }
         }
 
         track_a.instrument = self.instrument.to_owned();
