@@ -3,7 +3,7 @@ use std::{
     thread::{self, JoinHandle}, time::{Instant, Duration},
 };
 use cpal::Stream;
-use revelation_mobile_midi_to_mml::{Instrument, Song};
+use revelation_mobile_midi_to_mml::{Instrument, MmlSong};
 use crate::{Parser, SynthOutputConnection, Synth};
 
 pub struct MmlPlayerOptions {
@@ -34,7 +34,7 @@ impl MmlPlayer {
         }
     }
 
-    pub fn from_song(song: &Song, options: MmlPlayerOptions) -> Self {
+    pub fn from_song(song: &MmlSong, options: MmlPlayerOptions) -> Self {
         let mmls: Vec<(String, Instrument)> = song.tracks.iter().map::<(String, Instrument), _>(|track| {
             (track.to_mml(), track.instrument.to_owned())
         }).collect();

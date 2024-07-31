@@ -200,8 +200,6 @@ name = "revelation-mobile-midi-to-mml"
 version = "0.1.3"
 dependencies = [
  "midly",
- "serde",
- "serde_json",
 ]
 
 [[package]]

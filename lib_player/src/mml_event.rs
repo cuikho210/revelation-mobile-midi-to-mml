@@ -8,4 +8,5 @@ pub enum MmlEvent {
     DecreOctave,
     ConnectChord,
     SetNote(NoteEvent),
+    Empty,
 }

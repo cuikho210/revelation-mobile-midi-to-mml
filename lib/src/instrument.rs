@@ -1,7 +1,6 @@
 use crate::instrument_map::INSTRUMENT_MAP;
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Instrument {
     pub name: String,
     pub instrument_id: u8,
@@ -18,8 +17,14 @@ impl Instrument {
     }
 }
 
+impl Default for Instrument {
+    fn default() -> Self {
+        Self::new(0, 0)
+    }
+}
+
 fn match_instrument_name(instrument_id: u8, midi_channel: u8) -> String {
-    if midi_channel == 10 {
+    if midi_channel == 9 {
         return "Drum Set".to_string();
     }
 

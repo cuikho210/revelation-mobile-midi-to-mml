@@ -1,6 +1,8 @@
 use std::{thread::sleep, time::Duration};
 use crate::{SynthOutputConnection, NoteEvent};
 
+const SMALLEST_UNIT: usize = 256;
+
 pub fn mml_velocity_to_midi_velocity(mml_velocity: u8) -> u8 {
     let mml_f64: f64 = mml_velocity as f64;
     (mml_f64 / 15.0 * 127.0) as u8
@@ -47,7 +49,7 @@ pub fn get_mml_key(mml: &str) -> String {
     first.to_string()
 }
 
-pub fn mml_duration_to_duration_in_note_64(mml_duration: &str) -> usize {
+pub fn mml_duration_to_duration_in_smallest_unit(mml_duration: &str) -> usize {
     let mut is_has_a_dot = false;
     let mut mml = mml_duration;
     let last = mml.chars().last().unwrap();
@@ -58,7 +60,7 @@ pub fn mml_duration_to_duration_in_note_64(mml_duration: &str) -> usize {
     }
 
     let mml_duration = mml.parse::<usize>().unwrap();
-    let mut result = 64 / mml_duration;
+    let mut result = SMALLEST_UNIT / mml_duration;
     
     if is_has_a_dot {
         result += result / 2;
@@ -67,11 +69,12 @@ pub fn mml_duration_to_duration_in_note_64(mml_duration: &str) -> usize {
     result
 }
 
-pub fn duration_in_note_64_to_ms(duration_in_note_64: usize, tempo: usize) -> usize {
+pub fn duration_in_smallest_unit_to_ms(duration_in_smallest_unit: usize, tempo: usize) -> usize {
     let tempo_f64 = tempo as f64;
-    let dur_per_note_64_in_ms = 15_000.0 / (tempo_f64 * 4.0);
+    let smallest_unit_f64 = SMALLEST_UNIT as f64;
+    let dur_per_smallest_unit_in_ms = 240000.0 / (smallest_unit_f64 * tempo_f64);
 
-    let result = duration_in_note_64 as f64 * dur_per_note_64_in_ms;
+    let result = duration_in_smallest_unit as f64 * dur_per_smallest_unit_in_ms;
     result.round() as usize
 }
 
@@ -82,6 +85,7 @@ pub fn play_note(connection: &mut SynthOutputConnection, note: &NoteEvent, chann
     };
 
     if let Some(key) = note.midi_key {
+        log_note_on(note, channel);
         connection.note_on(channel, key, note.midi_velocity);
 
         sleep(duration);
@@ -98,6 +102,7 @@ pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>
     };
 
     for note in chord.iter() {
+        log_note_on(note, channel);
         if let Some(key) = note.midi_key {
             connection.note_on(channel, key, note.midi_velocity);
         }
@@ -112,7 +117,7 @@ pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>
     }
 }
 
-pub fn _log_note_on(note: &NoteEvent, channel: u8) {
+pub fn log_note_on(note: &NoteEvent, channel: u8) {
     let midi_key = match note.midi_key {
         Some(key) => key.to_string(),
         None => String::from("rest"),
