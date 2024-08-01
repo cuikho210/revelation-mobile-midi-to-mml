@@ -25,14 +25,14 @@ fn test_from_midi() {
     // let midi_path = PathBuf::from(path.to_string());
 
     let time = Instant::now();
-    let mut song = MmlSong::from_path(midi_path, MmlSongOptions {
+    let mut song = MmlSong::from_path(midi_path, MmlSongOptions::default()).unwrap();
+
+    song.set_song_options(MmlSongOptions {
+        velocity_min: 8,
         min_gap_for_chord: 1,
-        smallest_unit: 64,
-        auto_boot_velocity: true,
+        smallest_unit: 32,
         ..Default::default()
     }).unwrap();
-
-    song.split_track(1).unwrap();
 
     println!("Generate MML from MIDI in {}ms", time.elapsed().as_millis());
 

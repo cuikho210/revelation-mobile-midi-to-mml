@@ -1,4 +1,4 @@
-use std::{fmt::Debug, fs, path::Path, thread::{self, JoinHandle}};
+use std::{fmt::Debug, fs, path::Path, sync::{Arc, Mutex}, thread::{self, JoinHandle}};
 use midly::{Smf, Timing, TrackEvent};
 use crate::{mml_event::BridgeEvent, mml_track::MmlTrack, parser::{bridge_meta_from_midi_track, bridge_notes_from_midi_track}, utils};
 
@@ -106,6 +106,34 @@ impl MmlSong {
         *track = track_a;
         self.tracks.insert(index + 1, track_b);
 
+        Ok(())
+    }
+
+    pub fn set_song_options(&mut self, options: MmlSongOptions) -> Result<(), String> {
+        self.options = options.clone();
+
+        let mut handles: Vec<JoinHandle<MmlTrack>> = Vec::new();
+
+        for track in self.tracks.iter() {
+            let mut track = track.clone();
+            track.song_options = options.clone();
+
+            let handle = thread::spawn(move || {
+                track.generate_mml_events();
+                track
+            });
+            handles.push(handle);
+        }
+
+        self.tracks.clear();
+        for handle in handles {
+            let track = handle.join().ok().ok_or(
+                String::from("[set_song_options] Cannot join thread")
+            )?;
+            self.tracks.push(track);
+        }
+
+        self.appy_song_options();
         Ok(())
     }
 
