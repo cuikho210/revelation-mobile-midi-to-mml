@@ -1,8 +1,0 @@
-[package]
-name = "midi-to-mml-cui"
-version = "0.1.1"
-
-[dependencies]
-clap = { version = "4.5.3", features = ["derive"] }
-revelation-mobile-midi-to-mml = { version = "0.1.0", path = "../lib" }
-serde_json = "1.0.114"
