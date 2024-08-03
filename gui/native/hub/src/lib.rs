@@ -1,15 +1,17 @@
-mod state;
 mod messages;
-mod commands;
-mod utils;
+mod state;
+mod signal_bridge;
+mod converter;
+mod player;
 
 use tokio_with_wasm::tokio;
 
-rinf::write_interface!();
-
 async fn main() {
-    tokio::spawn(commands::import_midi_data());
-    tokio::spawn(commands::split_track());
-    tokio::spawn(commands::merge_tracks());
-    tokio::spawn(commands::to_mml());
+    tokio::spawn(signal_bridge::listen_load_song_from_path());
+    tokio::spawn(signal_bridge::listen_update_mml_song_option());
+    tokio::spawn(signal_bridge::listen_split_track());
+    tokio::spawn(signal_bridge::listen_merge_tracks());
+    tokio::spawn(signal_bridge::listen_equalize_tracks());
+    tokio::spawn(signal_bridge::listen_set_track_is_muted());
+    tokio::spawn(signal_bridge::listen_set_song_play_status());
 }

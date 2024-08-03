@@ -1,0 +1,43 @@
+syntax = "proto3";
+package dart_to_rust;
+
+import 'types.proto';
+
+// [RINF:DART-SIGNAL]
+message SignalLoadSongFromPathPayload {
+	string path = 1;
+}
+
+// [RINF:DART-SIGNAL]
+message SignalUpdateMmlSongOptionsPayload {
+	types.SignalMmlSongOptions song_options = 1;
+}
+
+// [RINF:DART-SIGNAL]
+message SignalSplitTrackPayload {
+	uint32 index = 1;
+}
+
+// [RINF:DART-SIGNAL]
+message SignalMergeTracksPayload {
+	uint32 index_a = 1;
+	uint32 index_b = 2;
+}
+
+// [RINF:DART-SIGNAL]
+message SignalEqualizeTracksPayload {
+	uint32 index_a = 1;
+	uint32 index_b = 2;
+}
+
+// [RINF:DART-SIGNAL]
+message SignalSetTrackIsMutedPayload {
+	uint32 index = 1;
+	bool is_muted = 2;
+}
+
+// [RINF:DART-SIGNAL]
+message SignalSetSongPlayStatusPayload {
+	types.SignalPlayStatus status = 1;
+}
+

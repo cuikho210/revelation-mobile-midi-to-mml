@@ -1,4 +1,4 @@
-use std::{fmt::Debug, fs, path::Path, sync::{Arc, Mutex}, thread::{self, JoinHandle}};
+use std::{fmt::Debug, fs, path::Path, thread::{self, JoinHandle}};
 use midly::{Smf, Timing, TrackEvent};
 use crate::{mml_event::BridgeEvent, mml_track::MmlTrack, parser::{bridge_meta_from_midi_track, bridge_notes_from_midi_track}, utils};
 

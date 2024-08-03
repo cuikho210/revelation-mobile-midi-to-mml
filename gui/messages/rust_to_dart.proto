@@ -4,22 +4,19 @@ package rust_to_dart;
 import 'types.proto';
 
 // [RINF:RUST-SIGNAL]
-message ImportMidiDataOutput {
-	bool is_ok = 1;
-	optional types.SongStatus songStatus = 2;
+message SignalLoadSongFromPathResponse {
+	optional types.SignalMmlSongStatus song_status = 1;
 }
 
 // [RINF:RUST-SIGNAL]
-message GetMMLOutput {
-	repeated string mml = 1;
+message SignalUpdateMmlTracks {
+	repeated types.SignalMmlTrack tracks = 1;
 }
 
 // [RINF:RUST-SIGNAL]
-message SplitTrackOutput {
-	repeated types.Track tracks = 1;
+message SignalMmlNoteOn {
+	uint64 track_id = 1;
+    uint64 char_index = 2;
+    uint64 char_length = 3;
 }
 
-// [RINF:RUST-SIGNAL]
-message MergeTracksOutput {
-	repeated types.Track tracks = 1;
-}
