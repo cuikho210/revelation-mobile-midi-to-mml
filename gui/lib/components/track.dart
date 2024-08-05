@@ -10,7 +10,7 @@ import 'package:remixicon/remixicon.dart';
 
 /// Display track title and MML content
 class TrackAndMml extends StatelessWidget {
-	final Track track;
+	final SignalMmlTrack track;
 	final String mml;
 
 	const TrackAndMml({
@@ -25,7 +25,7 @@ class TrackAndMml extends StatelessWidget {
 		return Column(children: [
 			ListTile(
 				title: Text(track.title),
-				subtitle: Text(track.instrumentName),
+				subtitle: Text(track.instrument.name),
 				trailing: ElevatedButton.icon(
 					icon: const Icon(Remix.file_copy_line),
 					label: const Text("Copy"),
@@ -51,7 +51,7 @@ class TrackAndMml extends StatelessWidget {
 }
 
 class TrackListTitle extends StatelessWidget {
-	final Track track;
+	final SignalMmlTrack track;
 
 	const TrackListTitle({
 		super.key,
@@ -62,7 +62,7 @@ class TrackListTitle extends StatelessWidget {
 	Widget build(context) {
 		return ListTile(
 			title: Text(track.title),
-			subtitle: Text(track.instrumentName),
+			subtitle: Text(track.instrument.name),
 			trailing: Wrap(spacing: 8, children: [
 				ElevatedButton(
 					child: const Text("Split"),
@@ -86,11 +86,11 @@ class _MergeTracksDialog extends GetView<AppController> {
 	const _MergeTracksDialog(this.indexA);
 
 	List<Widget> getTrackButtons(BuildContext context) {
-		return controller.songStatus().tracks
+		return controller.tracks()
 			.where((track) => track.index != indexA)
 			.map((track) => ListTile(
 				title: Text(track.title),
-				subtitle: Text(track.instrumentName),
+				subtitle: Text(track.instrument.name),
 				trailing: ElevatedButton(
 					child: const Text("Merge"),
 					onPressed: () {

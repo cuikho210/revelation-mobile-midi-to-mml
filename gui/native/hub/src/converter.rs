@@ -23,10 +23,11 @@ pub fn instrument_to_signal(instrument: &Instrument) -> SignalInstrument {
 pub fn mml_song_tracks_to_signal(tracks: &Vec<MmlTrack>) -> Vec<SignalMmlTrack> {
     let mut list_signal_track: Vec<SignalMmlTrack> = Vec::new();
 
-    for track in tracks.iter() {
+    for (index, track) in tracks.iter().enumerate() {
         let instrument = instrument_to_signal(&track.instrument);
 
         list_signal_track.push(SignalMmlTrack {
+            index: index as u32,
             name: track.name.to_owned(),
             instrument: Some(instrument),
             mml: track.to_mml_debug(),

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
-import 'package:midi_to_mml/command_signals.dart';
-import 'package:midi_to_mml/pages/display_mmls.dart';
+import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:midi_to_mml/components/track.dart';
 import 'package:midi_to_mml/controller.dart';
-import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 
 class EditSongPage extends StatelessWidget {
 	const EditSongPage({ super.key });
@@ -14,10 +12,7 @@ class EditSongPage extends StatelessWidget {
 	@override
 	Widget build(context) {
 		final controller = Get.put(AppController());
-
-		listenToMmlSignalStream(controller);
-		listenSplitTrackSignalStream(controller);
-		listenMergeTracksSignalStream(controller);
+		listenUpdateMmlTracksStream(controller);
 
 		return Scaffold(
 			appBar: AppBar(
@@ -26,7 +21,7 @@ class EditSongPage extends StatelessWidget {
 					TextButton.icon(
 						icon: const Icon(Remix.export_line),
 						label: const Text("Export"),
-						onPressed: () => ExportToMML(controller.songStatus().options),
+						onPressed: () => {},
 					),
 				],
 			),
@@ -38,34 +33,10 @@ class EditSongPage extends StatelessWidget {
 		);
 	}
 
-	void listenToMmlSignalStream(AppController controller) async {
-		await for (final signal in GetMMLOutput.rustSignalStream) {
+	void listenUpdateMmlTracksStream(AppController controller) async {
+		await for (final signal in SignalUpdateMmlTracks.rustSignalStream) {
 			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-				final mmls = signal.message.mml;
-				controller.mmls(mmls);
-				Get.to(const DisplayMmls());
-			});
-		}
-	}
-
-	void listenMergeTracksSignalStream(AppController controller) async {
-		await for (final signal in MergeTracksOutput.rustSignalStream) {
-			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-				final tracks = signal.message.tracks;
-				controller.songStatus.value.tracks.clear();
-				controller.songStatus.value.tracks.addAll(tracks);
-				controller.songStatus.refresh();
-			});
-		}
-	}
-
-	void listenSplitTrackSignalStream(AppController controller) async {
-		await for (final signal in SplitTrackOutput.rustSignalStream) {
-			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-				final tracks = signal.message.tracks;
-				controller.songStatus.value.tracks.clear();
-				controller.songStatus.value.tracks.addAll(tracks);
-				controller.songStatus.refresh();
+				controller.tracks(signal.message.tracks);
 			});
 		}
 	}
@@ -75,12 +46,12 @@ class _Tracks extends GetView<AppController> {
 	const _Tracks();
 
 	List<Widget> getTrackWidgets() {
-		return controller.songStatus().tracks.map((track) => TrackListTitle(track: track)).toList();
+		return controller.tracks().map((track) => TrackListTitle(track: track)).toList();
 	}
 
 	@override
 	Widget build(context) {
-		return Obx(() =>Column(children: [
+		return Obx(() => Column(children: [
 			Text("Tracks", style: Theme.of(context).textTheme.titleLarge),
 			const Gap(16),
 			
@@ -101,10 +72,10 @@ class _Options extends GetView<AppController> {
 
 			Obx(() => CheckboxListTile(
 				title: const Text("Auto boot velocity"),
-				value: controller.songStatus().options.autoBootVelocity,
+				value: controller.songOptions().autoBootVelocity,
 				onChanged: (newValue) {
-					controller.songStatus.value.options.autoBootVelocity = (newValue == true);
-					controller.songStatus.refresh();
+					controller.songOptions.value.autoBootVelocity = (newValue == true);
+					controller.songOptions.refresh();
 				},
 			)),
 
@@ -114,10 +85,10 @@ class _Options extends GetView<AppController> {
 					width: 48,
 					child: Obx(() => TextFormField(
 						textAlign: TextAlign.end,
-						initialValue: controller.songStatus().options.velocityMin.toString(),
+						initialValue: controller.songOptions().velocityMin.toString(),
 						keyboardType: TextInputType.number,
 						onChanged: (newValue) {
-							controller.songStatus.value.options.velocityMin = int.parse(newValue);
+							controller.songOptions().velocityMin = int.parse(newValue);
 						},
 					)),
 				),
@@ -129,10 +100,10 @@ class _Options extends GetView<AppController> {
 					width: 48,
 					child: Obx(() => TextFormField(
 						textAlign: TextAlign.end,
-						initialValue: controller.songStatus().options.velocityMax.toString(),
+						initialValue: controller.songOptions().velocityMax.toString(),
 						keyboardType: TextInputType.number,
 						onChanged: (newValue) {
-							controller.songStatus.value.options.velocityMax = int.parse(newValue);
+							controller.songOptions().velocityMax = int.parse(newValue);
 						},
 					)),
 				),

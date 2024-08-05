@@ -1,12 +1,12 @@
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 import 'package:midi_to_mml/pages/edit_song_page.dart';
+import 'package:midi_to_mml/utils.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:midi_to_mml/file_importer/from_midi_file.dart';
-import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 import 'package:gap/gap.dart';
-import 'package:midi_to_mml/utils.dart';
 import 'package:midi_to_mml/controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -53,24 +53,24 @@ class HomePage extends StatelessWidget {
 						),
 
 						const Gap(16),
+
 						StreamBuilder(
-							stream: ImportMidiDataOutput.rustSignalStream,
+							stream: SignalLoadSongFromPathResponse.rustSignalStream,
 							builder: (context, snapshot) {
 								final signal = snapshot.data;
 
 								if (signal != null) {
-									final message = signal.message;
+									final songStatus = signal.message.songStatus;
 
-									if (message.isOk) {
-										WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-											controller.songStatus(message.songStatus);
+									WidgetsBinding.instance.addPostFrameCallback((_) {
+										if (songStatus.tracks.isNotEmpty) {
+											controller.songOptions(songStatus.songOptions);
+											controller.tracks(songStatus.tracks);
 											Get.to(const EditSongPage());
-										});
-									} else {
-										WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-											AlertError("Incorrect MIDI file!");
-										});
-									}
+										} else {
+											AlertMessage.error("Invalid MIDI file");
+										}
+									});
 								}
 
 								return const Text("Drop a file here");

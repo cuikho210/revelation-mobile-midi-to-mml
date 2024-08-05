@@ -14,7 +14,7 @@ dependencies:
 
   cupertino_icons: ^1.0.6
   get: ^4.6.6
-  rinf: ^6.7.0
+  rinf: ^6.15.0
   protobuf: ^3.1.0
   gap: ^3.0.1
   remixicon: ^1.2.0
