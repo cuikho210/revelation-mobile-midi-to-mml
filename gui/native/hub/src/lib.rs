@@ -7,14 +7,14 @@ mod player;
 mod converter;
 mod signal_bridge;
 
+use song::SongState;
 use tokio; // Comment this line to target the web.
 // use tokio_with_wasm::alias as tokio; // Uncomment this line to target the web.
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use lib_player::{MmlPlayer, MmlPlayerOptions};
-use revelation_mobile_midi_to_mml::MmlSong;
-use std::path::PathBuf;
+// use lib_player::{MmlPlayer, MmlPlayerOptions};
+// use std::path::PathBuf;
 
 rinf::write_interface!();
 
@@ -24,15 +24,18 @@ rinf::write_interface!();
 // If you really need to use blocking code,
 // use `tokio::task::spawn_blocking`.
 async fn main() {
-    let song: Arc<Mutex<Option<MmlSong>>> = Arc::new(Mutex::new(None));
+    let song: Arc<Mutex<SongState>> = Arc::new(Mutex::new(SongState::new()));
 
-    let player: Arc<Mutex<MmlPlayer>> = Arc::new(Mutex::new(
-        MmlPlayer::new(MmlPlayerOptions {
-            soundfont_path: vec![
-                PathBuf::from("/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2"),
-            ],
-        })
-    ));
+    // let player: Arc<Mutex<MmlPlayer>> = Arc::new(Mutex::new(
+    //     MmlPlayer::new(MmlPlayerOptions {
+    //         soundfont_path: vec![
+    //             PathBuf::from("/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2"),
+    //         ],
+    //     })
+    // ));
 
     tokio::spawn(signal_bridge::listen_load_song_from_path(song.clone()));
+    tokio::spawn(signal_bridge::listen_update_mml_song_option(song.clone()));
+    tokio::spawn(signal_bridge::listen_split_track(song.clone()));
+    tokio::spawn(signal_bridge::listen_merge_tracks(song.clone()));
 }
