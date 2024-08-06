@@ -13,8 +13,8 @@ class MergeTracks {
 	}
 }
 
-class SaveSongSettings {
-	SaveSongSettings(SignalMmlSongOptions songOptions) {
+class SaveSongOptions {
+	SaveSongOptions(SignalMmlSongOptions songOptions) {
 		SignalUpdateMmlSongOptionsPayload( songOptions: songOptions ).sendSignalToRust();
 	}
 }

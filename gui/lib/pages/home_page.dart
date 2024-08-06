@@ -65,7 +65,7 @@ class HomePage extends StatelessWidget {
 									WidgetsBinding.instance.addPostFrameCallback((_) {
 										if (songStatus.tracks.isNotEmpty) {
 											controller.songOptions(songStatus.songOptions);
-											controller.tracks(songStatus.tracks);
+											controller.setTracks(songStatus.tracks);
 											Get.to(const EditSongPage());
 										} else {
 											AlertMessage.error("Invalid MIDI file");

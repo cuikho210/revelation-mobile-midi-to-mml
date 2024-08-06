@@ -1,114 +1,155 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:midi_to_mml/command_signals.dart';
 import 'package:midi_to_mml/controller.dart';
-import 'package:midi_to_mml/extensions/track.dart';
 import 'package:midi_to_mml/messages/types.pb.dart';
 import 'package:remixicon/remixicon.dart';
 
-/// Display track title and MML content
-class TrackAndMml extends StatelessWidget {
-	final SignalMmlTrack track;
-	final String mml;
+class TrackContent extends GetView<AppController> {
+	const TrackContent({ super.key });
 
-	const TrackAndMml({
+	void splitTrack() {
+		final track = controller.currentTrack();
+		if (track == null) return;
+		SplitTrack(track.index);
+	}
+
+	@override
+	Widget build(context) {
+		final headerChildren = [
+			Obx(() => Text(
+				"Track ${controller.currentTrack()?.index}",
+				style: Theme.of(context).textTheme.headlineSmall,
+			)),
+			const SizedBox(width: 0, height: 8),
+
+			Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+				TextButton.icon(
+					onPressed: splitTrack,
+					icon: const Icon(Remix.git_branch_line),
+					label: const Text("Split"),
+				),
+				TextButton.icon(
+					onPressed: () => (),
+					icon: const Icon(Remix.git_pull_request_line),
+					label: const Text("Merge"),
+				),
+				Obx(() {
+					final track = controller.currentTrack();
+
+					IconData icon = Remix.volume_up_line;
+					String label = "Mute";
+
+					if (track == null || track.isMuted) {
+						icon = Remix.volume_mute_line;
+						label = "Muted";
+					}
+
+					return TextButton.icon(
+						onPressed: () {
+							if (track == null) return;
+							track.isMuted = !track.isMuted;
+							controller.currentTrack.refresh();
+						},
+						icon: Icon(icon),
+						label: Text(label),
+					);
+				}),
+			]),
+		];
+
+		final screenWidth = MediaQuery.sizeOf(context).width;
+		final isOverBreakpoint = screenWidth > 420;
+
+		return Expanded(
+			child: Column(children: [
+				Builder(builder: (context) {
+					if (isOverBreakpoint) {
+						return Padding(
+							padding: const EdgeInsets.all(16),
+							child: Flex(
+								direction: Axis.horizontal,
+								mainAxisAlignment: MainAxisAlignment.spaceBetween,
+								children: headerChildren,
+							),
+						);
+					}
+
+					return Flex(
+						direction: Axis.vertical,
+						mainAxisAlignment: MainAxisAlignment.spaceBetween,
+						children: headerChildren,
+					);
+				}),
+				const Gap(8),
+
+				Expanded(child: ListView(children: [
+					Padding(
+						padding: const EdgeInsets.all(16),
+						child: Obx(() => Text(controller.currentTrack()?.mml ?? '')),
+					),
+				])),
+			]),
+		);
+	}
+}
+
+class TrackTabButton extends GetView<AppController> {
+	final SignalMmlTrack track;
+
+	const TrackTabButton({
 		super.key,
 		required this.track,
-		required this.mml,
 	});
 
 	@override
 	Widget build(context) {
 
 		return Column(children: [
-			ListTile(
-				title: Text(track.title),
-				subtitle: Text(track.instrument.name),
-				trailing: ElevatedButton.icon(
-					icon: const Icon(Remix.file_copy_line),
-					label: const Text("Copy"),
-					onPressed: () => Clipboard.setData(ClipboardData(text: mml)).then((_) {
-						ScaffoldMessenger.of(context).showSnackBar(
-							const SnackBar(content: Text("Copied to clipboard!"))
+			Obx(() => TextButton.icon(
+				onPressed: () => controller.currentTrack(track),
+				icon: Builder(builder: (context) {
+					const icon = ImageIcon(AssetImage("assets/icon-instruments/piano.png"));
+
+					if (track.isMuted) {
+						return Badge(
+							label: Icon(
+								Remix.volume_mute_line,
+								color: Theme.of(context).colorScheme.onPrimary,
+								size: 12,
+							),
+							backgroundColor: Theme.of(context).colorScheme.error,
+							offset: const Offset(4, -4),
+							child: icon,
 						);
-					}),
-				),
-			),
-			Container(
-				height: 256,
-				margin: const EdgeInsets.fromLTRB(16, 0, 64, 0),
-				child: ListView(
-					children: [
-						Text(mml),
-					],
-				),
-			),
-			const Gap(16),
-		]);
-	}
-}
+					}
 
-class TrackListTitle extends StatelessWidget {
-	final SignalMmlTrack track;
-
-	const TrackListTitle({
-		super.key,
-		required this.track,
-	});
-
-	@override
-	Widget build(context) {
-		return ListTile(
-			title: Text(track.title),
-			subtitle: Text(track.instrument.name),
-			trailing: Wrap(spacing: 8, children: [
-				ElevatedButton(
-					child: const Text("Split"),
-					onPressed: () => SplitTrack(track.index),
-				),
-				ElevatedButton(
-					child: const Text("Merge"),
-					onPressed: () => showDialog(
-						context: context,
-						builder: (context) => _MergeTracksDialog(track.index),
+					return icon;
+				}),
+				label: Text("Track ${track.index}"),
+				style: ButtonStyle(
+					shape: const WidgetStatePropertyAll(
+						RoundedRectangleBorder(
+							borderRadius: BorderRadius.zero,
+						),
+					),
+					backgroundColor: WidgetStatePropertyAll(
+						(track.index == controller.currentTrack()?.index) ?
+						Get.theme.colorScheme.primaryContainer :
+						Colors.transparent
 					),
 				),
-			]),
-		);
-	}
-}
-
-class _MergeTracksDialog extends GetView<AppController> {
-	final int indexA;
-
-	const _MergeTracksDialog(this.indexA);
-
-	List<Widget> getTrackButtons(BuildContext context) {
-		return controller.tracks()
-			.where((track) => track.index != indexA)
-			.map((track) => ListTile(
-				title: Text(track.title),
-				subtitle: Text(track.instrument.name),
-				trailing: ElevatedButton(
-					child: const Text("Merge"),
-					onPressed: () {
-						MergeTracks(indexA, track.index);
-						Navigator.of(context).pop();
-					}
-				),
-			))
-			.toList();
-	}
-
-	@override
-	Widget build(context) {
-		return Dialog(child: SizedBox(
-			height: 512,
-			child: ListView(
-				children: getTrackButtons(context),
+			)),
+			const Gap(4),
+			Text(
+				"${track.mmlNoteLength} notes",
+				style: Theme.of(context).textTheme.labelSmall,
 			),
-		));
+			Text(
+				track.name,
+				style: Theme.of(context).textTheme.labelSmall,
+			),
+		]);
 	}
 }

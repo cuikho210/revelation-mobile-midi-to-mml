@@ -13,6 +13,7 @@ class AppController extends GetxController {
 
 	final songOptions = SignalMmlSongOptions().obs;
 	final tracks = <SignalMmlTrack>[].obs;
+	final currentTrack = Rx<SignalMmlTrack?>(null);
 	final fileName = "new_song".obs;
 	
 	AppController() {
@@ -21,6 +22,19 @@ class AppController extends GetxController {
 
 	void getAppVersion() async {
 		packageInfo(await PackageInfo.fromPlatform());
+	}
+
+	void setTracks(List<SignalMmlTrack> listNewTrack) {
+		tracks(listNewTrack);
+		tracks.refresh();
+
+		if (currentTrack() == null) {
+			currentTrack(listNewTrack.first);
+		} else if (currentTrack()!.index >= listNewTrack.length) {
+			currentTrack(listNewTrack.last);
+		} else {
+			currentTrack(listNewTrack[currentTrack()!.index]);
+		}
 	}
 
 	/// Export the final MML result
