@@ -19,6 +19,12 @@ class EqualizeTracks {
 	}
 }
 
+class RenameTrack {
+	RenameTrack(int index, String name) {
+		SignalRenameTrackPayload(index: index, name: name).sendSignalToRust();
+	}
+}
+
 class SaveSongOptions {
 	SaveSongOptions(SignalMmlSongOptions songOptions) {
 		SignalUpdateMmlSongOptionsPayload( songOptions: songOptions ).sendSignalToRust();

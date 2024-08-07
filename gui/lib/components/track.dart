@@ -37,6 +37,16 @@ class TrackContent extends GetView<AppController> {
 		);
 	}
 
+	void openRenameTrackDialog(BuildContext context) {
+		final track = controller.currentTrack();
+		if (track == null) return;
+
+		showDialog(
+			context: context,
+			builder: (context) => _RenameTrackDialog(track.index),
+		);
+	}
+
 	@override
 	Widget build(context) {
 		final screenWidth = MediaQuery.sizeOf(context).width;
@@ -119,6 +129,11 @@ class TrackContent extends GetView<AppController> {
 													onPressed: () => openEqualizeTracksDialog(context),
 													leadingIcon: const Icon(Remix.equalizer_2_line),
 													child: const Text("Equalize"),
+												),
+												MenuItemButton(
+													onPressed: () => openRenameTrackDialog(context),
+													leadingIcon: const Icon(Remix.edit_line),
+													child: const Text("Rename"),
 												),
 												MenuItemButton(
 													onPressed: () => Clipboard.setData(
@@ -275,7 +290,7 @@ class _EqualizeTracksDialog extends GetView<AppController> {
 				title: Text(track.title),
 				subtitle: Text(track.instrument.name),
 				trailing: ElevatedButton(
-					child: const Text("Merge"),
+					child: const Text("Equalize"),
 					onPressed: () {
 						EqualizeTracks(indexA, track.index);
 						Navigator.of(context).pop();
@@ -290,6 +305,69 @@ class _EqualizeTracksDialog extends GetView<AppController> {
 			height: 512,
 			child: ListView(
 				children: getTrackButtons(context),
+			),
+		));
+	}
+}
+
+class _RenameTrackDialog extends GetView<AppController> {
+	final int index;
+
+	const _RenameTrackDialog(this.index);
+
+	@override
+	Widget build(context) {
+		final formKey = GlobalKey<FormState>();
+
+		final textController = TextEditingController(
+			text: controller.currentTrack()?.name,
+		);
+
+		return Dialog(child: SizedBox(
+			height: 200,
+			child: Padding(
+				padding: const EdgeInsets.all(16),
+				child: Form(
+					key: formKey,
+					child: Column(
+						children: [
+							Text(
+								"Rename track $index",
+								style: Theme.of(context).textTheme.titleLarge,
+							),
+
+							Expanded(
+								child: Center(
+									child: TextFormField(
+										controller: textController,
+										decoration: const InputDecoration(
+											label: Text("New track name"),
+										),
+										validator: (value) {
+											if (value == null || value.isEmpty) {
+												return "Please enter some text";
+											}
+											
+											return null;
+										},
+									),
+								),
+							),
+							const Gap(16),
+
+							ElevatedButton.icon(
+								onPressed: () {
+									if (formKey.currentState!.validate()) {
+										RenameTrack(index, textController.text);
+										Navigator.of(context).pop();
+									}
+								},
+								label: const Text("Rename"),
+								icon: const Icon(Remix.edit_line),
+							),
+						],
+					),
+				),
 			),
 		));
 	}

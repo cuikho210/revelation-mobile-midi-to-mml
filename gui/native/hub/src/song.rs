@@ -95,4 +95,15 @@ impl SongState {
         song.tracks[index_a] = track_a;
         Ok(())
     }
+
+    pub fn rename_track(&mut self, index: usize, new_name: String) -> Result<(), String> {
+        let song = self.song.as_mut()
+            .ok_or("[merge_track] Cannot get song state".to_string())?;
+
+        let track = song.tracks.get_mut(index)
+            .ok_or(format!("[merge_track] Cannot get track by index {}", index))?;
+
+        track.name = new_name;
+        Ok(())
+    }
 }

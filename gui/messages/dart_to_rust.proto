@@ -25,6 +25,12 @@ message SignalMergeTracksPayload {
 }
 
 // [RINF:DART-SIGNAL]
+message SignalRenameTrackPayload {
+	uint32 index = 1;
+	string name = 2;
+}
+
+// [RINF:DART-SIGNAL]
 message SignalEqualizeTracksPayload {
 	uint32 index_a = 1;
 	uint32 index_b = 2;
