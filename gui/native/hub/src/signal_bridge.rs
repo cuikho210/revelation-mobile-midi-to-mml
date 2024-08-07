@@ -3,7 +3,7 @@ use tokio::sync::Mutex;
 use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 use crate::{
     messages::{
-        dart_to_rust::{SignalLoadSongFromPathPayload, SignalMergeTracksPayload, SignalSplitTrackPayload, SignalUpdateMmlSongOptionsPayload},
+        dart_to_rust::{SignalEqualizeTracksPayload, SignalLoadSongFromPathPayload, SignalMergeTracksPayload, SignalSplitTrackPayload, SignalUpdateMmlSongOptionsPayload},
         rust_to_dart::{SignalLoadSongFromPathResponse, SignalUpdateMmlTracks},
     },
     song::SongState,
@@ -113,7 +113,29 @@ pub async fn listen_merge_tracks(song_state: Arc<Mutex<SongState>>) -> Result<()
     Ok(())
 }
 
-pub async fn listen_equalize_tracks() -> Result<(), RinfError> {
+pub async fn listen_equalize_tracks(song_state: Arc<Mutex<SongState>>) -> Result<(), RinfError> {
+    let mut receiver = SignalEqualizeTracksPayload::get_dart_signal_receiver()?;
+
+    while let Some(signal) = receiver.recv().await {
+        let track_index_a = signal.message.index_a as usize;
+        let track_index_b = signal.message.index_b as usize;
+        let mut song = song_state.lock().await;
+
+        match song.equalize_tracks(track_index_a, track_index_b) {
+            Ok(_) => {
+                let tracks = song.get_list_track_signal();
+
+                if let Some(tracks) = tracks {
+                    SignalUpdateMmlTracks { tracks }.send_signal_to_dart();
+                } else {
+                    debug_print!("[listen_update_mml_song_option] Cannot get tracks");
+                }
+            }
+            Err(err) => {
+                debug_print!("[listen_update_mml_song_option] {}", err);
+            }
+        }
+    }
 
     Ok(())
 }

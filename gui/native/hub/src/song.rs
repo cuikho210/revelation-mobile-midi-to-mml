@@ -1,4 +1,4 @@
-use revelation_mobile_midi_to_mml::MmlSong;
+use revelation_mobile_midi_to_mml::{utils, MmlSong};
 use rinf::debug_print;
 use crate::{converter, messages::types::{SignalMmlSongOptions, SignalMmlSongStatus, SignalMmlTrack}};
 
@@ -78,5 +78,21 @@ impl SongState {
         }
 
         Err(String::from("[merge_track] Cannot get song state"))
+    }
+
+    pub fn equalize_tracks(&mut self, index_a: usize, index_b: usize) -> Result<(), String> {
+        let song = self.song.as_mut()
+            .ok_or("[merge_track] Cannot get song state".to_string())?;
+
+        let mut track_a = song.tracks.get(index_a)
+            .ok_or(format!("[merge_track] Cannot get track by index {}", index_a))?
+            .to_owned();
+
+        let track_b = song.tracks.get_mut(index_b)
+            .ok_or(format!("[merge_track] Cannot get track by index {}", index_b))?;
+
+        utils::equalize_tracks(&mut track_a, track_b);
+        song.tracks[index_a] = track_a;
+        Ok(())
     }
 }

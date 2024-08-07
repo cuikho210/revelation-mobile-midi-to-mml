@@ -38,4 +38,5 @@ async fn main() {
     tokio::spawn(signal_bridge::listen_update_mml_song_option(song.clone()));
     tokio::spawn(signal_bridge::listen_split_track(song.clone()));
     tokio::spawn(signal_bridge::listen_merge_tracks(song.clone()));
+    tokio::spawn(signal_bridge::listen_equalize_tracks(song.clone()));
 }

@@ -13,6 +13,12 @@ class MergeTracks {
 	}
 }
 
+class EqualizeTracks {
+	EqualizeTracks(int indexA, int indexB) {
+		SignalEqualizeTracksPayload(indexA: indexA, indexB: indexB).sendSignalToRust();
+	}
+}
+
 class SaveSongOptions {
 	SaveSongOptions(SignalMmlSongOptions songOptions) {
 		SignalUpdateMmlSongOptionsPayload( songOptions: songOptions ).sendSignalToRust();
