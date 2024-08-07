@@ -46,9 +46,12 @@ class EditSongPage extends GetView<AppController> {
 class _Tracks extends GetView<AppController> {
 	const _Tracks();
 
-	List<TrackTabButton> getListTrackTabButton() {
-		return controller.tracks().map<TrackTabButton>((track) =>
-			TrackTabButton(track: track)
+	List<Widget> getListTrackTabButton() {
+		return controller.tracks().map<Widget>((track) =>
+			Padding(
+				padding: const EdgeInsets.only(right: 4),
+				child: TrackTabButton(track: track),
+			)
 		).toList();
 	}
 
@@ -104,3 +107,4 @@ class _SongControls extends GetView<AppController> {
 		);
 	}
 }
+

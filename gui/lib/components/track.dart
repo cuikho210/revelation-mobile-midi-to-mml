@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:midi_to_mml/command_signals.dart';
 import 'package:midi_to_mml/controller.dart';
 import 'package:midi_to_mml/messages/types.pb.dart';
+import 'package:midi_to_mml/extensions/track.dart';
 import 'package:remixicon/remixicon.dart';
 
 class TrackContent extends GetView<AppController> {
@@ -13,6 +14,16 @@ class TrackContent extends GetView<AppController> {
 		final track = controller.currentTrack();
 		if (track == null) return;
 		SplitTrack(track.index);
+	}
+
+	void openMergeTracksDialog(BuildContext context) {
+		final track = controller.currentTrack();
+		if (track == null) return;
+
+		showDialog(
+			context: context,
+			builder: (context) => _MergeTracksDialog(track.index),
+		);
 	}
 
 	@override
@@ -31,7 +42,7 @@ class TrackContent extends GetView<AppController> {
 					label: const Text("Split"),
 				),
 				TextButton.icon(
-					onPressed: () => (),
+					onPressed: () => openMergeTracksDialog(context),
 					icon: const Icon(Remix.git_pull_request_line),
 					label: const Text("Merge"),
 				),
@@ -151,5 +162,37 @@ class TrackTabButton extends GetView<AppController> {
 				style: Theme.of(context).textTheme.labelSmall,
 			),
 		]);
+	}
+}
+
+class _MergeTracksDialog extends GetView<AppController> {
+	final int indexA;
+
+	const _MergeTracksDialog(this.indexA);
+
+	List<Widget> getTrackButtons(BuildContext context) {
+		return controller.tracks()
+			.where((track) => track.index != indexA)
+			.map((track) => ListTile(
+				title: Text(track.title),
+				subtitle: Text(track.instrument.name),
+				trailing: ElevatedButton(
+					child: const Text("Merge"),
+					onPressed: () {
+						MergeTracks(indexA, track.index);
+						Navigator.of(context).pop();
+					}
+				),
+			)).toList();
+	}
+
+	@override
+	Widget build(context) {
+		return Dialog(child: SizedBox(
+			height: 512,
+			child: ListView(
+				children: getTrackButtons(context),
+			),
+		));
 	}
 }
