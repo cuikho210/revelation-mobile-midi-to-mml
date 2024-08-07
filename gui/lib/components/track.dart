@@ -6,6 +6,7 @@ import 'package:midi_to_mml/controller.dart';
 import 'package:midi_to_mml/messages/types.pb.dart';
 import 'package:midi_to_mml/extensions/track.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:flutter/services.dart';
 
 class TrackContent extends GetView<AppController> {
 	const TrackContent({ super.key });
@@ -118,6 +119,19 @@ class TrackContent extends GetView<AppController> {
 													onPressed: () => openEqualizeTracksDialog(context),
 													leadingIcon: const Icon(Remix.equalizer_2_line),
 													child: const Text("Equalize"),
+												),
+												MenuItemButton(
+													onPressed: () => Clipboard.setData(
+														ClipboardData(
+															text: controller.currentTrack()?.mml ?? '')
+														).then((_) {
+															ScaffoldMessenger.of(context).showSnackBar(
+																const SnackBar(content: Text("Copied to clipboard!"))
+															);
+														}
+													),
+													leadingIcon: const Icon(Remix.file_copy_line),
+													child: const Text("Copy to clipboard"),
 												),
 											],
 										),
