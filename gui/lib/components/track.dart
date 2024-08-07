@@ -28,79 +28,96 @@ class TrackContent extends GetView<AppController> {
 
 	@override
 	Widget build(context) {
-		final headerChildren = [
-			Obx(() => Text(
-				"Track ${controller.currentTrack()?.index}",
-				style: Theme.of(context).textTheme.headlineSmall,
-			)),
-			const SizedBox(width: 0, height: 8),
-
-			Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-				TextButton.icon(
-					onPressed: splitTrack,
-					icon: const Icon(Remix.git_branch_line),
-					label: const Text("Split"),
-				),
-				TextButton.icon(
-					onPressed: () => openMergeTracksDialog(context),
-					icon: const Icon(Remix.git_pull_request_line),
-					label: const Text("Merge"),
-				),
-				Obx(() {
-					final track = controller.currentTrack();
-
-					IconData icon = Remix.volume_up_line;
-					String label = "Mute";
-
-					if (track == null || track.isMuted) {
-						icon = Remix.volume_mute_line;
-						label = "Muted";
-					}
-
-					return TextButton.icon(
-						onPressed: () {
-							if (track == null) return;
-							track.isMuted = !track.isMuted;
-							controller.currentTrack.refresh();
-						},
-						icon: Icon(icon),
-						label: Text(label),
-					);
-				}),
-			]),
-		];
-
 		final screenWidth = MediaQuery.sizeOf(context).width;
 		final isOverBreakpoint = screenWidth > 420;
 
 		return Expanded(
 			child: Column(children: [
 				Builder(builder: (context) {
+					var direction = Axis.vertical;
+					var padding = const EdgeInsets.all(0);
+					var gap = const SizedBox(height: 8);
+
 					if (isOverBreakpoint) {
-						return Padding(
-							padding: const EdgeInsets.all(16),
-							child: Flex(
-								direction: Axis.horizontal,
-								mainAxisAlignment: MainAxisAlignment.spaceBetween,
-								children: headerChildren,
-							),
-						);
+						direction = Axis.horizontal;
+						padding = const EdgeInsets.all(16);
+						gap = const SizedBox();
 					}
 
-					return Flex(
-						direction: Axis.vertical,
-						mainAxisAlignment: MainAxisAlignment.spaceBetween,
-						children: headerChildren,
+					return Padding(
+						padding: padding,
+						child: Flex(
+							direction: direction,
+							mainAxisAlignment: MainAxisAlignment.spaceBetween,
+							children: [
+								Obx(() => Text(
+									"Track ${controller.currentTrack()?.index}",
+									style: Theme.of(context).textTheme.headlineSmall,
+								)),
+								gap,
+								Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+									TextButton.icon(
+										onPressed: splitTrack,
+										icon: const Icon(Remix.git_branch_line),
+										label: const Text("Split"),
+									),
+									TextButton.icon(
+										onPressed: () => openMergeTracksDialog(context),
+										icon: const Icon(Remix.git_pull_request_line),
+										label: const Text("Merge"),
+									),
+									Obx(() {
+										final track = controller.currentTrack();
+
+										IconData icon = Remix.volume_up_line;
+										String label = "Mute";
+
+										if (track == null || track.isMuted) {
+											icon = Remix.volume_mute_line;
+											label = "Muted";
+										}
+
+										return TextButton.icon(
+											onPressed: () {
+												if (track == null) return;
+												track.isMuted = !track.isMuted;
+												controller.currentTrack.refresh();
+											},
+											icon: Icon(icon),
+											label: Text(label),
+										);
+									}),
+								])
+							],
+						),
 					);
 				}),
+
 				const Gap(8),
 
-				Expanded(child: ListView(children: [
-					Padding(
-						padding: const EdgeInsets.all(16),
-						child: Obx(() => Text(controller.currentTrack()?.mml ?? '')),
-					),
-				])),
+				Expanded(
+					child: Builder(builder: (context) {
+						const paddingValue = 16.0;
+						var padding = const EdgeInsets.all(paddingValue);
+
+						if (isOverBreakpoint) {
+							padding = const EdgeInsets.fromLTRB(paddingValue, 0, paddingValue, paddingValue);
+						}
+
+						return Padding(
+							padding: padding,
+							child: ListView(children: [
+								Obx(() => Text(
+									controller.currentTrack()?.title ?? '',
+									style: Theme.of(context).textTheme.titleMedium,
+								)),
+								Obx(() => Text(controller.currentTrack()?.instrument.name ?? '')),
+								const Gap(16),
+								Obx(() => Text(controller.currentTrack()?.mml ?? '')),
+							]),
+						);
+					}),
+				),
 			]),
 		);
 	}
