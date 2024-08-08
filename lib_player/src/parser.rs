@@ -29,6 +29,7 @@ pub struct Parser {
     note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>,
     note_before: Option<NoteEvent>,
     time_start: Option<Instant>,
+    time_pause: Option<Instant>,
     current_chord: Vec<NoteEvent>,
     absolute_duration: isize,
     current_note_index: usize,
@@ -54,6 +55,7 @@ impl Parser {
             note_before: None,
             current_chord: Vec::new(),
             time_start: None,
+            time_pause: None,
             absolute_duration: 0,
             current_note_index: 0,
         };
@@ -65,8 +67,24 @@ impl Parser {
 
     pub fn play(&mut self, note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>) {
         self.note_on_callback = note_on_callback;
-        self.time_start = Some(Instant::now());
+
+        if let Some(time_pause) = self.time_pause {
+            let time_start = self.time_start.unwrap();
+
+            let now = Instant::now();
+            let diff = now - time_pause;
+            let new_time = time_start + diff;
+            println!("New time to now: {}", new_time.elapsed().as_secs());
+            self.time_start = Some(new_time);
+        } else {
+            self.time_start = Some(Instant::now());
+        }
+
         self.play_next();
+    }
+    
+    pub fn pause(&mut self) {
+        self.time_pause = Some(Instant::now());
     }
 
     pub fn reset_state(&mut self) {
@@ -75,14 +93,16 @@ impl Parser {
         self.note_before = None;
         self.current_chord = Vec::new();
         self.time_start = None;
+        self.time_pause = None;
     }
 
     fn play_next(&mut self) {
-        let playback_status = self.status.lock().unwrap();
-        if *playback_status != PlaybackStatus::PLAY {
-            return;
+        if let Ok(playback_status) = self.status.try_lock() {
+            if *playback_status != PlaybackStatus::PLAY {
+                return;
+            }
+            drop(playback_status);
         }
-        drop(playback_status);
 
         let mut connection = self.connection.clone();
 

@@ -118,6 +118,13 @@ impl MmlPlayer {
     pub fn pause(&mut self) {
         let mut guard = self.playback_status.lock().unwrap();
         *guard = PlaybackStatus::PAUSE;
+        drop(guard);
+
+        for track in self.tracks.iter() {
+            let mut guard = track.lock().unwrap();
+            guard.pause();
+            drop(guard);
+        }
     }
 
     pub fn stop(&mut self) {

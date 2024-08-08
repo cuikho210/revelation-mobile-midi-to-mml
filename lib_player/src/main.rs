@@ -88,8 +88,25 @@ fn test_from_midi() {
     thread::spawn(move || {
         sleep(Duration::from_secs(4));
         let mut guard = cloned_b.lock().unwrap();
+
+        guard.pause();
+        println!("Paused");
+        sleep(Duration::from_secs(4));
+
+        guard.play();
+        println!("Play");
+        sleep(Duration::from_secs(8));
+
+        guard.pause();
+        println!("Paused");
+        sleep(Duration::from_secs(3));
+
+        guard.play();
+        println!("Play");
+        sleep(Duration::from_secs(8));
+
         guard.stop();
-        println!("thread b stop player");
+        println!("Stop");
     });
 
     sleep(Duration::from_secs(60));
