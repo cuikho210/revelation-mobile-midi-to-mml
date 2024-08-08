@@ -91,6 +91,10 @@ impl MmlPlayer {
     }
 
     pub fn play(&self, note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>) {
+        let mut guard = self.playback_status.lock().unwrap();
+        *guard = PlaybackStatus::PLAY;
+        drop(guard);
+
         let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
         for track in self.tracks.iter() {
@@ -111,9 +115,21 @@ impl MmlPlayer {
         // }
     }
 
+    pub fn pause(&mut self) {
+        let mut guard = self.playback_status.lock().unwrap();
+        *guard = PlaybackStatus::PAUSE;
+    }
+
     pub fn stop(&mut self) {
         let mut guard = self.playback_status.lock().unwrap();
         *guard = PlaybackStatus::STOP;
+        drop(guard);
+
+        for track in self.tracks.iter() {
+            let mut guard = track.lock().unwrap();
+            guard.reset_state();
+            drop(guard);
+        }
     }
 }
 

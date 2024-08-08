@@ -33,6 +33,10 @@ impl PlayerState {
         self.player.play(Some(callback));
     }
 
+    pub fn pause(&mut self) {
+        self.player.pause();
+    }
+
     pub fn stop(&mut self) {
         self.player.stop();
     }
@@ -88,6 +92,6 @@ fn test_from_midi() {
         println!("thread b stop player");
     });
 
-    sleep(Duration::from_secs(10));
+    sleep(Duration::from_secs(60));
 }
 

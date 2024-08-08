@@ -66,25 +66,10 @@ impl Parser {
     pub fn play(&mut self, note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>) {
         self.note_on_callback = note_on_callback;
         self.time_start = Some(Instant::now());
-        self.set_playback_status(PlaybackStatus::PLAY);
         self.play_next();
     }
 
-    pub fn pause(&mut self) {
-        self.set_playback_status(PlaybackStatus::STOP);
-    }
-
-    pub fn stop(&mut self) {
-        self.reset_state();
-        self.set_playback_status(PlaybackStatus::STOP);
-    }
-
-    fn set_playback_status(&mut self, value: PlaybackStatus) {
-        let mut guard = self.status.lock().unwrap();
-        *guard = value;
-    }
-
-    fn reset_state(&mut self) {
+    pub fn reset_state(&mut self) {
         self.current_note_index = 0;
         self.absolute_duration = 0;
         self.note_before = None;
