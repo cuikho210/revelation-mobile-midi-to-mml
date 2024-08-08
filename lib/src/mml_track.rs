@@ -1,4 +1,4 @@
-use crate::{mml_event::{BridgeEvent, MidiNoteState, MmlEvent}, mml_song::MmlSongOptions, parser::bridge_events_to_mml_events, Instrument, utils};
+use crate::{mml_event::{BridgeEvent, MidiNoteState, MmlEvent}, mml_song::MmlSongOptions, parser::bridge_events_to_mml_events, utils, Instrument};
 
 #[derive(Debug, Clone)]
 pub struct MmlTrack {
@@ -117,8 +117,11 @@ impl MmlTrack {
             self.ppq,
         );
 
+        if let Some(instrument) = instrument {
+            self.instrument = instrument;
+        }
+
         self.events = events;
-        self.instrument = instrument;
         self.update_mml_note_length();
     }
 

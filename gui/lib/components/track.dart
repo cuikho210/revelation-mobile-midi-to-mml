@@ -170,15 +170,17 @@ class TrackContent extends GetView<AppController> {
 
 						return Padding(
 							padding: padding,
-							child: ListView(children: [
-								Obx(() => Text(
-									controller.currentTrack()?.title ?? '',
-									style: Theme.of(context).textTheme.titleMedium,
-								)),
-								Obx(() => Text(controller.currentTrack()?.instrument.name ?? '')),
-								const Gap(16),
-								Obx(() => Text(controller.currentTrack()?.mml ?? '')),
-							]),
+							child: SelectionArea(child:
+								ListView(children: [
+									Obx(() => Text(
+										controller.currentTrack()?.title ?? '',
+										style: Theme.of(context).textTheme.titleMedium,
+									)),
+									Obx(() => Text(controller.currentTrack()?.instrument.name ?? '')),
+									const Gap(16),
+									Obx(() => Text(controller.currentTrack()?.mml ?? '')),
+								]),
+							),
 						);
 					}),
 				),
