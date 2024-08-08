@@ -12,11 +12,25 @@ use crate::{
 
 const NOTE_NAMES: [char; 8] = ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'r'];
 
+pub enum PlaybackStatus {
+    PLAY,
+    PAUSE,
+    STOP,
+}
+
 pub struct Parser {
     pub raw_mml: String,
     pub notes: Vec<NoteEvent>,
     pub instrument: Instrument,
     pub connection: SynthOutputConnection,
+
+    status: PlaybackStatus,
+    note_on_tx: Option<Sender<NoteOnCallbackData>>,
+    note_before: Option<NoteEvent>,
+    time_start: Option<Instant>,
+    current_chord: Vec<NoteEvent>,
+    absolute_duration: isize,
+    current_note_index: usize,
 }
 
 impl Parser {
@@ -29,6 +43,13 @@ impl Parser {
             notes: Vec::new(),
             instrument,
             connection,
+            status: PlaybackStatus::STOP,
+            note_on_tx: None,
+            note_before: None,
+            current_chord: Vec::new(),
+            time_start: None,
+            absolute_duration: 0,
+            current_note_index: 0,
         };
 
         result.parse_note_events();
@@ -36,48 +57,74 @@ impl Parser {
         result
     }
 
-    pub fn play(&self, note_on_tx: Sender<NoteOnCallbackData>) {
-        let time = Instant::now();
-        let mut before: Option<NoteEvent> = None;
-        let mut current_chord: Vec<NoteEvent> = Vec::new();
-        let mut absolute_duration: isize = 0;
-        let mut connection = self.connection.clone();
+    pub fn play(&mut self, note_on_tx: Sender<NoteOnCallbackData>) {
+        self.note_on_tx = Some(note_on_tx);
+        self.time_start = Some(Instant::now());
+        self.status = PlaybackStatus::PLAY;
+        self.play_next();
+    }
 
-        for note in self.notes.iter() {
+    pub fn pause(&mut self) {
+        self.status = PlaybackStatus::PAUSE;
+    }
+
+    pub fn stop(&mut self) {
+        self.reset_state();
+        self.status = PlaybackStatus::STOP;
+    }
+
+    fn reset_state(&mut self) {
+        self.current_note_index = 0;
+        self.absolute_duration = 0;
+        self.note_before = None;
+        self.current_chord = Vec::new();
+        self.time_start = None;
+    }
+
+    fn play_next(&mut self) {
+        let mut connection = self.connection.clone();
+        let note_on_tx = self.note_on_tx.as_ref().unwrap();
+
+        if let Some(note) = self.notes.get(self.current_note_index) {
+            let time = self.time_start.unwrap();
+
             if note.is_connected_to_prev_note {
-                if let Some(before_note) = before.as_ref() {
-                    if current_chord.len() == 0 {
-                        current_chord.push(before_note.to_owned());
+                if let Some(before_note) = self.note_before.as_ref() {
+                    if self.current_chord.len() == 0 {
+                        self.current_chord.push(before_note.to_owned());
                     }
                 }
 
-                current_chord.push(note.to_owned());
-                continue;
+                self.current_chord.push(note.to_owned());
+                self.current_note_index += 1;
+                return self.play_next();
             }
 
             let correct_duration = time.elapsed().as_millis() as isize;
-            let duration_diff = correct_duration - absolute_duration;
+            let duration_diff = correct_duration - self.absolute_duration;
 
-            if current_chord.len() > 0 {
-                let chord_duration = utils::get_longest_note_duration(&current_chord);
+            if self.current_chord.len() > 0 {
+                let chord_duration = utils::get_longest_note_duration(&self.current_chord);
                 let duration = chord_duration - duration_diff;
                 let duration = Duration::from_millis(duration as u64);
 
                 utils::play_chord(
                     &mut connection,
-                    &current_chord,
+                    &self.current_chord,
                     self.instrument.midi_channel,
                     Some(duration),
                 );
-                send_note_on_event_from_chord(&note_on_tx, &current_chord);
+                send_note_on_event_from_chord(note_on_tx, &self.current_chord);
 
-                absolute_duration += chord_duration;
-                current_chord.clear();
-                before = Some(note.to_owned());
-                continue;
+                self.absolute_duration += chord_duration;
+                self.current_chord.clear();
+                self.note_before = Some(note.to_owned());
+
+                self.current_note_index += 1;
+                return self.play_next();
             }
 
-            if let Some(before_note) = &before {
+            if let Some(before_note) = &self.note_before {
                 let note_duration = before_note.duration_in_ms as isize;
                 let duration = note_duration - duration_diff;
                 let duration = Duration::from_millis(duration as u64);
@@ -88,32 +135,34 @@ impl Parser {
                     self.instrument.midi_channel,
                     Some(duration),
                 );
-                send_note_on_event_from_note(&note_on_tx, before_note);
+                send_note_on_event_from_note(note_on_tx, before_note);
 
-                absolute_duration += note_duration;
+                self.absolute_duration += note_duration;
             }
 
-            before = Some(note.to_owned());
+            self.note_before = Some(note.to_owned());
+            self.current_note_index += 1;
+            return self.play_next();
         }
 
-        if current_chord.len() > 0 {
+        if self.current_chord.len() > 0 {
             utils::play_chord(
                 &mut connection,
-                &current_chord,
+                &self.current_chord,
                 self.instrument.midi_channel,
                 None,
             );
-            send_note_on_event_from_chord(&note_on_tx, &current_chord);
+            send_note_on_event_from_chord(note_on_tx, &self.current_chord);
         }
 
-        if let Some(before_note) = before {
+        if let Some(before_note) = self.note_before.as_ref() {
             utils::play_note(
                 &mut connection,
                 &before_note,
                 self.instrument.midi_channel,
                 None,
             );
-            send_note_on_event_from_note(&note_on_tx, &before_note);
+            send_note_on_event_from_note(note_on_tx, &before_note);
         }
     }
 

@@ -1,10 +1,10 @@
 use std::{
-    path::PathBuf, sync::{mpsc, Arc},
+    path::PathBuf, sync::{mpsc, Arc, Mutex},
     thread::{self, JoinHandle}, time::{Duration, Instant},
 };
 use cpal::Stream;
 use revelation_mobile_midi_to_mml::{Instrument, MmlSong};
-use crate::{NoteEvent, Parser, Synth, SynthOutputConnection};
+use crate::{Parser, Synth, SynthOutputConnection};
 
 pub struct NoteOnCallbackData {
     pub char_index: usize,
@@ -19,7 +19,7 @@ pub struct MmlPlayer {
     pub synth: Synth,
     pub stream: Stream,
     pub connection: SynthOutputConnection,
-    pub tracks: Vec<Arc<Parser>>,
+    pub tracks: Vec<Arc<Mutex<Parser>>>,
 }
 
 impl MmlPlayer {
@@ -56,7 +56,7 @@ impl MmlPlayer {
 
     pub fn parse_mmls(&mut self, mmls: Vec<(String, Instrument)>) {
         let mut handles: Vec<JoinHandle<Parser>> = Vec::new();
-        let mut tracks: Vec<Arc<Parser>> = Vec::new();
+        let mut tracks: Vec<Arc<Mutex<Parser>>> = Vec::new();
 
         let time = Instant::now();
         let track_length = mmls.len();
@@ -74,7 +74,7 @@ impl MmlPlayer {
 
         for handle in handles {
             let parsed = handle.join().unwrap();
-            tracks.push(Arc::new(parsed));
+            tracks.push(Arc::new(Mutex::new(parsed)));
         }
 
         log_parse_mmls(time.elapsed(), track_length, char_length);
@@ -88,7 +88,13 @@ impl MmlPlayer {
         for track in self.tracks.iter() {
             let parsed = track.clone();
             let tx = note_on_tx.clone();
-            let handle = thread::spawn(move || parsed.play(tx));
+            let handle = thread::spawn(move || {
+                if let Ok(mut guard) = parsed.lock() {
+                    guard.play(tx);
+                } else {
+                    eprintln!("[mml_player.play] Cannot lock Parsed track");
+                }
+            });
             handles.push(handle);
         }
 
