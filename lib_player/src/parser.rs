@@ -1,9 +1,12 @@
-use std::time::{Duration, Instant};
+use std::{
+    time::{Duration, Instant},
+    sync::mpsc::Sender,
+};
 use revelation_mobile_midi_to_mml::Instrument;
-
 use crate::{
     mml_event::MmlEvent,
     note_event::NoteEvent, SynthOutputConnection,
+    mml_player::NoteOnCallbackData,
     utils,
 };
 
@@ -33,7 +36,7 @@ impl Parser {
         result
     }
 
-    pub fn play(&self) {
+    pub fn play(&self, note_on_tx: Sender<NoteOnCallbackData>) {
         let time = Instant::now();
         let mut before: Option<NoteEvent> = None;
         let mut current_chord: Vec<NoteEvent> = Vec::new();
@@ -66,6 +69,7 @@ impl Parser {
                     self.instrument.midi_channel,
                     Some(duration),
                 );
+                send_note_on_event_from_chord(&note_on_tx, &current_chord);
 
                 absolute_duration += chord_duration;
                 current_chord.clear();
@@ -84,6 +88,7 @@ impl Parser {
                     self.instrument.midi_channel,
                     Some(duration),
                 );
+                send_note_on_event_from_note(&note_on_tx, before_note);
 
                 absolute_duration += note_duration;
             }
@@ -98,6 +103,7 @@ impl Parser {
                 self.instrument.midi_channel,
                 None,
             );
+            send_note_on_event_from_chord(&note_on_tx, &current_chord);
         }
 
         if let Some(before_note) = before {
@@ -107,6 +113,7 @@ impl Parser {
                 self.instrument.midi_channel,
                 None,
             );
+            send_note_on_event_from_note(&note_on_tx, &before_note);
         }
     }
 
@@ -212,6 +219,36 @@ impl Parser {
             },
             None => None
         }
+    }
+}
+
+fn send_note_on_event_from_note(note_on_tx: &Sender<NoteOnCallbackData>, note: &NoteEvent) {
+    let result = note_on_tx.send(NoteOnCallbackData {
+        char_index: note.char_index,
+        char_length: note.char_length,
+    });
+
+    if let Err(_) = result {
+        eprintln!("[send_note_on_event_from_note] Cannot send note on message");
+    }
+}
+
+fn send_note_on_event_from_chord(note_on_tx: &Sender<NoteOnCallbackData>, chord: &Vec<NoteEvent>) {
+    let first_note = chord.first().unwrap();
+    let char_index = first_note.char_index;
+    let mut char_length = first_note.char_length;
+
+    for note in chord[1..].iter() {
+        char_length += note.char_length;
+    }
+
+    let result = note_on_tx.send(NoteOnCallbackData {
+        char_index,
+        char_length,
+    });
+
+    if let Err(_) = result {
+        eprintln!("[send_note_on_event_from_chord] Cannot send note on message");
     }
 }
 

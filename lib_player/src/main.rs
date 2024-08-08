@@ -1,5 +1,5 @@
 use std::{path::PathBuf, time::Instant};
-use lib_player::{MmlPlayer, MmlPlayerOptions};
+use lib_player::{MmlPlayer, MmlPlayerOptions, NoteOnCallbackData};
 use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 
 fn main() {
@@ -50,5 +50,14 @@ fn test_from_midi() {
         ],
     });
 
-    player.play();
+    player.play(Some(note_on_callback));
 }
+
+fn note_on_callback(data: NoteOnCallbackData) {
+    println!(
+        "Note on at index {} with char length is {}",
+        data.char_index,
+        data.char_length,
+    );
+}
+

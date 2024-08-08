@@ -1,10 +1,15 @@
 use std::{
-    path::PathBuf, sync::Arc,
-    thread::{self, JoinHandle}, time::{Instant, Duration},
+    path::PathBuf, sync::{mpsc, Arc},
+    thread::{self, JoinHandle}, time::{Duration, Instant},
 };
 use cpal::Stream;
 use revelation_mobile_midi_to_mml::{Instrument, MmlSong};
-use crate::{Parser, SynthOutputConnection, Synth};
+use crate::{NoteEvent, Parser, Synth, SynthOutputConnection};
+
+pub struct NoteOnCallbackData {
+    pub char_index: usize,
+    pub char_length: usize,
+}
 
 pub struct MmlPlayerOptions {
     pub soundfont_path: Vec<PathBuf>,
@@ -76,13 +81,21 @@ impl MmlPlayer {
         self.tracks = tracks;
     }
 
-    pub fn play(&self) {
+    pub fn play(&self, note_on_callback: Option<fn(NoteOnCallbackData)>) {
         let mut handles: Vec<JoinHandle<()>> = Vec::new();
+        let (note_on_tx, note_on_rx) = mpsc::channel::<NoteOnCallbackData>();
 
         for track in self.tracks.iter() {
             let parsed = track.clone();
-            let handle = thread::spawn(move || parsed.play());
+            let tx = note_on_tx.clone();
+            let handle = thread::spawn(move || parsed.play(tx));
             handles.push(handle);
+        }
+
+        for received in note_on_rx {
+            if let Some(callback) = note_on_callback {
+                callback(received);
+            }
         }
 
         for handle in handles {
