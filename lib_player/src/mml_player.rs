@@ -1,25 +1,32 @@
 use std::{
-    path::PathBuf, sync::{mpsc, Arc, Mutex},
+    path::PathBuf, sync::{Arc, Mutex},
     thread::{self, JoinHandle}, time::{Duration, Instant},
 };
 use cpal::Stream;
 use revelation_mobile_midi_to_mml::{Instrument, MmlSong};
-use crate::{Parser, Synth, SynthOutputConnection};
+use crate::{parser::PlaybackStatus, Parser, Synth, SynthOutputConnection};
 
+#[derive(Debug, Clone)]
 pub struct NoteOnCallbackData {
     pub char_index: usize,
     pub char_length: usize,
 }
 
+#[derive(Debug, Clone)]
 pub struct MmlPlayerOptions {
     pub soundfont_path: Vec<PathBuf>,
 }
 
-pub struct MmlPlayer {
-    pub synth: Synth,
+pub struct CpalStreamWrapper {
     pub stream: Stream,
+}
+unsafe impl Send for CpalStreamWrapper {}
+
+pub struct MmlPlayer {
+    pub stream: CpalStreamWrapper,
     pub connection: SynthOutputConnection,
     pub tracks: Vec<Arc<Mutex<Parser>>>,
+    pub playback_status: Arc<Mutex<PlaybackStatus>>,
 }
 
 impl MmlPlayer {
@@ -32,10 +39,10 @@ impl MmlPlayer {
         log_initialize_synth(time.elapsed());
         
         Self {
-            synth,
-            stream,
+            stream: CpalStreamWrapper { stream },
             connection,
             tracks: Vec::new(),
+            playback_status: Arc::new(Mutex::new(PlaybackStatus::STOP)),
         }
     }
 
@@ -66,8 +73,10 @@ impl MmlPlayer {
             let conn = self.connection.clone();
             char_length += mml.0.len();
 
+            let playback_status = self.playback_status.clone();
+
             let handle = thread::spawn::<_, Parser>(move || {
-                Parser::parse(mml.0, mml.1, conn)
+                Parser::parse(mml.0, mml.1, conn, playback_status)
             });
             handles.push(handle);
         }
@@ -81,16 +90,15 @@ impl MmlPlayer {
         self.tracks = tracks;
     }
 
-    pub fn play(&self, note_on_callback: Option<fn(NoteOnCallbackData)>) {
+    pub fn play(&self, note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>) {
         let mut handles: Vec<JoinHandle<()>> = Vec::new();
-        let (note_on_tx, note_on_rx) = mpsc::channel::<NoteOnCallbackData>();
 
         for track in self.tracks.iter() {
             let parsed = track.clone();
-            let tx = note_on_tx.clone();
+            let callback = note_on_callback.clone();
             let handle = thread::spawn(move || {
                 if let Ok(mut guard) = parsed.lock() {
-                    guard.play(tx);
+                    guard.play(callback);
                 } else {
                     eprintln!("[mml_player.play] Cannot lock Parsed track");
                 }
@@ -98,15 +106,14 @@ impl MmlPlayer {
             handles.push(handle);
         }
 
-        for received in note_on_rx {
-            if let Some(callback) = note_on_callback {
-                callback(received);
-            }
-        }
+        // for handle in handles {
+        //     handle.join().unwrap();
+        // }
+    }
 
-        for handle in handles {
-            handle.join().unwrap();
-        }
+    pub fn stop(&mut self) {
+        let mut guard = self.playback_status.lock().unwrap();
+        *guard = PlaybackStatus::STOP;
     }
 }
 

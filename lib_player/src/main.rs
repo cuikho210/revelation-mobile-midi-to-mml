@@ -1,6 +1,42 @@
-use std::{path::PathBuf, time::Instant};
+use std::{path::PathBuf, sync::{Arc, Mutex}, thread::{self, sleep}, time::{Duration, Instant}};
 use lib_player::{MmlPlayer, MmlPlayerOptions, NoteOnCallbackData};
 use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
+
+struct PlayerState {
+    player: MmlPlayer,
+}
+
+impl PlayerState {
+    pub fn from_song(song: &MmlSong) -> Self {
+        Self {
+            player: MmlPlayer::from_song(song, MmlPlayerOptions {
+                soundfont_path: vec![
+                    // PathBuf::from("./test_resouces/soundfonts/gm.sf2"), // General MIDI, very light
+                    // PathBuf::from("/home/cuikho210/Documents/soundfonts/Monalisa GM v2_06_5.sf2"), // General MIDI, about 1.7GiB
+                    PathBuf::from("/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2"),
+                    // PathBuf::from("./test_resources/soundfonts/tx16w_GM_1.0.sf2"), // General MIDI, medium
+                    //
+                    // PathBuf::from("./test_resources/soundfonts/AMS_Grand_Piano_-_Remastered.sf2"), // Acoustic grand piano only
+                    // PathBuf::from("./test_resources/soundfonts/megalovania_drums.sf2"), // Percussions
+                    // PathBuf::from("./test_resources/soundfonts/Red_Pilled_Based_Gui.sf2"), // Guitars
+                    PathBuf::from("./test_resources/soundfonts/Valiant_Violin_V2.sf2"), // Strings
+                ],
+            }),
+        }
+    }
+
+    pub fn play(&self) {
+        let callback: Arc<fn(NoteOnCallbackData)> = Arc::new(|data: NoteOnCallbackData| {
+            println!("Received {}", data.char_index);
+        });
+
+        self.player.play(Some(callback));
+    }
+
+    pub fn stop(&mut self) {
+        self.player.stop();
+    }
+}
 
 fn main() {
     test_from_midi();
@@ -36,28 +72,22 @@ fn test_from_midi() {
 
     println!("Generate MML from MIDI in {}ms", time.elapsed().as_millis());
 
-    let player = MmlPlayer::from_song(&song, MmlPlayerOptions {
-        soundfont_path: vec![
-            // PathBuf::from("./test_resouces/soundfonts/gm.sf2"), // General MIDI, very light
-            // PathBuf::from("/home/cuikho210/Documents/soundfonts/Monalisa GM v2_06_5.sf2"), // General MIDI, about 1.7GiB
-            PathBuf::from("/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2"),
-            // PathBuf::from("./test_resources/soundfonts/tx16w_GM_1.0.sf2"), // General MIDI, medium
-            //
-            // PathBuf::from("./test_resources/soundfonts/AMS_Grand_Piano_-_Remastered.sf2"), // Acoustic grand piano only
-            // PathBuf::from("./test_resources/soundfonts/megalovania_drums.sf2"), // Percussions
-            // PathBuf::from("./test_resources/soundfonts/Red_Pilled_Based_Gui.sf2"), // Guitars
-            PathBuf::from("./test_resources/soundfonts/Valiant_Violin_V2.sf2"), // Strings
-        ],
+    let player = Arc::new(Mutex::new(PlayerState::from_song(&song)));
+    let cloned_a = player.clone();
+    let cloned_b = player.clone();
+
+    thread::spawn(move || {
+        let guard = cloned_a.lock().unwrap();
+        guard.play();
     });
 
-    player.play(Some(note_on_callback));
-}
+    thread::spawn(move || {
+        sleep(Duration::from_secs(4));
+        let mut guard = cloned_b.lock().unwrap();
+        guard.stop();
+        println!("thread b stop player");
+    });
 
-fn note_on_callback(data: NoteOnCallbackData) {
-    println!(
-        "Note on at index {} with char length is {}",
-        data.char_index,
-        data.char_length,
-    );
+    sleep(Duration::from_secs(10));
 }
 

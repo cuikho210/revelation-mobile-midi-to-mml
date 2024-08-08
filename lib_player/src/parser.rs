@@ -1,6 +1,5 @@
 use std::{
-    time::{Duration, Instant},
-    sync::mpsc::Sender,
+    sync::{Arc, Mutex}, time::{Duration, Instant}
 };
 use revelation_mobile_midi_to_mml::Instrument;
 use crate::{
@@ -12,20 +11,22 @@ use crate::{
 
 const NOTE_NAMES: [char; 8] = ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'r'];
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlaybackStatus {
     PLAY,
     PAUSE,
     STOP,
 }
 
+#[derive(Debug, Clone)]
 pub struct Parser {
     pub raw_mml: String,
     pub notes: Vec<NoteEvent>,
     pub instrument: Instrument,
     pub connection: SynthOutputConnection,
 
-    status: PlaybackStatus,
-    note_on_tx: Option<Sender<NoteOnCallbackData>>,
+    status: Arc<Mutex<PlaybackStatus>>,
+    note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>,
     note_before: Option<NoteEvent>,
     time_start: Option<Instant>,
     current_chord: Vec<NoteEvent>,
@@ -34,7 +35,12 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn parse(mml: String, instrument: Instrument, connection: SynthOutputConnection) -> Self {
+    pub fn parse(
+        mml: String,
+        instrument: Instrument,
+        connection: SynthOutputConnection,
+        playback_status: Arc<Mutex<PlaybackStatus>>,
+    ) -> Self {
         let program_id = instrument.instrument_id;
         let channel = instrument.midi_channel;
 
@@ -43,8 +49,8 @@ impl Parser {
             notes: Vec::new(),
             instrument,
             connection,
-            status: PlaybackStatus::STOP,
-            note_on_tx: None,
+            status: playback_status,
+            note_on_callback: None,
             note_before: None,
             current_chord: Vec::new(),
             time_start: None,
@@ -57,20 +63,25 @@ impl Parser {
         result
     }
 
-    pub fn play(&mut self, note_on_tx: Sender<NoteOnCallbackData>) {
-        self.note_on_tx = Some(note_on_tx);
+    pub fn play(&mut self, note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>) {
+        self.note_on_callback = note_on_callback;
         self.time_start = Some(Instant::now());
-        self.status = PlaybackStatus::PLAY;
+        self.set_playback_status(PlaybackStatus::PLAY);
         self.play_next();
     }
 
     pub fn pause(&mut self) {
-        self.status = PlaybackStatus::PAUSE;
+        self.set_playback_status(PlaybackStatus::STOP);
     }
 
     pub fn stop(&mut self) {
         self.reset_state();
-        self.status = PlaybackStatus::STOP;
+        self.set_playback_status(PlaybackStatus::STOP);
+    }
+
+    fn set_playback_status(&mut self, value: PlaybackStatus) {
+        let mut guard = self.status.lock().unwrap();
+        *guard = value;
     }
 
     fn reset_state(&mut self) {
@@ -82,8 +93,13 @@ impl Parser {
     }
 
     fn play_next(&mut self) {
+        let playback_status = self.status.lock().unwrap();
+        if *playback_status != PlaybackStatus::PLAY {
+            return;
+        }
+        drop(playback_status);
+
         let mut connection = self.connection.clone();
-        let note_on_tx = self.note_on_tx.as_ref().unwrap();
 
         if let Some(note) = self.notes.get(self.current_note_index) {
             let time = self.time_start.unwrap();
@@ -114,7 +130,7 @@ impl Parser {
                     self.instrument.midi_channel,
                     Some(duration),
                 );
-                send_note_on_event_from_chord(note_on_tx, &self.current_chord);
+                send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord);
 
                 self.absolute_duration += chord_duration;
                 self.current_chord.clear();
@@ -135,7 +151,7 @@ impl Parser {
                     self.instrument.midi_channel,
                     Some(duration),
                 );
-                send_note_on_event_from_note(note_on_tx, before_note);
+                send_note_on_event_from_note(&self.note_on_callback, before_note);
 
                 self.absolute_duration += note_duration;
             }
@@ -152,7 +168,7 @@ impl Parser {
                 self.instrument.midi_channel,
                 None,
             );
-            send_note_on_event_from_chord(note_on_tx, &self.current_chord);
+            send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord);
         }
 
         if let Some(before_note) = self.note_before.as_ref() {
@@ -162,7 +178,7 @@ impl Parser {
                 self.instrument.midi_channel,
                 None,
             );
-            send_note_on_event_from_note(note_on_tx, &before_note);
+            send_note_on_event_from_note(&self.note_on_callback, &before_note);
         }
     }
 
@@ -271,33 +287,29 @@ impl Parser {
     }
 }
 
-fn send_note_on_event_from_note(note_on_tx: &Sender<NoteOnCallbackData>, note: &NoteEvent) {
-    let result = note_on_tx.send(NoteOnCallbackData {
-        char_index: note.char_index,
-        char_length: note.char_length,
-    });
-
-    if let Err(_) = result {
-        eprintln!("[send_note_on_event_from_note] Cannot send note on message");
+fn send_note_on_event_from_note(note_on_tx: &Option<Arc<fn(NoteOnCallbackData)>>, note: &NoteEvent) {
+    if let Some(callback) = note_on_tx {
+        callback(NoteOnCallbackData {
+            char_index: note.char_index,
+            char_length: note.char_length,
+        });
     }
 }
 
-fn send_note_on_event_from_chord(note_on_tx: &Sender<NoteOnCallbackData>, chord: &Vec<NoteEvent>) {
-    let first_note = chord.first().unwrap();
-    let char_index = first_note.char_index;
-    let mut char_length = first_note.char_length;
+fn send_note_on_event_from_chord(note_on_callback: &Option<Arc<fn(NoteOnCallbackData)>>, chord: &Vec<NoteEvent>) {
+    if let Some(callback) = note_on_callback {
+        let first_note = chord.first().unwrap();
+        let char_index = first_note.char_index;
+        let mut char_length = first_note.char_length;
 
-    for note in chord[1..].iter() {
-        char_length += note.char_length;
-    }
+        for note in chord[1..].iter() {
+            char_length += note.char_length;
+        }
 
-    let result = note_on_tx.send(NoteOnCallbackData {
-        char_index,
-        char_length,
-    });
-
-    if let Err(_) = result {
-        eprintln!("[send_note_on_event_from_chord] Cannot send note on message");
+        callback(NoteOnCallbackData {
+            char_index,
+            char_length,
+        });
     }
 }
 
