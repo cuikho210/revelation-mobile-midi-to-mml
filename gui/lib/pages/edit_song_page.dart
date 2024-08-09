@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
+import 'package:midi_to_mml/command_signals.dart';
 import 'package:midi_to_mml/components/song_options.dart';
 import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 import 'package:remixicon/remixicon.dart';
@@ -13,6 +14,7 @@ class EditSongPage extends GetView<AppController> {
 	@override
 	Widget build(context) {
 		listenUpdateMmlTracksStream();
+		listenNoteOnEventStream();
 
 		return Scaffold(
 			appBar: AppBar(
@@ -38,6 +40,24 @@ class EditSongPage extends GetView<AppController> {
 		await for (final signal in SignalUpdateMmlTracks.rustSignalStream) {
 			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
 				controller.setTracks(signal.message.tracks);
+			});
+		}
+	}
+
+	void listenNoteOnEventStream() async {
+		await for (final signal in SignalMmlNoteOn.rustSignalStream) {
+			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+				final track = controller.currentTrack();
+				final data = signal.message;
+
+				if (track != null && track.index == data.trackId.toInt()) {
+					final charIndex = data.charIndex.toInt();
+					final charLength = data.charLength.toInt();
+					final charEnd = charIndex + charLength;
+
+					controller.highlightCharIndex(charIndex);
+					controller.highlightCharEnd(charEnd);
+				}
 			});
 		}
 	}
@@ -95,11 +115,11 @@ class _SongControls extends GetView<AppController> {
 				),
 				Row(children: [
 					IconButton(
-						onPressed: () => (),
+						onPressed: () => PlaySong(),
 						icon: const Icon(Remix.play_line),
 					),
 					IconButton(
-						onPressed: () => (),
+						onPressed: () => StopSong(),
 						icon: const Icon(Remix.stop_line),
 					),
 				])

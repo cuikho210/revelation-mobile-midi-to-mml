@@ -15,6 +15,9 @@ class AppController extends GetxController {
 	final tracks = <SignalMmlTrack>[].obs;
 	final currentTrack = Rx<SignalMmlTrack?>(null);
 	final fileName = "new_song".obs;
+
+	final highlightCharIndex = 0.obs;
+	final highlightCharEnd = 0.obs;
 	
 	AppController() {
 		getAppVersion();

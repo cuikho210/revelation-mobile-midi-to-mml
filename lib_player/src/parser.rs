@@ -20,6 +20,7 @@ pub enum PlaybackStatus {
 
 #[derive(Debug, Clone)]
 pub struct Parser {
+    pub index: usize,
     pub raw_mml: String,
     pub notes: Vec<NoteEvent>,
     pub instrument: Instrument,
@@ -37,6 +38,7 @@ pub struct Parser {
 
 impl Parser {
     pub fn parse(
+        index: usize,
         mml: String,
         instrument: Instrument,
         connection: SynthOutputConnection,
@@ -46,6 +48,7 @@ impl Parser {
         let channel = instrument.midi_channel;
 
         let mut result = Self {
+            index,
             raw_mml: mml,
             notes: Vec::new(),
             instrument,
@@ -135,7 +138,7 @@ impl Parser {
                     self.instrument.midi_channel,
                     Some(duration),
                 );
-                send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord);
+                send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index);
 
                 self.absolute_duration += chord_duration;
                 self.current_chord.clear();
@@ -156,7 +159,7 @@ impl Parser {
                     self.instrument.midi_channel,
                     Some(duration),
                 );
-                send_note_on_event_from_note(&self.note_on_callback, before_note);
+                send_note_on_event_from_note(&self.note_on_callback, before_note, self.index);
 
                 self.absolute_duration += note_duration;
             }
@@ -173,7 +176,7 @@ impl Parser {
                 self.instrument.midi_channel,
                 None,
             );
-            send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord);
+            send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index);
         }
 
         if let Some(before_note) = self.note_before.as_ref() {
@@ -183,7 +186,7 @@ impl Parser {
                 self.instrument.midi_channel,
                 None,
             );
-            send_note_on_event_from_note(&self.note_on_callback, &before_note);
+            send_note_on_event_from_note(&self.note_on_callback, &before_note, self.index);
         }
     }
 
@@ -292,16 +295,21 @@ impl Parser {
     }
 }
 
-fn send_note_on_event_from_note(note_on_tx: &Option<Arc<fn(NoteOnCallbackData)>>, note: &NoteEvent) {
+fn send_note_on_event_from_note(note_on_tx: &Option<Arc<fn(NoteOnCallbackData)>>, note: &NoteEvent, track_index: usize) {
     if let Some(callback) = note_on_tx {
         callback(NoteOnCallbackData {
+            track_index,
             char_index: note.char_index,
             char_length: note.char_length,
         });
     }
 }
 
-fn send_note_on_event_from_chord(note_on_callback: &Option<Arc<fn(NoteOnCallbackData)>>, chord: &Vec<NoteEvent>) {
+fn send_note_on_event_from_chord(
+    note_on_callback: &Option<Arc<fn(NoteOnCallbackData)>>,
+    chord: &Vec<NoteEvent>,
+    track_index: usize,
+) {
     if let Some(callback) = note_on_callback {
         let first_note = chord.first().unwrap();
         let char_index = first_note.char_index;
@@ -312,6 +320,7 @@ fn send_note_on_event_from_chord(note_on_callback: &Option<Arc<fn(NoteOnCallback
         }
 
         callback(NoteOnCallbackData {
+            track_index,
             char_index,
             char_length,
         });

@@ -1,4 +1,4 @@
-use revelation_mobile_midi_to_mml::{utils, MmlSong};
+use revelation_mobile_midi_to_mml::{instrument_map, utils, Instrument, MmlSong};
 use rinf::debug_print;
 use crate::{converter, messages::types::{SignalMmlSongOptions, SignalMmlSongStatus, SignalMmlTrack}};
 
@@ -51,6 +51,20 @@ impl SongState {
         if let Some(song) = self.song.as_ref() {
             let list_track_signal = converter::mml_song_tracks_to_signal(&song.tracks);
             return Some(list_track_signal)
+        }
+
+        None
+    }
+
+    pub fn get_list_track_mml(&self) -> Option<Vec<(String, Instrument)>> {
+        if let Some(song) = self.song.as_ref() {
+            let list_track_mml = song.tracks.iter().map(|track| {
+                let mml = track.to_mml_debug();
+                let instrument = track.instrument.to_owned();
+
+                (mml, instrument)
+            }).collect();
+            return Some(list_track_mml)
         }
 
         None

@@ -3,6 +3,7 @@ import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:midi_to_mml/command_signals.dart';
 import 'package:midi_to_mml/controller.dart';
+import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 import 'package:midi_to_mml/messages/types.pb.dart';
 import 'package:midi_to_mml/extensions/track.dart';
 import 'package:remixicon/remixicon.dart';
@@ -178,12 +179,58 @@ class TrackContent extends GetView<AppController> {
 									)),
 									Obx(() => Text(controller.currentTrack()?.instrument.name ?? '')),
 									const Gap(16),
-									Obx(() => Text(controller.currentTrack()?.mml ?? '')),
+									Obx(() {
+										final charIndex = controller.highlightCharIndex();
+										final charEnd = controller.highlightCharEnd();
+
+										return _HighlightedText(
+											controller.currentTrack()?.mml ?? '',
+											charIndex,
+											charEnd,
+										);
+									}),
 								]),
 							),
 						);
 					}),
 				),
+			]),
+		);
+	}
+}
+
+class _HighlightedText extends StatelessWidget {
+	final String text;
+	final int charIndex;
+	final int charEnd;
+
+	const _HighlightedText(this.text, this.charIndex, this.charEnd);
+
+	@override
+	Widget build(context) {
+		final textBefore = text.substring(0, charIndex);
+		final textCurrent = text.substring(charIndex, charEnd);
+		final textAfter = text.substring(charEnd);
+
+		return Text.rich(TextSpan(children: [
+			TextSpan(
+				text: textBefore,
+				style: TextStyle(
+					color: Theme.of(context).colorScheme.onSurface,
+				),
+			),
+			TextSpan(
+				text: textCurrent,
+				style: TextStyle(
+					color: Theme.of(context).colorScheme.primaryFixedDim,
+				),
+			),
+			TextSpan(
+				text: textAfter,
+				style: TextStyle(
+					color: Theme.of(context).colorScheme.onSurface,
+				),
+			),
 			]),
 		);
 	}

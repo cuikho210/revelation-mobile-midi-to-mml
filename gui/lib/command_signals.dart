@@ -30,3 +30,21 @@ class SaveSongOptions {
 		SignalUpdateMmlSongOptionsPayload( songOptions: songOptions ).sendSignalToRust();
 	}
 }
+
+class PlaySong {
+	PlaySong() {
+		SignalSetSongPlayStatusPayload( status: SignalPlayStatus.PLAY ).sendSignalToRust();
+	}
+}
+
+class PauseSong {
+	PauseSong() {
+		SignalSetSongPlayStatusPayload( status: SignalPlayStatus.PAUSE ).sendSignalToRust();
+	}
+}
+
+class StopSong {
+	StopSong() {
+		SignalSetSongPlayStatusPayload( status: SignalPlayStatus.STOP ).sendSignalToRust();
+	}
+}

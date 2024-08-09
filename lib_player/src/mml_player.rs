@@ -8,6 +8,7 @@ use crate::{parser::PlaybackStatus, Parser, Synth, SynthOutputConnection};
 
 #[derive(Debug, Clone)]
 pub struct NoteOnCallbackData {
+    pub track_index: usize,
     pub char_index: usize,
     pub char_length: usize,
 }
@@ -73,10 +74,11 @@ impl MmlPlayer {
             let conn = self.connection.clone();
             char_length += mml.0.len();
 
+            let index = handles.len();
             let playback_status = self.playback_status.clone();
 
             let handle = thread::spawn::<_, Parser>(move || {
-                Parser::parse(mml.0, mml.1, conn, playback_status)
+                Parser::parse(index, mml.0, mml.1, conn, playback_status)
             });
             handles.push(handle);
         }

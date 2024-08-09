@@ -3,10 +3,11 @@ use tokio::sync::Mutex;
 use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 use crate::{
     messages::{
-        dart_to_rust::{SignalEqualizeTracksPayload, SignalLoadSongFromPathPayload, SignalMergeTracksPayload, SignalRenameTrackPayload, SignalSplitTrackPayload, SignalUpdateMmlSongOptionsPayload},
+        dart_to_rust::{SignalEqualizeTracksPayload, SignalLoadSongFromPathPayload, SignalMergeTracksPayload, SignalRenameTrackPayload, SignalSetSongPlayStatusPayload, SignalSplitTrackPayload, SignalUpdateMmlSongOptionsPayload},
         rust_to_dart::{SignalLoadSongFromPathResponse, SignalUpdateMmlTracks},
     },
     song::SongState,
+    player::PlayerState,
 };
 use rinf::{debug_print, RinfError};
 
@@ -172,7 +173,26 @@ pub async fn listen_set_track_is_muted() -> Result<(), RinfError> {
     Ok(())
 }
 
-pub async fn listen_set_song_play_status() -> Result<(), RinfError> {
+pub async fn listen_set_song_play_status(player_state: Arc<Mutex<PlayerState>>, song_state: Arc<Mutex<SongState>>) -> Result<(), RinfError> {
+    let mut receiver = SignalSetSongPlayStatusPayload::get_dart_signal_receiver()?;
+
+    while let Some(signal) = receiver.recv().await {
+        let status = signal.message.status;
+        let mut player = player_state.lock().await;
+        let song = song_state.lock().await;
+
+        if status == 0 {
+            if let Some(list_mml) = song.get_list_track_mml() {
+                player.play(list_mml);
+            } else {
+                debug_print!("[Play song] Cannot get list mml");
+            }
+        } else if status == 1 {
+            player.pause();
+        } else {
+            player.stop();
+        }
+    }
 
     Ok(())
 }
