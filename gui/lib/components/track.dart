@@ -180,13 +180,11 @@ class TrackContent extends GetView<AppController> {
 									Obx(() => Text(controller.currentTrack()?.instrument.name ?? '')),
 									const Gap(16),
 									Obx(() {
-										final charIndex = controller.highlightCharIndex();
-										final charEnd = controller.highlightCharEnd();
+										final track = controller.currentTrack();
 
 										return _HighlightedText(
-											controller.currentTrack()?.mml ?? '',
-											charIndex,
-											charEnd,
+											track?.mml ?? '',
+											track?.index ?? 0,
 										);
 									}),
 								]),
@@ -201,38 +199,57 @@ class TrackContent extends GetView<AppController> {
 
 class _HighlightedText extends StatelessWidget {
 	final String text;
-	final int charIndex;
-	final int charEnd;
+	final int trackIndex;
 
-	const _HighlightedText(this.text, this.charIndex, this.charEnd);
+	const _HighlightedText(this.text, this.trackIndex);
 
 	@override
 	Widget build(context) {
-		final textBefore = text.substring(0, charIndex);
-		final textCurrent = text.substring(charIndex, charEnd);
-		final textAfter = text.substring(charEnd);
+		String textBefore = '';
+		String textCurrent = '';
+		String textAfter = text;
 
-		return Text.rich(TextSpan(children: [
-			TextSpan(
-				text: textBefore,
-				style: TextStyle(
-					color: Theme.of(context).colorScheme.onSurface,
-				),
-			),
-			TextSpan(
-				text: textCurrent,
-				style: TextStyle(
-					color: Theme.of(context).colorScheme.primaryFixedDim,
-				),
-			),
-			TextSpan(
-				text: textAfter,
-				style: TextStyle(
-					color: Theme.of(context).colorScheme.onSurface,
-				),
-			),
-			]),
-		);
+		return SizedBox(child: StreamBuilder(
+			stream: SignalMmlNoteOn.rustSignalStream,
+			builder: (context, snapshot) {
+				final signal = snapshot.data;
+
+				if (signal != null) {
+					final signalTrackIndex = signal.message.trackId.toInt();
+					if (signalTrackIndex == trackIndex) {
+						final charLength = signal.message.charLength.toInt();
+						final charIndex = signal.message.charIndex.toInt();
+						final charEnd = charIndex + charLength + 1;
+
+						textBefore = text.substring(0, charIndex);
+						textCurrent = text.substring(charIndex, charEnd);
+						textAfter = text.substring(charEnd);
+					}
+				}
+
+				return Text.rich(TextSpan(children: [
+					TextSpan(
+						text: textBefore,
+						style: TextStyle(
+							color: Theme.of(context).colorScheme.onSurface,
+						),
+					),
+					TextSpan(
+						text: textCurrent,
+						style: TextStyle(
+							color: Theme.of(context).colorScheme.onPrimary,
+							backgroundColor: Theme.of(context).colorScheme.primary,
+						),
+					),
+					TextSpan(
+						text: textAfter,
+						style: TextStyle(
+							color: Theme.of(context).colorScheme.onSurface,
+						),
+					),
+				]));
+			},
+		));
 	}
 }
 

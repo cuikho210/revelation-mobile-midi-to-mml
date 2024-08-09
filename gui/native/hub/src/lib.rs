@@ -24,11 +24,51 @@ async fn main() {
     let song: Arc<Mutex<SongState>> = Arc::new(Mutex::new(SongState::new()));
     let player: Arc<Mutex<PlayerState>> = Arc::new(Mutex::new(PlayerState::new()));
 
-    tokio::spawn(signal_bridge::listen_load_song_from_path(song.clone()));
-    tokio::spawn(signal_bridge::listen_update_mml_song_option(song.clone()));
-    tokio::spawn(signal_bridge::listen_split_track(song.clone()));
-    tokio::spawn(signal_bridge::listen_merge_tracks(song.clone()));
-    tokio::spawn(signal_bridge::listen_equalize_tracks(song.clone()));
-    tokio::spawn(signal_bridge::listen_rename_tracks(song.clone()));
-    tokio::spawn(signal_bridge::listen_set_song_play_status(player.clone(), song.clone()));
+    tokio::spawn(
+        signal_bridge::listen_load_song_from_path(
+            song.clone(),
+            player.clone(),
+        )
+    );
+
+    tokio::spawn(
+        signal_bridge::listen_update_mml_song_option(
+            song.clone(),
+            player.clone(),
+        )
+    );
+
+    tokio::spawn(
+        signal_bridge::listen_split_track(
+            song.clone(),
+            player.clone(),
+        )
+    );
+
+
+    tokio::spawn(
+        signal_bridge::listen_merge_tracks(
+            song.clone(),
+            player.clone(),
+        )
+    );
+
+    tokio::spawn(
+        signal_bridge::listen_equalize_tracks(
+            song.clone(),
+            player.clone(),
+        )
+    );
+
+    tokio::spawn(
+        signal_bridge::listen_rename_tracks(
+            song.clone(),
+        )
+    );
+
+    tokio::spawn(
+        signal_bridge::listen_set_song_play_status(
+            player.clone(),
+        )
+    );
 }

@@ -93,51 +93,36 @@ impl MmlPlayer {
     }
 
     pub fn play(&self, note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>) {
-        let mut guard = self.playback_status.lock().unwrap();
-        *guard = PlaybackStatus::PLAY;
-        drop(guard);
-
-        let mut handles: Vec<JoinHandle<()>> = Vec::new();
+        {
+            let mut guard = self.playback_status.lock().unwrap();
+            *guard = PlaybackStatus::PLAY;
+        }
 
         for track in self.tracks.iter() {
             let parsed = track.clone();
             let callback = note_on_callback.clone();
-            let handle = thread::spawn(move || {
+
+            thread::spawn(move || {
                 if let Ok(mut guard) = parsed.lock() {
                     guard.play(callback);
                 } else {
                     eprintln!("[mml_player.play] Cannot lock Parsed track");
                 }
             });
-            handles.push(handle);
         }
-
-        // for handle in handles {
-        //     handle.join().unwrap();
-        // }
     }
 
     pub fn pause(&mut self) {
-        let mut guard = self.playback_status.lock().unwrap();
-        *guard = PlaybackStatus::PAUSE;
-        drop(guard);
-
-        for track in self.tracks.iter() {
-            let mut guard = track.lock().unwrap();
-            guard.pause();
-            drop(guard);
+        {
+            let mut guard = self.playback_status.lock().unwrap();
+            *guard = PlaybackStatus::PAUSE;
         }
     }
 
     pub fn stop(&mut self) {
-        let mut guard = self.playback_status.lock().unwrap();
-        *guard = PlaybackStatus::STOP;
-        drop(guard);
-
-        for track in self.tracks.iter() {
-            let mut guard = track.lock().unwrap();
-            guard.reset_state();
-            drop(guard);
+        {
+            let mut guard = self.playback_status.lock().unwrap();
+            *guard = PlaybackStatus::STOP;
         }
     }
 }

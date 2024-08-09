@@ -21,7 +21,11 @@ impl PlayerState {
         }
     }
 
-    pub fn play(&mut self, mmls: Vec<(String, Instrument)>) {
+    pub fn parse_mmls(&mut self, mmls: Vec<(String, Instrument)>) {
+        self.player.parse_mmls(mmls);
+    }
+
+    pub fn play(&mut self) {
         let callback: Arc<fn(NoteOnCallbackData)> = Arc::new(|data: NoteOnCallbackData| {
             SignalMmlNoteOn {
                 track_id: data.track_index as u64,
@@ -30,7 +34,6 @@ impl PlayerState {
             }.send_signal_to_dart();
         });
 
-        self.player.parse_mmls(mmls);
         self.player.play(Some(callback));
         self.playback_state = SignalPlayStatus::Play;
         debug_print!("Set player play");

@@ -1,15 +1,17 @@
-use revelation_mobile_midi_to_mml::{instrument_map, utils, Instrument, MmlSong};
+use revelation_mobile_midi_to_mml::{utils, Instrument, MmlSong};
 use rinf::debug_print;
 use crate::{converter, messages::types::{SignalMmlSongOptions, SignalMmlSongStatus, SignalMmlTrack}};
 
 pub struct SongState {
     pub song: Option<MmlSong>,
+    pub mmls: Vec<(String, Instrument)>,
 } 
 
 impl SongState {
     pub fn new() -> Self {
         Self {
             song: None,
+            mmls: Vec::new(),
         }
     }
 
@@ -56,7 +58,7 @@ impl SongState {
         None
     }
 
-    pub fn get_list_track_mml(&self) -> Option<Vec<(String, Instrument)>> {
+    pub fn update_list_track_mml(&mut self) -> Result<(), String> {
         if let Some(song) = self.song.as_ref() {
             let list_track_mml = song.tracks.iter().map(|track| {
                 let mml = track.to_mml_debug();
@@ -64,10 +66,12 @@ impl SongState {
 
                 (mml, instrument)
             }).collect();
-            return Some(list_track_mml)
+
+            self.mmls = list_track_mml;
+            return Ok(());
         }
 
-        None
+        Err("[SongState.update_list_track_mml] Cannot get song".to_string())
     }
 
     pub fn split_track(&mut self, index: usize) -> Result<(), String> {

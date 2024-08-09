@@ -100,11 +100,18 @@ impl Parser {
     }
 
     fn play_next(&mut self) {
-        if let Ok(playback_status) = self.status.try_lock() {
-            if *playback_status != PlaybackStatus::PLAY {
+        let playback_status = self.status.clone();
+
+        if let Ok(guard) = playback_status.lock() {
+            if *guard != PlaybackStatus::PLAY {
+                if *guard == PlaybackStatus::PAUSE {
+                    self.pause();
+                } else {
+                    self.reset_state();
+                }
+
                 return;
             }
-            drop(playback_status);
         }
 
         let mut connection = self.connection.clone();

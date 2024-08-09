@@ -14,7 +14,6 @@ class EditSongPage extends GetView<AppController> {
 	@override
 	Widget build(context) {
 		listenUpdateMmlTracksStream();
-		listenNoteOnEventStream();
 
 		return Scaffold(
 			appBar: AppBar(
@@ -54,9 +53,6 @@ class EditSongPage extends GetView<AppController> {
 					final charIndex = data.charIndex.toInt();
 					final charLength = data.charLength.toInt();
 					final charEnd = charIndex + charLength;
-
-					controller.highlightCharIndex(charIndex);
-					controller.highlightCharEnd(charEnd);
 				}
 			});
 		}

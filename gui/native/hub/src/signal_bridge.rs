@@ -11,7 +11,10 @@ use crate::{
 };
 use rinf::{debug_print, RinfError};
 
-pub async fn listen_load_song_from_path(song_state: Arc<Mutex<SongState>>) -> Result<(), RinfError> {
+pub async fn listen_load_song_from_path(
+    song_state: Arc<Mutex<SongState>>,
+    player_state: Arc<Mutex<PlayerState>>,
+) -> Result<(), RinfError> {
     let mut receiver = SignalLoadSongFromPathPayload::get_dart_signal_receiver()?;
 
     while let Some(signal) = receiver.recv().await {
@@ -20,6 +23,13 @@ pub async fn listen_load_song_from_path(song_state: Arc<Mutex<SongState>>) -> Re
         if let Ok(song) = MmlSong::from_path(&midi_path, MmlSongOptions::default()) {
             let mut guard = song_state.lock().await;
             guard.set_song(song);
+            guard.update_list_track_mml().unwrap();
+
+            {
+                let mut player = player_state.lock().await;
+                player.parse_mmls(guard.mmls.to_owned());
+            }
+
             let song_status = guard.get_signal_mml_song_status();
 
             debug_print!("[listen_load_song_from_path] Loaded song from {}", &midi_path);
@@ -32,7 +42,10 @@ pub async fn listen_load_song_from_path(song_state: Arc<Mutex<SongState>>) -> Re
     Ok(())
 }
 
-pub async fn listen_update_mml_song_option(song_state: Arc<Mutex<SongState>>) -> Result<(), RinfError> {
+pub async fn listen_update_mml_song_option(
+    song_state: Arc<Mutex<SongState>>,
+    player_state: Arc<Mutex<PlayerState>>,
+) -> Result<(), RinfError> {
     let mut receiver = SignalUpdateMmlSongOptionsPayload::get_dart_signal_receiver()?;
 
     while let Some(signal) = receiver.recv().await {
@@ -43,6 +56,12 @@ pub async fn listen_update_mml_song_option(song_state: Arc<Mutex<SongState>>) ->
 
             match song.set_song_options_by_signal(&song_options) {
                 Ok(_) => {
+                    {
+                        song.update_list_track_mml().unwrap();
+                        let mut player = player_state.lock().await;
+                        player.parse_mmls(song.mmls.to_owned());
+                    }
+
                     let tracks = song.get_list_track_signal();
 
                     if let Some(tracks) = tracks {
@@ -61,7 +80,10 @@ pub async fn listen_update_mml_song_option(song_state: Arc<Mutex<SongState>>) ->
     Ok(())
 }
 
-pub async fn listen_split_track(song_state: Arc<Mutex<SongState>>) -> Result<(), RinfError> {
+pub async fn listen_split_track(
+    song_state: Arc<Mutex<SongState>>,
+    player_state: Arc<Mutex<PlayerState>>,
+) -> Result<(), RinfError> {
     let mut receiver = SignalSplitTrackPayload::get_dart_signal_receiver()?;
 
     while let Some(signal) = receiver.recv().await {
@@ -70,6 +92,12 @@ pub async fn listen_split_track(song_state: Arc<Mutex<SongState>>) -> Result<(),
 
         match song.split_track(track_index) {
             Ok(_) => {
+                {
+                    song.update_list_track_mml().unwrap();
+                    let mut player = player_state.lock().await;
+                    player.parse_mmls(song.mmls.to_owned());
+                }
+
                 let tracks = song.get_list_track_signal();
 
                 if let Some(tracks) = tracks {
@@ -87,7 +115,10 @@ pub async fn listen_split_track(song_state: Arc<Mutex<SongState>>) -> Result<(),
     Ok(())
 }
 
-pub async fn listen_merge_tracks(song_state: Arc<Mutex<SongState>>) -> Result<(), RinfError> {
+pub async fn listen_merge_tracks(
+    song_state: Arc<Mutex<SongState>>,
+    player_state: Arc<Mutex<PlayerState>>,
+) -> Result<(), RinfError> {
     let mut receiver = SignalMergeTracksPayload::get_dart_signal_receiver()?;
 
     while let Some(signal) = receiver.recv().await {
@@ -97,6 +128,12 @@ pub async fn listen_merge_tracks(song_state: Arc<Mutex<SongState>>) -> Result<()
 
         match song.merge_tracks(track_index_a, track_index_b) {
             Ok(_) => {
+                {
+                    song.update_list_track_mml().unwrap();
+                    let mut player = player_state.lock().await;
+                    player.parse_mmls(song.mmls.to_owned());
+                }
+
                 let tracks = song.get_list_track_signal();
 
                 if let Some(tracks) = tracks {
@@ -114,7 +151,10 @@ pub async fn listen_merge_tracks(song_state: Arc<Mutex<SongState>>) -> Result<()
     Ok(())
 }
 
-pub async fn listen_equalize_tracks(song_state: Arc<Mutex<SongState>>) -> Result<(), RinfError> {
+pub async fn listen_equalize_tracks(
+    song_state: Arc<Mutex<SongState>>,
+    player_state: Arc<Mutex<PlayerState>>,
+) -> Result<(), RinfError> {
     let mut receiver = SignalEqualizeTracksPayload::get_dart_signal_receiver()?;
 
     while let Some(signal) = receiver.recv().await {
@@ -124,6 +164,12 @@ pub async fn listen_equalize_tracks(song_state: Arc<Mutex<SongState>>) -> Result
 
         match song.equalize_tracks(track_index_a, track_index_b) {
             Ok(_) => {
+                {
+                    song.update_list_track_mml().unwrap();
+                    let mut player = player_state.lock().await;
+                    player.parse_mmls(song.mmls.to_owned());
+                }
+
                 let tracks = song.get_list_track_signal();
 
                 if let Some(tracks) = tracks {
@@ -141,7 +187,9 @@ pub async fn listen_equalize_tracks(song_state: Arc<Mutex<SongState>>) -> Result
     Ok(())
 }
 
-pub async fn listen_rename_tracks(song_state: Arc<Mutex<SongState>>) -> Result<(), RinfError> {
+pub async fn listen_rename_tracks(
+    song_state: Arc<Mutex<SongState>>,
+) -> Result<(), RinfError> {
     let mut receiver = SignalRenameTrackPayload::get_dart_signal_receiver()?;
 
     while let Some(signal) = receiver.recv().await {
@@ -173,20 +221,17 @@ pub async fn listen_set_track_is_muted() -> Result<(), RinfError> {
     Ok(())
 }
 
-pub async fn listen_set_song_play_status(player_state: Arc<Mutex<PlayerState>>, song_state: Arc<Mutex<SongState>>) -> Result<(), RinfError> {
+pub async fn listen_set_song_play_status(
+    player_state: Arc<Mutex<PlayerState>>,
+) -> Result<(), RinfError> {
     let mut receiver = SignalSetSongPlayStatusPayload::get_dart_signal_receiver()?;
 
     while let Some(signal) = receiver.recv().await {
         let status = signal.message.status;
         let mut player = player_state.lock().await;
-        let song = song_state.lock().await;
 
         if status == 0 {
-            if let Some(list_mml) = song.get_list_track_mml() {
-                player.play(list_mml);
-            } else {
-                debug_print!("[Play song] Cannot get list mml");
-            }
+            player.play();
         } else if status == 1 {
             player.pause();
         } else {
