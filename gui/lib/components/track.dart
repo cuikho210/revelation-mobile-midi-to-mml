@@ -197,60 +197,76 @@ class TrackContent extends GetView<AppController> {
 	}
 }
 
-class _HighlightedText extends StatelessWidget {
+class _HighlightedText extends StatefulWidget {
 	final String text;
 	final int trackIndex;
 
 	const _HighlightedText(this.text, this.trackIndex);
 
 	@override
-	Widget build(context) {
+	createState() => _HighlightedTextState();
+}
+
+class _HighlightedTextState extends State<_HighlightedText> {
+	int charLength = 0;
+	int charIndex = 0;
+	int charEnd = 0;
+
+	void listenNoteOnEventStream() async {
+		await for (final signal in SignalMmlNoteOn.rustSignalStream) {
+			final signalTrackIndex = signal.message.trackId.toInt();
+			final signalCharIndex = signal.message.charIndex.toInt();
+
+			if (
+				widget.trackIndex == signalTrackIndex &&
+				signalCharIndex > charEnd
+			) {
+				setState(() {
+					charLength = signal.message.charLength.toInt();
+					charIndex = signalCharIndex;
+					charEnd = charIndex + charLength + 1;
+				});
+			}
+		}
+	}
+
+	@override
+	build(context) {
+		listenNoteOnEventStream();
+
 		String textBefore = '';
 		String textCurrent = '';
-		String textAfter = text;
+		String textAfter = '';
 
-		return SizedBox(child: StreamBuilder(
-			stream: SignalMmlNoteOn.rustSignalStream,
-			builder: (context, snapshot) {
-				final signal = snapshot.data;
+		try {
+			textBefore = widget.text.substring(0, charIndex);
+			textCurrent = widget.text.substring(charIndex, charEnd);
+			textAfter = widget.text.substring(charEnd);
+		} catch (e) {
+			textAfter = widget.text;
+		}
 
-				if (signal != null) {
-					final signalTrackIndex = signal.message.trackId.toInt();
-					if (signalTrackIndex == trackIndex) {
-						final charLength = signal.message.charLength.toInt();
-						final charIndex = signal.message.charIndex.toInt();
-						final charEnd = charIndex + charLength + 1;
-
-						textBefore = text.substring(0, charIndex);
-						textCurrent = text.substring(charIndex, charEnd);
-						print("Received $textCurrent");
-						textAfter = text.substring(charEnd);
-					}
-				}
-
-				return Text.rich(TextSpan(children: [
-					TextSpan(
-						text: textBefore,
-						style: TextStyle(
-							color: Theme.of(context).colorScheme.onSurface,
-						),
-					),
-					TextSpan(
-						text: textCurrent,
-						style: TextStyle(
-							color: Theme.of(context).colorScheme.onPrimary,
-							backgroundColor: Theme.of(context).colorScheme.primary,
-						),
-					),
-					TextSpan(
-						text: textAfter,
-						style: TextStyle(
-							color: Theme.of(context).colorScheme.onSurface,
-						),
-					),
-				]));
-			},
-		));
+		return SizedBox(child: Text.rich(TextSpan(children: [
+			TextSpan(
+				text: textBefore,
+				style: TextStyle(
+					color: Theme.of(context).colorScheme.onSurface,
+				),
+			),
+			TextSpan(
+				text: textCurrent,
+				style: TextStyle(
+					color: Theme.of(context).colorScheme.onPrimary,
+					backgroundColor: Theme.of(context).colorScheme.primary,
+				),
+			),
+			TextSpan(
+				text: textAfter,
+				style: TextStyle(
+					color: Theme.of(context).colorScheme.onSurface,
+				),
+			),
+		])));
 	}
 }
 

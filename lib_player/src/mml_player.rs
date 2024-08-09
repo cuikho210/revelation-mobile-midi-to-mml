@@ -98,17 +98,23 @@ impl MmlPlayer {
             *guard = PlaybackStatus::PLAY;
         }
 
+        let mut index = 0;
         for track in self.tracks.iter() {
             let parsed = track.clone();
             let callback = note_on_callback.clone();
 
-            thread::spawn(move || {
-                if let Ok(mut guard) = parsed.lock() {
-                    guard.play(callback);
-                } else {
-                    eprintln!("[mml_player.play] Cannot lock Parsed track");
-                }
-            });
+            thread::Builder::new()
+                .name(format!("Track player {}", index))
+                .stack_size(32 * 1024 * 1024)
+                .spawn(move || {
+                    if let Ok(mut guard) = parsed.lock() {
+                        guard.play(callback);
+                    } else {
+                        eprintln!("[mml_player.play] Cannot lock Parsed track");
+                    }
+                }).unwrap();
+
+            index += 1;
         }
     }
 

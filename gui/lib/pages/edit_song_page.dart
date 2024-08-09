@@ -42,21 +42,6 @@ class EditSongPage extends GetView<AppController> {
 			});
 		}
 	}
-
-	void listenNoteOnEventStream() async {
-		await for (final signal in SignalMmlNoteOn.rustSignalStream) {
-			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-				final track = controller.currentTrack();
-				final data = signal.message;
-
-				if (track != null && track.index == data.trackId.toInt()) {
-					final charIndex = data.charIndex.toInt();
-					final charLength = data.charLength.toInt();
-					final charEnd = charIndex + charLength;
-				}
-			});
-		}
-	}
 }
 
 class _Tracks extends GetView<AppController> {
