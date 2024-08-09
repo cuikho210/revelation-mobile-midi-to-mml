@@ -223,6 +223,7 @@ class _HighlightedText extends StatelessWidget {
 
 						textBefore = text.substring(0, charIndex);
 						textCurrent = text.substring(charIndex, charEnd);
+						print("Received $textCurrent");
 						textAfter = text.substring(charEnd);
 					}
 				}

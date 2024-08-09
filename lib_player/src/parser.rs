@@ -139,13 +139,14 @@ impl Parser {
                 let duration = chord_duration - duration_diff;
                 let duration = Duration::from_millis(duration as u64);
 
+                send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index);
+
                 utils::play_chord(
                     &mut connection,
                     &self.current_chord,
                     self.instrument.midi_channel,
                     Some(duration),
                 );
-                send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index);
 
                 self.absolute_duration += chord_duration;
                 self.current_chord.clear();
@@ -160,13 +161,14 @@ impl Parser {
                 let duration = note_duration - duration_diff;
                 let duration = Duration::from_millis(duration as u64);
 
+                send_note_on_event_from_note(&self.note_on_callback, before_note, self.index);
+
                 utils::play_note(
                     &mut connection,
                     before_note,
                     self.instrument.midi_channel,
                     Some(duration),
                 );
-                send_note_on_event_from_note(&self.note_on_callback, before_note, self.index);
 
                 self.absolute_duration += note_duration;
             }
@@ -177,24 +179,28 @@ impl Parser {
         }
 
         if self.current_chord.len() > 0 {
+            send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index);
+
             utils::play_chord(
                 &mut connection,
                 &self.current_chord,
                 self.instrument.midi_channel,
                 None,
             );
-            send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index);
         }
 
         if let Some(before_note) = self.note_before.as_ref() {
+            send_note_on_event_from_note(&self.note_on_callback, &before_note, self.index);
+
             utils::play_note(
                 &mut connection,
                 &before_note,
                 self.instrument.midi_channel,
                 None,
             );
-            send_note_on_event_from_note(&self.note_on_callback, &before_note, self.index);
         }
+
+        self.reset_state();
     }
 
     fn parse_note_events(&mut self) {
@@ -279,7 +285,7 @@ impl Parser {
                     Some(MmlEvent::ConnectChord)
                 } else if NOTE_NAMES.contains(&char) {
                     let mml_note = get_first_mml_note(mml);
-                    *index += mml_note.len();
+                    let mml_note_length = mml_note.len();
 
                     let note = NoteEvent::from_mml(
                         mml_note,
@@ -291,6 +297,8 @@ impl Parser {
                     );
 
                     *is_connect_chord = false;
+                    *index += mml_note_length;
+
                     Some(MmlEvent::SetNote(note))
                 } else {
                     *index += 1;
@@ -320,11 +328,7 @@ fn send_note_on_event_from_chord(
     if let Some(callback) = note_on_callback {
         let first_note = chord.first().unwrap();
         let char_index = first_note.char_index;
-        let mut char_length = first_note.char_length;
-
-        for note in chord[1..].iter() {
-            char_length += note.char_length;
-        }
+        let char_length = first_note.char_length;
 
         callback(NoteOnCallbackData {
             track_index,
@@ -356,11 +360,11 @@ fn get_first_mml_note(mml: &str) -> String {
 
         let mut is_break = true;
 
-        if char.is_digit(10) || to_match.contains(&char) {
+        if is_break && (char.is_digit(10) || to_match.contains(&char)) {
             is_break = false;
         }
 
-        if char == note_name && before_char == '&' {
+        if is_break && (char == note_name && before_char == '&') {
             is_break = false;
         }
 
