@@ -4,10 +4,10 @@ pub fn bridge_events_to_mml_events(
     bridge_events: &Vec<BridgeEvent>,
     options: &MmlSongOptions,
     ppq: u16,
-) -> (Vec<MmlEvent>, Instrument) {
+) -> (Vec<MmlEvent>, Option<Instrument>) {
     let mut mml_events: Vec<MmlEvent> = Vec::new();
     let mut before_note: Option<MmlNote> = None;
-    let mut instrument = Instrument::default();
+    let mut instrument = None;
 
     for event in bridge_events.iter() {
         match event {
@@ -63,7 +63,7 @@ pub fn bridge_events_to_mml_events(
                 mml_events.push(MmlEvent::Note(note));
             }
             BridgeEvent::ProgramChange(dest_instrument, _) => {
-                instrument = dest_instrument.to_owned();
+                instrument = Some(dest_instrument.to_owned());
             }
         }
     }

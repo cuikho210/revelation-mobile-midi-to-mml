@@ -11,17 +11,13 @@ class AppController extends GetxController {
 		buildNumber: ""
 	).obs;
 
-	final songStatus = SongStatus(
-		options: SongOptions(
-			autoBootVelocity: true,
-			velocityMin: 0,
-			velocityMax: 0,
-		),
-		tracks: [],
-	).obs;
-
-	final mmls = <String>[].obs;
+	final songOptions = SignalMmlSongOptions().obs;
+	final tracks = <SignalMmlTrack>[].obs;
+	final currentTrack = Rx<SignalMmlTrack?>(null);
 	final fileName = "new_song".obs;
+
+	final highlightCharIndex = 0.obs;
+	final highlightCharEnd = 0.obs;
 	
 	AppController() {
 		getAppVersion();
@@ -29,6 +25,19 @@ class AppController extends GetxController {
 
 	void getAppVersion() async {
 		packageInfo(await PackageInfo.fromPlatform());
+	}
+
+	void setTracks(List<SignalMmlTrack> listNewTrack) {
+		tracks(listNewTrack);
+		tracks.refresh();
+
+		if (currentTrack() == null) {
+			currentTrack(listNewTrack.first);
+		} else if (currentTrack()!.index >= listNewTrack.length) {
+			currentTrack(listNewTrack.last);
+		} else {
+			currentTrack(listNewTrack[currentTrack()!.index]);
+		}
 	}
 
 	/// Export the final MML result
@@ -39,14 +48,9 @@ class AppController extends GetxController {
 		result += "------------------------------------------------------------------------------------\n\n";
 		result += "Copy each track below to correspond to each track in the game\n\n";
 
-		// for (int i = 0; i < mmls().length; i++) {
-		// 	result += "${SongStatus().tracks[i].title}\n\n";
-		// 	result += "${mmls()[i]}\n\n";
-		// }
-
-		for (final track in songStatus().tracks) {
+		for (final track in tracks) {
 			result += "${track.title}\n\n";
-			result += "${mmls()[track.index]}\n\n";
+			result += "${track.mml}\n\n";
 		}
 
 		return result;

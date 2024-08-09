@@ -1,7 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'package:midi_to_mml/controller.dart';
-import 'package:midi_to_mml/messages/commands.pb.dart';
+import 'package:midi_to_mml/messages/dart_to_rust.pb.dart';
 import 'package:midi_to_mml/utils.dart';
 import 'package:path/path.dart';
 
@@ -21,14 +21,14 @@ class FromMidiFile {
 
 	Future open(String? path) async {
 		if (path == null) {
-			AlertError("Cannot open this file!");
+			AlertMessage.error("Cannot open this file!");
 			return;
 		}
 
 		final controller = Get.put(AppController());
 
 		controller.fileName(basename(path));
-		ImportMidiData(path: path).sendSignalToRust(null);
+		SignalLoadSongFromPathPayload(path: path).sendSignalToRust();
 	}
 
 	/// Open the file picker and return the path of file

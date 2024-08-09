@@ -1,4 +1,4 @@
-use crate::{mml_event::{BridgeEvent, MidiNoteState, MmlEvent}, mml_song::MmlSongOptions, parser::bridge_events_to_mml_events, Instrument, utils};
+use crate::{mml_event::{BridgeEvent, MidiNoteState, MmlEvent}, mml_song::MmlSongOptions, parser::bridge_events_to_mml_events, utils, Instrument};
 
 #[derive(Debug, Clone)]
 pub struct MmlTrack {
@@ -41,16 +41,16 @@ impl MmlTrack {
     pub fn split(&self) -> (Self, Self) {
         let (mut track_a, mut track_b) = self.split_track_by_override();
 
-        let is_out_of_range = track_a.mml_note_length > 3000 || track_b.mml_note_length > 3000;
-
-        let is_too_different = {
-            let ratio = 0.5_f32;
-            let diff_a = track_a.mml_note_length > (track_b.mml_note_length as f32 * ratio) as usize;
-            let diff_b = track_b.mml_note_length > (track_a.mml_note_length as f32 * ratio) as usize;
-            diff_a || diff_b
-        };
-
         if self.song_options.auto_equalize_note_length {
+            let is_out_of_range = track_a.mml_note_length > 3000 || track_b.mml_note_length > 3000;
+
+            let is_too_different = {
+                let ratio = 0.5_f32;
+                let diff_a = track_a.mml_note_length > (track_b.mml_note_length as f32 * ratio) as usize;
+                let diff_b = track_b.mml_note_length > (track_a.mml_note_length as f32 * ratio) as usize;
+                diff_a || diff_b
+            };
+
             if is_out_of_range || is_too_different {
                 utils::equalize_tracks(&mut track_a, &mut track_b);
             }
@@ -63,8 +63,8 @@ impl MmlTrack {
     }
 
     pub fn merge(&mut self, other: &mut Self) {
-        self.bridge_events.append(&mut other.bridge_events);
-        self.bridge_events.sort();
+        self.bridge_note_events.append(&mut other.bridge_note_events);
+        self.bridge_note_events.sort();
 
         self.name = format!("{}+{}", &self.name, other.name);
         self.generate_mml_events();
@@ -117,8 +117,11 @@ impl MmlTrack {
             self.ppq,
         );
 
+        if let Some(instrument) = instrument {
+            self.instrument = instrument;
+        }
+
         self.events = events;
-        self.instrument = instrument;
         self.update_mml_note_length();
     }
 

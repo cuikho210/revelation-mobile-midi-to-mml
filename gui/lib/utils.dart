@@ -4,10 +4,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class AlertError {
-	AlertError(String content) {
-		if (Get.context != null) {
-			ScaffoldMessenger.of(Get.context!).showSnackBar(SnackBar(
+class AlertMessage {
+	AlertMessage.error(String content) {
+		final context = Get.context;
+		if (context != null) {
+			ScaffoldMessenger.of(context).showSnackBar(SnackBar(
 				content: Text(content),
 				backgroundColor: Theme.of(Get.context!).colorScheme.error,
 			));
