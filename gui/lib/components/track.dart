@@ -217,7 +217,7 @@ class _HighlightedTextState extends State<_HighlightedText> {
 			final signalTrackIndex = signal.message.trackId.toInt();
 			final signalCharIndex = signal.message.charIndex.toInt();
 
-			if (widget.trackIndex == signalTrackIndex) {
+			if (widget.trackIndex == signalTrackIndex && mounted) {
 				setState(() {
 					charLength = signal.message.charLength.toInt();
 					charIndex = signalCharIndex;

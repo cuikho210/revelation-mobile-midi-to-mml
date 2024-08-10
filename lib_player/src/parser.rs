@@ -183,6 +183,13 @@ impl Parser {
                 );
 
                 self.handle_note_blocking(sleep_duration);
+
+                utils::stop_chord(
+                    connection.to_owned(),
+                    &self.current_chord,
+                    self.instrument.midi_channel,
+                );
+
                 self.absolute_duration += chord_duration;
                 self.current_chord.clear();
                 self.note_before = Some(note.to_owned());
@@ -190,7 +197,7 @@ impl Parser {
                 continue;
             }
 
-            if let Some(before_note) = &self.note_before {
+            if let Some(before_note) = self.note_before.as_ref() {
                 let note_duration = before_note.duration_in_ms as isize;
                 let duration = note_duration - duration_diff;
                 let duration = Duration::from_millis(duration as u64);
@@ -204,7 +211,15 @@ impl Parser {
                     Some(duration),
                 );
 
+                let before_note = before_note.to_owned();
                 self.handle_note_blocking(sleep_duration);
+
+                utils::stop_note(
+                    connection.to_owned(),
+                    &before_note,
+                    self.instrument.midi_channel,
+                );
+
                 self.absolute_duration += note_duration;
             }
 
@@ -223,6 +238,12 @@ impl Parser {
             );
 
             self.handle_note_blocking(sleep_duration);
+
+            utils::stop_chord(
+                connection.to_owned(),
+                &self.current_chord,
+                self.instrument.midi_channel,
+            );
         }
 
         if let Some(before_note) = self.note_before.as_ref() {
@@ -235,7 +256,14 @@ impl Parser {
                 None,
             );
 
+            let before_note = before_note.to_owned();
             self.handle_note_blocking(sleep_duration);
+
+            utils::stop_note(
+                connection.to_owned(),
+                &before_note,
+                self.instrument.midi_channel,
+            );
         }
 
         self.reset_state();

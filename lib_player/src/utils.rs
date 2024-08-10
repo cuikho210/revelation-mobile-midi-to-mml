@@ -91,14 +91,31 @@ pub fn play_note(
 
     if let Some(key) = note.midi_key {
         connection.note_on(channel, key, note.midi_velocity);
-
-        thread::spawn(move || {
-            sleep(duration);
-            connection.note_off(channel, key);
-        });
     }
 
     duration
+}
+
+pub fn stop_note(
+    mut connection: SynthOutputConnection,
+    note: &NoteEvent,
+    channel: u8,
+) {
+    if let Some(key) = note.midi_key {
+        connection.note_off(channel, key);
+    }
+}
+
+pub fn stop_chord(
+    mut connection: SynthOutputConnection,
+    chord: &Vec<NoteEvent>,
+    channel: u8,
+) {
+    for note in chord.iter() {
+        if let Some(key) = note.midi_key {
+            connection.note_off(channel, key);
+        }
+    }
 }
 
 pub fn play_chord(
@@ -115,18 +132,6 @@ pub fn play_chord(
     for note in chord.iter() {
         if let Some(key) = note.midi_key {
             connection.note_on(channel, key, note.midi_velocity);
-        }
-    }
-
-    for note in chord.iter() {
-        if let Some(key) = note.midi_key {
-            let mut connection = connection.clone();
-            let note_duration = Duration::from_millis(note.duration_in_ms as u64);
-
-            thread::spawn(move || {
-                sleep(note_duration);
-                connection.note_off(channel, key);
-            });
         }
     }
 
