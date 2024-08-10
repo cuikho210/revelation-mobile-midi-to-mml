@@ -1,4 +1,4 @@
-use std::{thread::sleep, time::Duration};
+use std::{thread::{self, sleep}, time::Duration};
 use crate::{SynthOutputConnection, NoteEvent};
 
 const SMALLEST_UNIT: usize = 256;

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::{Arc, Mutex}, thread::{self, sleep}, time::{Duration, Instant}};
+use std::{path::PathBuf, sync::Arc, thread::sleep, time::{Duration, Instant}};
 use lib_player::{MmlPlayer, MmlPlayerOptions, NoteOnCallbackData};
 use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 
@@ -11,15 +11,15 @@ impl PlayerState {
         Self {
             player: MmlPlayer::from_song(song, MmlPlayerOptions {
                 soundfont_path: vec![
-                    PathBuf::from("./test_resources/soundfonts/gm.sf2"), // General MIDI, very light
+                    // PathBuf::from("./test_resources/soundfonts/gm.sf2"), // General MIDI, very light
                     // PathBuf::from("/home/cuikho210/Documents/soundfonts/Monalisa GM v2_06_5.sf2"), // General MIDI, about 1.7GiB
-                    // PathBuf::from("/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2"),
+                    PathBuf::from("/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2"),
                     // PathBuf::from("./test_resources/soundfonts/tx16w_GM_1.0.sf2"), // General MIDI, medium
                     //
                     // PathBuf::from("./test_resources/soundfonts/AMS_Grand_Piano_-_Remastered.sf2"), // Acoustic grand piano only
                     // PathBuf::from("./test_resources/soundfonts/megalovania_drums.sf2"), // Percussions
                     // PathBuf::from("./test_resources/soundfonts/Red_Pilled_Based_Gui.sf2"), // Guitars
-                    // PathBuf::from("./test_resources/soundfonts/Valiant_Violin_V2.sf2"), // Strings
+                    PathBuf::from("./test_resources/soundfonts/Valiant_Violin_V2.sf2"), // Strings
                 ],
             }),
         }
@@ -31,14 +31,6 @@ impl PlayerState {
         });
 
         self.player.play(Some(callback));
-    }
-
-    pub fn pause(&mut self) {
-        self.player.pause();
-    }
-
-    pub fn stop(&mut self) {
-        self.player.stop();
     }
 }
 

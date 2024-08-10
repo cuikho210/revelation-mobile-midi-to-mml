@@ -1,5 +1,5 @@
 use std::{
-    sync::{Arc, Mutex}, time::{Duration, Instant}
+    sync::{Arc, RwLock}, time::{Duration, Instant}
 };
 use revelation_mobile_midi_to_mml::Instrument;
 use crate::{
@@ -26,7 +26,7 @@ pub struct Parser {
     pub instrument: Instrument,
     pub connection: SynthOutputConnection,
 
-    status: Arc<Mutex<PlaybackStatus>>,
+    status: Arc<RwLock<PlaybackStatus>>,
     note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>,
     note_before: Option<NoteEvent>,
     time_start: Option<Instant>,
@@ -42,7 +42,7 @@ impl Parser {
         mml: String,
         instrument: Instrument,
         connection: SynthOutputConnection,
-        playback_status: Arc<Mutex<PlaybackStatus>>,
+        playback_status: Arc<RwLock<PlaybackStatus>>,
     ) -> Self {
         let program_id = instrument.instrument_id;
         let channel = instrument.midi_channel;
@@ -83,7 +83,7 @@ impl Parser {
             self.time_start = Some(Instant::now());
         }
 
-        self.play_next();
+        self.play_notes_linear();
     }
     
     pub fn pause(&mut self) {
@@ -91,7 +91,6 @@ impl Parser {
     }
 
     pub fn reset_state(&mut self) {
-        self.current_note_index = 0;
         self.absolute_duration = 0;
         self.note_before = None;
         self.current_chord = Vec::new();
@@ -99,83 +98,83 @@ impl Parser {
         self.time_pause = None;
     }
 
-    fn play_next(&mut self) {
+    fn play_notes_linear(&mut self) {
+        let mut connection = self.connection.clone();
+        let time = self.time_start.unwrap();
         let playback_status = self.status.clone();
 
-        if let Ok(guard) = playback_status.lock() {
-            if *guard != PlaybackStatus::PLAY {
-                if *guard == PlaybackStatus::PAUSE {
-                    self.pause();
-                } else {
-                    self.reset_state();
-                }
+        for index in self.current_note_index..self.notes.len() {
+            if let Some(note) = self.notes.get(index) {
+                if let Ok(guard) = playback_status.read() {
+                    if *guard != PlaybackStatus::PLAY {
+                        if *guard == PlaybackStatus::PAUSE {
+                            self.pause();
+                            println!("[parser.play_notes_linear] Paused");
 
-                return;
-            }
-        }
+                        } else {
+                            self.reset_state();
+                            println!("[parser.play_notes_linear] Reset state");
+                        }
 
-        let mut connection = self.connection.clone();
-
-        if let Some(note) = self.notes.get(self.current_note_index) {
-            let time = self.time_start.unwrap();
-
-            if note.is_connected_to_prev_note {
-                if let Some(before_note) = self.note_before.as_ref() {
-                    if self.current_chord.len() == 0 {
-                        self.current_chord.push(before_note.to_owned());
+                        return;
                     }
                 }
 
-                self.current_chord.push(note.to_owned());
-                self.current_note_index += 1;
-                return self.play_next();
-            }
+                if note.is_connected_to_prev_note {
+                    if let Some(before_note) = self.note_before.as_ref() {
+                        if self.current_chord.len() == 0 {
+                            self.current_chord.push(before_note.to_owned());
+                        }
+                    }
 
-            let correct_duration = time.elapsed().as_millis() as isize;
-            let duration_diff = correct_duration - self.absolute_duration;
+                    self.current_chord.push(note.to_owned());
+                    continue;
+                }
 
-            if self.current_chord.len() > 0 {
-                let chord_duration = utils::get_longest_note_duration(&self.current_chord);
-                let duration = chord_duration - duration_diff;
-                let duration = Duration::from_millis(duration as u64);
+                let correct_duration = time.elapsed().as_millis() as isize;
+                let duration_diff = correct_duration - self.absolute_duration;
 
-                send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index);
+                if self.current_chord.len() > 0 {
+                    let chord_duration = utils::get_longest_note_duration(&self.current_chord);
+                    let duration = chord_duration - duration_diff;
+                    let duration = Duration::from_millis(duration as u64);
 
-                utils::play_chord(
-                    &mut connection,
-                    &self.current_chord,
-                    self.instrument.midi_channel,
-                    Some(duration),
-                );
+                    send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index);
 
-                self.absolute_duration += chord_duration;
-                self.current_chord.clear();
+                    utils::play_chord(
+                        &mut connection,
+                        &self.current_chord,
+                        self.instrument.midi_channel,
+                        Some(duration),
+                    );
+
+                    self.absolute_duration += chord_duration;
+                    self.current_chord.clear();
+                    self.note_before = Some(note.to_owned());
+
+                    continue;
+                }
+
+                if let Some(before_note) = &self.note_before {
+                    let note_duration = before_note.duration_in_ms as isize;
+                    let duration = note_duration - duration_diff;
+                    let duration = Duration::from_millis(duration as u64);
+
+                    send_note_on_event_from_note(&self.note_on_callback, before_note, self.index);
+
+                    utils::play_note(
+                        &mut connection,
+                        before_note,
+                        self.instrument.midi_channel,
+                        Some(duration),
+                    );
+
+                    self.absolute_duration += note_duration;
+                }
+
                 self.note_before = Some(note.to_owned());
-
-                self.current_note_index += 1;
-                return self.play_next();
+                continue;
             }
-
-            if let Some(before_note) = &self.note_before {
-                let note_duration = before_note.duration_in_ms as isize;
-                let duration = note_duration - duration_diff;
-                let duration = Duration::from_millis(duration as u64);
-
-                send_note_on_event_from_note(&self.note_on_callback, before_note, self.index);
-
-                utils::play_note(
-                    &mut connection,
-                    before_note,
-                    self.instrument.midi_channel,
-                    Some(duration),
-                );
-
-                self.absolute_duration += note_duration;
-            }
-
-            self.note_before = Some(note.to_owned());
-            self.current_note_index += 1;
-            return self.play_next();
         }
 
         if self.current_chord.len() > 0 {

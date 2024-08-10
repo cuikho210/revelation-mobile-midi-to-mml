@@ -1,5 +1,5 @@
 use std::{
-    path::PathBuf, sync::{Arc, Mutex},
+    path::PathBuf, sync::{Arc, Mutex, RwLock},
     thread::{self, JoinHandle}, time::{Duration, Instant},
 };
 use cpal::Stream;
@@ -27,7 +27,7 @@ pub struct MmlPlayer {
     pub stream: CpalStreamWrapper,
     pub connection: SynthOutputConnection,
     pub tracks: Vec<Arc<Mutex<Parser>>>,
-    pub playback_status: Arc<Mutex<PlaybackStatus>>,
+    pub playback_status: Arc<RwLock<PlaybackStatus>>,
 }
 
 impl MmlPlayer {
@@ -43,7 +43,7 @@ impl MmlPlayer {
             stream: CpalStreamWrapper { stream },
             connection,
             tracks: Vec::new(),
-            playback_status: Arc::new(Mutex::new(PlaybackStatus::STOP)),
+            playback_status: Arc::new(RwLock::new(PlaybackStatus::STOP)),
         }
     }
 
@@ -94,7 +94,7 @@ impl MmlPlayer {
 
     pub fn play(&self, note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>) {
         {
-            let mut guard = self.playback_status.lock().unwrap();
+            let mut guard = self.playback_status.write().unwrap();
             *guard = PlaybackStatus::PLAY;
         }
 
@@ -105,7 +105,6 @@ impl MmlPlayer {
 
             thread::Builder::new()
                 .name(format!("Track player {}", index))
-                .stack_size(32 * 1024 * 1024)
                 .spawn(move || {
                     if let Ok(mut guard) = parsed.lock() {
                         guard.play(callback);
@@ -120,14 +119,14 @@ impl MmlPlayer {
 
     pub fn pause(&mut self) {
         {
-            let mut guard = self.playback_status.lock().unwrap();
+            let mut guard = self.playback_status.write().unwrap();
             *guard = PlaybackStatus::PAUSE;
         }
     }
 
     pub fn stop(&mut self) {
         {
-            let mut guard = self.playback_status.lock().unwrap();
+            let mut guard = self.playback_status.write().unwrap();
             *guard = PlaybackStatus::STOP;
         }
     }
