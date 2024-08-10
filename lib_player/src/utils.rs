@@ -78,7 +78,12 @@ pub fn duration_in_smallest_unit_to_ms(duration_in_smallest_unit: usize, tempo: 
     result.round() as usize
 }
 
-pub fn play_note(connection: &mut SynthOutputConnection, note: &NoteEvent, channel: u8, duration: Option<Duration>) {
+pub fn play_note(
+    mut connection: SynthOutputConnection,
+    note: &NoteEvent,
+    channel: u8,
+    duration: Option<Duration>
+) -> Duration {
     let duration = match duration {
         Some(value) => value,
         None => Duration::from_millis(note.duration_in_ms as u64),
@@ -87,17 +92,24 @@ pub fn play_note(connection: &mut SynthOutputConnection, note: &NoteEvent, chann
     if let Some(key) = note.midi_key {
         connection.note_on(channel, key, note.midi_velocity);
 
-        sleep(duration);
-        connection.note_off(channel, key);
-    } else {
-        sleep(duration);
+        thread::spawn(move || {
+            sleep(duration);
+            connection.note_off(channel, key);
+        });
     }
+
+    duration
 }
 
-pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>, channel: u8, duration: Option<Duration>) {
+pub fn play_chord(
+    mut connection: SynthOutputConnection,
+    chord: &Vec<NoteEvent>,
+    channel: u8,
+    duration: Option<Duration>,
+) -> Duration {
     let duration = match duration {
         Some(value) => value,
-        None => Duration::from_millis(chord.first().unwrap().duration_in_ms as u64),
+        None => Duration::from_millis(get_longest_note_duration(chord) as u64),
     };
 
     for note in chord.iter() {
@@ -106,13 +118,19 @@ pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>
         }
     }
 
-    sleep(duration);
-
     for note in chord.iter() {
         if let Some(key) = note.midi_key {
-            connection.note_off(channel, key);
+            let mut connection = connection.clone();
+            let note_duration = Duration::from_millis(note.duration_in_ms as u64);
+
+            thread::spawn(move || {
+                sleep(note_duration);
+                connection.note_off(channel, key);
+            });
         }
     }
+
+    duration
 }
 
 pub fn log_note_on(note: &NoteEvent, channel: u8) {
