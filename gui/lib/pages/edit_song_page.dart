@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:midi_to_mml/command_signals.dart';
 import 'package:midi_to_mml/components/song_options.dart';
 import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
+import 'package:midi_to_mml/messages/types.pb.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:midi_to_mml/components/track.dart';
 import 'package:midi_to_mml/controller.dart';
@@ -83,6 +84,23 @@ class _SongControls extends GetView<AppController> {
 		});
 	}
 
+	void playSong() {
+		PlaySong();
+		controller.playbackStatus(SignalPlayStatus.PLAY);
+	}
+
+	void pauseSong() {
+		PauseSong();
+		controller.playbackStatus(SignalPlayStatus.PAUSE);
+	}
+
+	void stopSong() {
+		if (controller.playbackStatus() != SignalPlayStatus.STOP) {
+			StopSong();
+			controller.playbackStatus(SignalPlayStatus.STOP);
+		}
+	}
+
 	@override
 	Widget build(context) {
 		return Flex(
@@ -95,12 +113,22 @@ class _SongControls extends GetView<AppController> {
 					icon: const Icon(Remix.settings_line),
 				),
 				Row(children: [
+					Obx(() {
+						void Function() invoker = playSong;
+						IconData icon = Remix.play_line;
+
+						if (controller.playbackStatus() == SignalPlayStatus.PLAY) {
+							invoker = pauseSong;
+							icon = Remix.pause_line;
+						}
+
+						return IconButton(
+							onPressed: invoker,
+							icon: Icon(icon),
+						);
+					}),
 					IconButton(
-						onPressed: () => PlaySong(),
-						icon: const Icon(Remix.play_line),
-					),
-					IconButton(
-						onPressed: () => StopSong(),
+						onPressed: stopSong,
 						icon: const Icon(Remix.stop_line),
 					),
 				])

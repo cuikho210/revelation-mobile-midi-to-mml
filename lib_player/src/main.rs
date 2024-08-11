@@ -25,7 +25,7 @@ impl PlayerState {
         }
     }
 
-    pub fn play(&self) {
+    pub fn play(&mut self) {
         let callback: Arc<fn(NoteOnCallbackData)> = Arc::new(|data: NoteOnCallbackData| {
             println!("Received {}", data.char_index);
         });
@@ -65,7 +65,7 @@ fn test_from_midi() {
 
     println!("Generate MML from MIDI in {}ms", time.elapsed().as_millis());
 
-    let player = PlayerState::from_song(&song);
+    let mut player = PlayerState::from_song(&song);
     player.play();
 
     sleep(Duration::from_secs(300));

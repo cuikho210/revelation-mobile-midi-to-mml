@@ -15,6 +15,7 @@ class AppController extends GetxController {
 	final tracks = <SignalMmlTrack>[].obs;
 	final currentTrack = Rx<SignalMmlTrack?>(null);
 	final fileName = "new_song".obs;
+	final playbackStatus = SignalPlayStatus.STOP.obs;
 	
 	AppController() {
 		getAppVersion();

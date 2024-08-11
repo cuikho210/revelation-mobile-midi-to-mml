@@ -20,8 +20,6 @@ pub struct TrackPlayer {
     pub connection: SynthOutputConnection,
 
     note_before: Option<NoteEvent>,
-    time_start: Option<Instant>,
-    time_pause: Option<Instant>,
     current_chord: Vec<NoteEvent>,
     absolute_duration: isize,
     current_note_index: usize,
@@ -49,8 +47,6 @@ impl TrackPlayer {
             instrument,
             connection,
             note_before: None,
-            time_start: None,
-            time_pause: None,
             current_chord: Vec::new(),
             absolute_duration: 0,
             current_note_index: 0,
@@ -58,34 +54,20 @@ impl TrackPlayer {
         }
     }
 
-    pub fn play(&mut self, note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>) {
+    pub fn play(
+        &mut self,
+        note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>,
+        time_start: Instant,
+    ) {
         self.note_on_callback = note_on_callback;
-
-        if let Some(time_pause) = self.time_pause {
-            let time_start = self.time_start.unwrap();
-
-            let now = Instant::now();
-            let diff = now - time_pause;
-            let new_time = time_start + diff;
-            println!("New time to now: {}", new_time.elapsed().as_secs());
-            self.time_start = Some(new_time);
-        } else {
-            self.time_start = Some(Instant::now());
-        }
-
-        self.play_notes_linear();
+        self.play_notes_linear(time_start);
     }
     
-    pub fn pause(&mut self) {
-        self.time_pause = Some(Instant::now());
-    }
-
     pub fn reset_state(&mut self) {
+        self.current_note_index = 0;
         self.absolute_duration = 0;
         self.note_before = None;
         self.current_chord = Vec::new();
-        self.time_start = None;
-        self.time_pause = None;
     }
 
     fn handle_playback_status(&mut self) -> PlaybackStatus {
@@ -94,7 +76,6 @@ impl TrackPlayer {
         if let Ok(guard) = playback_status.read() {
             if *guard != PlaybackStatus::PLAY {
                 if *guard == PlaybackStatus::PAUSE {
-                    self.pause();
                     println!("[parser.play_notes_linear] Paused");
 
                     return PlaybackStatus::PAUSE;
@@ -133,11 +114,12 @@ impl TrackPlayer {
         }
     }
 
-    fn play_notes_linear(&mut self) {
+    fn play_notes_linear(&mut self, time_start: Instant) {
         let connection = self.connection.clone();
-        let time = self.time_start.unwrap();
 
         for index in self.current_note_index..self.parser.notes.len() {
+            self.current_note_index = index;
+
             if self.handle_playback_status() != PlaybackStatus::PLAY {
                 return;
             }
@@ -155,12 +137,18 @@ impl TrackPlayer {
                 continue;
             }
 
-            let correct_duration = time.elapsed().as_millis() as isize;
+            let correct_duration = time_start.elapsed().as_millis() as isize;
             let duration_diff = correct_duration - self.absolute_duration;
 
             if self.current_chord.len() > 0 {
                 let chord_duration = utils::get_longest_note_duration(&self.current_chord);
                 let duration = chord_duration - duration_diff;
+
+                if duration <= 0 {
+                    println!("[track_player.play_notes_linear] skip by duration is {} ms", duration);
+                    continue;
+                }
+
                 let duration = Duration::from_millis(duration as u64);
 
                 send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index);
@@ -190,6 +178,12 @@ impl TrackPlayer {
             if let Some(before_note) = self.note_before.as_ref() {
                 let note_duration = before_note.duration_in_ms as isize;
                 let duration = note_duration - duration_diff;
+
+                if duration <= 0 {
+                    println!("[track_player.play_notes_linear] skip by duration is {} ms", duration);
+                    continue;
+                }
+
                 let duration = Duration::from_millis(duration as u64);
 
                 send_note_on_event_from_note(&self.note_on_callback, before_note, self.index);

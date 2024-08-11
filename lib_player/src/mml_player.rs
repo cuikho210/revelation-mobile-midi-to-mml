@@ -3,6 +3,7 @@ use std::{
     thread::{self, JoinHandle}, time::{Duration, Instant},
 };
 use cpal::Stream;
+use oxisynth::settings;
 use revelation_mobile_midi_to_mml::{Instrument, MmlSong};
 use crate::{Parser, Synth, SynthOutputConnection, TrackPlayer};
 
@@ -35,6 +36,9 @@ pub struct MmlPlayer {
     pub connection: SynthOutputConnection,
     pub tracks: Vec<Arc<Mutex<TrackPlayer>>>,
     pub playback_status: Arc<RwLock<PlaybackStatus>>,
+
+    time_start: Option<Instant>,
+    time_pause: Option<Instant>,
 }
 
 impl MmlPlayer {
@@ -51,6 +55,8 @@ impl MmlPlayer {
             connection,
             tracks: Vec::new(),
             playback_status: Arc::new(RwLock::new(PlaybackStatus::STOP)),
+            time_start: None,
+            time_pause: None,
         }
     }
 
@@ -107,11 +113,14 @@ impl MmlPlayer {
         self.tracks = tracks;
     }
 
-    pub fn play(&self, note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>) {
+    pub fn play(&mut self, note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>) {
         {
             let mut guard = self.playback_status.write().unwrap();
             *guard = PlaybackStatus::PLAY;
         }
+
+        let time_start = self.get_time_start();
+        self.time_start = Some(time_start);
 
         let mut index = 0;
         for track in self.tracks.iter() {
@@ -122,7 +131,7 @@ impl MmlPlayer {
                 .name(format!("Track player {}", index))
                 .spawn(move || {
                     if let Ok(mut guard) = parsed.lock() {
-                        guard.play(callback);
+                        guard.play(callback, time_start);
                     } else {
                         eprintln!("[mml_player.play] Cannot lock Parsed track");
                     }
@@ -137,6 +146,8 @@ impl MmlPlayer {
             let mut guard = self.playback_status.write().unwrap();
             *guard = PlaybackStatus::PAUSE;
         }
+
+        self.time_pause = Some(Instant::now());
     }
 
     pub fn stop(&mut self) {
@@ -144,6 +155,23 @@ impl MmlPlayer {
             let mut guard = self.playback_status.write().unwrap();
             *guard = PlaybackStatus::STOP;
         }
+
+        self.time_start = None;
+        self.time_pause = None;
+    }
+
+    fn get_time_start(&self) -> Instant {
+        if let Some(time_start) = self.time_start {
+            if let Some(time_pause) = self.time_pause {
+                let now = Instant::now();
+                let diff = now - time_pause;
+                let new_time = time_start + diff;
+
+                return new_time;
+            }
+        }
+
+        Instant::now()
     }
 }
 
