@@ -14,8 +14,8 @@ impl PlayerState {
         PlayerState {
             player: MmlPlayer::new(MmlPlayerOptions {
                 soundfont_path: vec![
-                    PathBuf::from("/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2"),
-                    PathBuf::from("/home/cuikho210/Projects/revelation-mobile-midi-to-mml/lib_player/test_resources/soundfonts/Valiant_Violin_V2.sf2"),
+                    PathBuf::from("/home/cuikho210/Projects/revelation-mobile-midi-to-mml/lib_player/test_resources/soundfonts/gm.sf2"),
+                    // PathBuf::from("/home/cuikho210/Projects/revelation-mobile-midi-to-mml/lib_player/test_resources/soundfonts/Valiant_Violin_V2.sf2"),
                 ],
             }),
             playback_state: SignalPlayStatus::Stop,

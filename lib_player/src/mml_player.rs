@@ -44,8 +44,9 @@ impl MmlPlayer {
     pub fn new(options: MmlPlayerOptions) -> Self {
         let time = Instant::now();
 
-        let synth = Synth::new();
-        let (stream, connection) = synth.new_stream(options.soundfont_path);
+        let mut synth = Synth::new();
+        synth.load_soundfont_from_file_parallel(options.soundfont_path).unwrap();
+        let (stream, connection) = synth.new_stream();
 
         log_initialize_synth(time.elapsed());
         
