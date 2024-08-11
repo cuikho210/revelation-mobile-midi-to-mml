@@ -12,6 +12,57 @@ import 'package:flutter/services.dart';
 class TrackContent extends GetView<AppController> {
 	const TrackContent({ super.key });
 
+	@override
+	Widget build(context) {
+		final screenWidth = MediaQuery.sizeOf(context).width;
+		final isOverBreakpoint = screenWidth > 420;
+
+		return Expanded(
+			child: Column(children: [
+				const _TrackControls(),
+
+				const Gap(8),
+
+				Expanded(
+					child: Builder(builder: (context) {
+						const paddingValue = 16.0;
+						var padding = const EdgeInsets.all(paddingValue);
+
+						if (isOverBreakpoint) {
+							padding = const EdgeInsets.fromLTRB(paddingValue, 0, paddingValue, paddingValue);
+						}
+
+						return Padding(
+							padding: padding,
+							child: SelectionArea(child:
+								ListView(children: [
+									Obx(() => Text(
+										controller.currentTrack()?.title ?? '',
+										style: Theme.of(context).textTheme.titleMedium,
+									)),
+									Obx(() => Text(controller.currentTrack()?.instrument.name ?? '')),
+									const Gap(16),
+									Obx(() {
+										final track = controller.currentTrack();
+
+										return _HighlightedText(
+											track?.mml ?? '',
+											track?.index ?? 0,
+										);
+									}),
+								]),
+							),
+						);
+					}),
+				),
+			]),
+		);
+	}
+}
+
+class _TrackControls extends GetView<AppController> {
+	const _TrackControls();
+
 	void splitTrack() {
 		final track = controller.currentTrack();
 		if (track == null) return;
@@ -49,150 +100,109 @@ class TrackContent extends GetView<AppController> {
 	}
 
 	@override
-	Widget build(context) {
+	Widget build(BuildContext context) {
 		final screenWidth = MediaQuery.sizeOf(context).width;
 		final isOverBreakpoint = screenWidth > 420;
 
-		return Expanded(
-			child: Column(children: [
-				Builder(builder: (context) {
-					var direction = Axis.vertical;
-					var padding = const EdgeInsets.all(0);
-					var gap = const SizedBox(height: 8);
+		var direction = Axis.vertical;
+		var padding = const EdgeInsets.all(0);
+		var gap = const SizedBox(height: 8);
 
-					if (isOverBreakpoint) {
-						direction = Axis.horizontal;
-						padding = const EdgeInsets.all(16);
-						gap = const SizedBox();
-					}
+		if (isOverBreakpoint) {
+			direction = Axis.horizontal;
+			padding = const EdgeInsets.all(16);
+			gap = const SizedBox();
+		}
 
-					return Padding(
-						padding: padding,
-						child: Flex(
-							direction: direction,
-							mainAxisAlignment: MainAxisAlignment.spaceBetween,
-							children: [
-								Obx(() => Text(
-									"Track ${controller.currentTrack()?.index}",
-									style: Theme.of(context).textTheme.headlineSmall,
-								)),
-								gap,
-								Wrap(
-									alignment: WrapAlignment.center,
-									crossAxisAlignment: WrapCrossAlignment.center,
-									children: [
-										TextButton.icon(
-											onPressed: splitTrack,
-											icon: const Icon(Remix.git_branch_line),
-											label: const Text("Split"),
-										),
-										TextButton.icon(
-											onPressed: () => openMergeTracksDialog(context),
-											icon: const Icon(Remix.git_pull_request_line),
-											label: const Text("Merge"),
-										),
-										Obx(() {
-											final track = controller.currentTrack();
-
-											IconData icon = Remix.volume_up_line;
-											String label = "Mute";
-
-											if (track == null || track.isMuted) {
-												icon = Remix.volume_mute_line;
-												label = "Muted";
-											}
-
-											return TextButton.icon(
-												onPressed: () {
-													if (track == null) return;
-													track.isMuted = !track.isMuted;
-													controller.currentTrack.refresh();
-												},
-												icon: Icon(icon),
-												label: Text(label),
-											);
-										}),
-										MenuAnchor(
-											builder: (context, controller, child) {
-												return IconButton(
-													onPressed: () {
-														if (controller.isOpen) {
-															controller.close();
-														} else {
-															controller.open();
-														}
-													},
-													icon: const Icon(Remix.more_2_line),
-												);
-											},
-											menuChildren: [
-												MenuItemButton(
-													onPressed: () => openEqualizeTracksDialog(context),
-													leadingIcon: const Icon(Remix.equalizer_2_line),
-													child: const Text("Equalize"),
-												),
-												MenuItemButton(
-													onPressed: () => openRenameTrackDialog(context),
-													leadingIcon: const Icon(Remix.edit_line),
-													child: const Text("Rename"),
-												),
-												MenuItemButton(
-													onPressed: () => Clipboard.setData(
-														ClipboardData(
-															text: controller.currentTrack()?.mml ?? '')
-														).then((_) {
-															ScaffoldMessenger.of(context).showSnackBar(
-																const SnackBar(content: Text("Copied to clipboard!"))
-															);
-														}
-													),
-													leadingIcon: const Icon(Remix.file_copy_line),
-													child: const Text("Copy to clipboard"),
-												),
-											],
-										),
-									],
-								),
-							],
-						),
-					);
-				}),
-
-				const Gap(8),
-
-				Expanded(
-					child: Builder(builder: (context) {
-						const paddingValue = 16.0;
-						var padding = const EdgeInsets.all(paddingValue);
-
-						if (isOverBreakpoint) {
-							padding = const EdgeInsets.fromLTRB(paddingValue, 0, paddingValue, paddingValue);
-						}
-
-						return Padding(
-							padding: padding,
-							child: SelectionArea(child:
-								ListView(children: [
-									Obx(() => Text(
-										controller.currentTrack()?.title ?? '',
-										style: Theme.of(context).textTheme.titleMedium,
-									)),
-									Obx(() => Text(controller.currentTrack()?.instrument.name ?? '')),
-									const Gap(16),
-									Obx(() {
-										final track = controller.currentTrack();
-
-										return _HighlightedText(
-											track?.mml ?? '',
-											track?.index ?? 0,
-										);
-									}),
-								]),
+		return Padding(
+			padding: padding,
+			child: Flex(
+				direction: direction,
+				mainAxisAlignment: MainAxisAlignment.spaceBetween,
+				children: [
+					Obx(() => Text(
+						"Track ${controller.currentTrack()?.index}",
+						style: Theme.of(context).textTheme.headlineSmall,
+					)),
+					gap,
+					Wrap(
+						alignment: WrapAlignment.center,
+						crossAxisAlignment: WrapCrossAlignment.center,
+						children: [
+							TextButton.icon(
+								onPressed: splitTrack,
+								icon: const Icon(Remix.git_branch_line),
+								label: const Text("Split"),
 							),
-						);
-					}),
-				),
-			]),
+							TextButton.icon(
+								onPressed: () => openMergeTracksDialog(context),
+								icon: const Icon(Remix.git_pull_request_line),
+								label: const Text("Merge"),
+							),
+							Obx(() {
+								final track = controller.currentTrack();
+
+								IconData icon = Remix.volume_up_line;
+								String label = "Mute";
+
+								if (track == null || track.isMuted) {
+									icon = Remix.volume_mute_line;
+									label = "Muted";
+								}
+
+								return TextButton.icon(
+									onPressed: () {
+										if (track == null) return;
+										track.isMuted = !track.isMuted;
+										controller.currentTrack.refresh();
+									},
+									icon: Icon(icon),
+									label: Text(label),
+								);
+							}),
+							MenuAnchor(
+								builder: (context, controller, child) {
+									return IconButton(
+										onPressed: () {
+											if (controller.isOpen) {
+												controller.close();
+											} else {
+												controller.open();
+											}
+										},
+										icon: const Icon(Remix.more_2_line),
+									);
+								},
+								menuChildren: [
+									MenuItemButton(
+										onPressed: () => openEqualizeTracksDialog(context),
+										leadingIcon: const Icon(Remix.equalizer_2_line),
+										child: const Text("Equalize"),
+									),
+									MenuItemButton(
+										onPressed: () => openRenameTrackDialog(context),
+										leadingIcon: const Icon(Remix.edit_line),
+										child: const Text("Rename"),
+									),
+									MenuItemButton(
+										onPressed: () => Clipboard.setData(
+											ClipboardData(
+												text: controller.currentTrack()?.mml ?? '')
+											).then((_) {
+												ScaffoldMessenger.of(context).showSnackBar(
+													const SnackBar(content: Text("Copied to clipboard!"))
+												);
+											}
+										),
+										leadingIcon: const Icon(Remix.file_copy_line),
+										child: const Text("Copy to clipboard"),
+									),
+								],
+							),
+						],
+					),
+				],
+			),
 		);
 	}
 }
