@@ -280,8 +280,11 @@ fn send_note_on_event_from_chord(
 ) {
     if let Some(callback) = note_on_callback {
         let first_note = chord.first().unwrap();
+        let last_note = chord.last().unwrap();
+
+        let end_at = last_note.char_index + last_note.char_length;
         let char_index = first_note.char_index;
-        let char_length = first_note.char_length;
+        let char_length = end_at - char_index;
 
         callback(NoteOnCallbackData {
             track_index,
