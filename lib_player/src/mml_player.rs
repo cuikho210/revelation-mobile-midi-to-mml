@@ -3,7 +3,6 @@ use std::{
     thread::{self, JoinHandle}, time::{Duration, Instant},
 };
 use cpal::Stream;
-use oxisynth::settings;
 use revelation_mobile_midi_to_mml::{Instrument, MmlSong};
 use crate::{Parser, Synth, SynthOutputConnection, TrackPlayer};
 

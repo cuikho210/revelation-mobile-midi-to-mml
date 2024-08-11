@@ -1,7 +1,9 @@
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:midi_to_mml/command_signals.dart';
 import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
+import 'package:midi_to_mml/messages/types.pb.dart';
 import 'package:midi_to_mml/pages/edit_song_page.dart';
 import 'package:midi_to_mml/utils.dart';
 import 'package:remixicon/remixicon.dart';
@@ -12,6 +14,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatelessWidget {
 	const HomePage({ super.key });
+
+	toEditPage(AppController controller) async {
+		await Get.to(const EditSongPage());
+
+		StopSong();
+		controller.playbackStatus(SignalPlayStatus.STOP);
+	}
 
 	@override
 	Widget build(context) {
@@ -66,7 +75,7 @@ class HomePage extends StatelessWidget {
 										if (songStatus.tracks.isNotEmpty) {
 											controller.songOptions(songStatus.songOptions);
 											controller.setTracks(songStatus.tracks);
-											Get.to(const EditSongPage());
+											toEditPage(controller);
 										} else {
 											AlertMessage.error("Invalid MIDI file");
 										}

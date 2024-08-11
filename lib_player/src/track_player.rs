@@ -63,11 +63,17 @@ impl TrackPlayer {
         self.play_notes_linear(time_start);
     }
     
-    pub fn reset_state(&mut self) {
+    fn reset_state(&mut self) {
         self.current_note_index = 0;
         self.absolute_duration = 0;
         self.note_before = None;
         self.current_chord = Vec::new();
+    }
+
+    fn stop_all_notes(&mut self) {
+        self.connection.all_notes_off(
+            self.instrument.midi_channel
+        );
     }
 
     fn handle_playback_status(&mut self) -> PlaybackStatus {
@@ -82,7 +88,9 @@ impl TrackPlayer {
 
                 } else {
                     self.reset_state();
-                    println!("[parser.play_notes_linear] Reset state");
+                    self.stop_all_notes();
+
+                    println!("[parser.play_notes_linear] Stopped");
 
                     return PlaybackStatus::STOP;
                 }
