@@ -1,4 +1,4 @@
-use std::{thread::{self, sleep}, time::Duration};
+use std::time::Duration;
 use crate::{SynthOutputConnection, NoteEvent};
 
 const SMALLEST_UNIT: usize = 256;
@@ -136,22 +136,6 @@ pub fn play_chord(
     }
 
     duration
-}
-
-pub fn log_note_on(note: &NoteEvent, channel: u8) {
-    let midi_key = match note.midi_key {
-        Some(key) => key.to_string(),
-        None => String::from("rest"),
-    };
-
-    println!(
-        "[play_note] note_on {} {} - velocity {} - duration {}ms - channel {}",
-        midi_key,
-        note.raw_mml,
-        note.midi_velocity,
-        note.duration_in_ms,
-        channel,
-    );
 }
 
 pub fn get_longest_note_duration(notes: &Vec<NoteEvent>) -> isize {

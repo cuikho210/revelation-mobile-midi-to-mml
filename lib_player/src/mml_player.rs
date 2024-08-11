@@ -4,7 +4,14 @@ use std::{
 };
 use cpal::Stream;
 use revelation_mobile_midi_to_mml::{Instrument, MmlSong};
-use crate::{parser::PlaybackStatus, Parser, Synth, SynthOutputConnection};
+use crate::{Parser, Synth, SynthOutputConnection, TrackPlayer};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PlaybackStatus {
+    PLAY,
+    PAUSE,
+    STOP,
+}
 
 #[derive(Debug, Clone)]
 pub struct NoteOnCallbackData {
@@ -26,7 +33,7 @@ unsafe impl Send for CpalStreamWrapper {}
 pub struct MmlPlayer {
     pub stream: CpalStreamWrapper,
     pub connection: SynthOutputConnection,
-    pub tracks: Vec<Arc<Mutex<Parser>>>,
+    pub tracks: Vec<Arc<Mutex<TrackPlayer>>>,
     pub playback_status: Arc<RwLock<PlaybackStatus>>,
 }
 
@@ -63,8 +70,8 @@ impl MmlPlayer {
     }
 
     pub fn parse_mmls(&mut self, mmls: Vec<(String, Instrument)>) {
-        let mut handles: Vec<JoinHandle<Parser>> = Vec::new();
-        let mut tracks: Vec<Arc<Mutex<Parser>>> = Vec::new();
+        let mut handles: Vec<JoinHandle<TrackPlayer>> = Vec::new();
+        let mut tracks: Vec<Arc<Mutex<TrackPlayer>>> = Vec::new();
 
         let time = Instant::now();
         let track_length = mmls.len();
@@ -77,8 +84,16 @@ impl MmlPlayer {
             let index = handles.len();
             let playback_status = self.playback_status.clone();
 
-            let handle = thread::spawn::<_, Parser>(move || {
-                Parser::parse(index, mml.0, mml.1, conn, playback_status)
+            let handle = thread::spawn::<_, TrackPlayer>(move || {
+                let parser = Parser::parse(index, mml.0);
+
+                TrackPlayer::from_parser(
+                    index,
+                    parser,
+                    playback_status,
+                    mml.1,
+                    conn,
+                )
             });
             handles.push(handle);
         }
