@@ -3,11 +3,14 @@ use tokio::sync::Mutex;
 use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 use crate::{
     messages::{
-        dart_to_rust::{SignalEqualizeTracksPayload, SignalLoadSongFromPathPayload, SignalMergeTracksPayload, SignalRenameTrackPayload, SignalSetSongPlayStatusPayload, SignalSplitTrackPayload, SignalUpdateMmlSongOptionsPayload},
+        dart_to_rust::{
+            SignalEqualizeTracksPayload, SignalLoadSongFromPathPayload,
+            SignalLoadSoundfontPayload, SignalMergeTracksPayload,
+            SignalRenameTrackPayload, SignalSetSongPlayStatusPayload,
+            SignalSplitTrackPayload, SignalUpdateMmlSongOptionsPayload,
+        },
         rust_to_dart::{SignalLoadSongFromPathResponse, SignalUpdateMmlTracks},
-    },
-    song::SongState,
-    player::PlayerState,
+    }, player::PlayerState, song::SongState
 };
 use rinf::{debug_print, RinfError};
 
@@ -241,3 +244,23 @@ pub async fn listen_set_song_play_status(
 
     Ok(())
 }
+
+pub async fn listen_load_soundfont(
+    player_state: Arc<Mutex<PlayerState>>,
+) -> Result<(), RinfError> {
+    let mut receiver = SignalLoadSoundfontPayload::get_dart_signal_receiver()?;
+
+    while let Some(signal) = receiver.recv().await {
+        let bytes = signal.binary;
+        let mut player = player_state.lock().await;
+
+        if let Err(message) = player.load_soundfont_from_bytes(bytes) {
+            debug_print!("[listen_load_list_soundfont] error: {}", message);
+        } else {
+            debug_print!("[listen_load_list_soundfont] Loaded");
+        }
+    }
+
+    Ok(())
+}
+

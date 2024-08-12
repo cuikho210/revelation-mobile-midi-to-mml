@@ -47,3 +47,6 @@ message SignalSetSongPlayStatusPayload {
 	types.SignalPlayStatus status = 1;
 }
 
+// [RINF:DART-SIGNAL-BINARY]
+message SignalLoadSoundfontPayload {}
+

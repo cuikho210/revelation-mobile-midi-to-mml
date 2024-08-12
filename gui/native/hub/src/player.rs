@@ -1,7 +1,7 @@
 use lib_player::{MmlPlayer, MmlPlayerOptions, NoteOnCallbackData};
 use revelation_mobile_midi_to_mml::Instrument;
 use rinf::debug_print;
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 use crate::messages::{rust_to_dart::SignalMmlNoteOn, types::SignalPlayStatus};
 
 pub struct PlayerState {
@@ -13,10 +13,7 @@ impl PlayerState {
     pub fn new() -> Self {
         PlayerState {
             player: MmlPlayer::new(MmlPlayerOptions {
-                soundfont_path: vec![
-                    PathBuf::from("/home/cuikho210/Projects/revelation-mobile-midi-to-mml/lib_player/test_resources/soundfonts/gm.sf2"),
-                    // PathBuf::from("/home/cuikho210/Projects/revelation-mobile-midi-to-mml/lib_player/test_resources/soundfonts/Valiant_Violin_V2.sf2"),
-                ],
+                soundfont_path: Vec::new(),
             }),
             playback_state: SignalPlayStatus::Stop,
         }
@@ -50,6 +47,10 @@ impl PlayerState {
         self.player.stop();
         self.playback_state = SignalPlayStatus::Stop;
         debug_print!("Set player stop");
+    }
+
+    pub fn load_soundfont_from_bytes(&mut self, bytes: Vec<u8>) -> Result<(), String> {
+        self.player.load_soundfont_from_bytes(bytes)
     }
 }
 

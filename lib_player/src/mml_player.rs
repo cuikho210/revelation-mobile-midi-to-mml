@@ -1,5 +1,5 @@
 use std::{
-    path::PathBuf, sync::{Arc, Mutex, RwLock},
+    path::{PathBuf, Path}, sync::{Arc, Mutex, RwLock},
     thread::{self, JoinHandle}, time::{Duration, Instant},
 };
 use cpal::Stream;
@@ -160,6 +160,24 @@ impl MmlPlayer {
 
         self.time_start = None;
         self.time_pause = None;
+    }
+
+    pub fn load_soundfont_from_bytes<B>(&mut self, bytes: B) -> Result<(), String>
+        where B: AsRef<[u8]>,
+    {
+        self.synth.load_soundfont_from_bytes(bytes)
+    }
+
+    pub fn load_soundfont_from_bytes_parallel<B>(&mut self, list_bytes: Vec<B>) -> Result<(), String>
+        where B: AsRef<[u8]> + Sync + Send + Clone + 'static,
+    {
+        self.synth.load_soundfont_from_bytes_parallel(list_bytes)
+    }
+
+    pub fn load_soundfont_from_file_parallel<P>(&mut self, paths: Vec<P>) -> Result<(), String>
+        where P: AsRef<Path> + Sync + Send + Clone + 'static,
+    {
+        self.synth.load_soundfont_from_file_parallel(paths)
     }
 
     fn get_time_start(&self) -> Instant {

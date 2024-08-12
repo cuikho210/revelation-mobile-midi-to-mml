@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:midi_to_mml/messages/dart_to_rust.pb.dart';
 import 'package:midi_to_mml/messages/types.pb.dart';
 
@@ -48,3 +49,10 @@ class StopSong {
 		SignalSetSongPlayStatusPayload( status: SignalPlayStatus.STOP ).sendSignalToRust();
 	}
 }
+
+class LoadSoundfont {
+	LoadSoundfont(Uint8List bytes) {
+		SignalLoadSoundfontPayload().sendSignalToRust(bytes);
+	}
+}
+
