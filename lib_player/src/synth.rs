@@ -1,4 +1,4 @@
-use std::{fs::File, path::Path, sync::{mpsc::Receiver, Arc, Mutex}, thread::{self, JoinHandle}};
+use std::{fs::File, io::Cursor, path::Path, sync::{mpsc::Receiver, Arc, Mutex}, thread::{self, JoinHandle}};
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     FromSample, SizedSample
@@ -33,6 +33,20 @@ impl OxisynthWrapper {
 
         let font = SoundFont::load(&mut file).ok().ok_or(
             format!("Cannot load soundfont from file {:?}", path.as_ref())
+        )?;
+
+        self.synth.add_font(font, false);
+
+        Ok(())
+    }
+
+    pub fn load_soundfont_from_bytes<B>(&mut self, bytes: B) -> Result<(), String>
+        where B: AsRef<[u8]>,
+    {
+        let mut cursor = Cursor::new(bytes);
+
+        let font = SoundFont::load(&mut cursor).ok().ok_or(
+            "Cannot load soundfont from bytes".to_owned()
         )?;
 
         self.synth.add_font(font, false);
@@ -135,7 +149,42 @@ impl Synth {
 
         for handle in handles {
             handle.join().ok().ok_or(
-                format!("")
+                "[Synth.load_soundfont_from_file_parallel] Cannot join thread".to_owned()
+            )?;
+        }
+
+        Ok(())
+    }
+
+    pub fn load_soundfont_from_bytes<B>(&mut self, bytes: B) -> Result<(), String>
+        where B: AsRef<[u8]>,
+    {
+        if let Ok(mut synth) = self.synth.lock() {
+            synth.load_soundfont_from_bytes(bytes)?;
+
+            Ok(())
+        } else {
+            Err("[Synth.load_soundfont_from_file] Cannot lock synth".to_owned())
+        }
+    }
+
+    pub fn load_soundfont_from_bytes_parallel<B>(&mut self, list_bytes: Vec<B>) -> Result<(), String>
+        where B: AsRef<[u8]> + Sync + Send + Clone + 'static,
+    {
+        let handles: Vec<JoinHandle<()>> = list_bytes.iter().map::<JoinHandle<()>, _>(|bytes| {
+            let synth = self.synth.clone();
+            let bytes = bytes.to_owned();
+
+            thread::spawn(move || {
+                if let Ok(mut synth_guard) = synth.lock() {
+                    synth_guard.load_soundfont_from_bytes(bytes).unwrap();
+                }
+            })
+        }).collect();
+
+        for handle in handles {
+            handle.join().ok().ok_or(
+                "[Synth.load_soundfont_from_bytes_parallel] Cannot join thread".to_owned()
             )?;
         }
 

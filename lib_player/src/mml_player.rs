@@ -31,6 +31,7 @@ pub struct CpalStreamWrapper {
 unsafe impl Send for CpalStreamWrapper {}
 
 pub struct MmlPlayer {
+    pub synth: Synth,
     pub stream: CpalStreamWrapper,
     pub connection: SynthOutputConnection,
     pub tracks: Vec<Arc<Mutex<TrackPlayer>>>,
@@ -51,6 +52,7 @@ impl MmlPlayer {
         log_initialize_synth(time.elapsed());
         
         Self {
+            synth,
             stream: CpalStreamWrapper { stream },
             connection,
             tracks: Vec::new(),
