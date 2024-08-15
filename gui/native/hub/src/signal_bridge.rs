@@ -10,7 +10,7 @@ use crate::{
             SignalSplitTrackPayload, SignalUpdateMmlSongOptionsPayload,
         },
         rust_to_dart::{SignalLoadSongFromPathResponse, SignalUpdateMmlTracks},
-    }, player::PlayerState, song::SongState
+    }, player::{parse_mmls_parallel, PlayerState}, song::SongState
 };
 use rinf::{debug_print, RinfError};
 
@@ -28,17 +28,9 @@ pub async fn listen_load_song_from_path(
             guard.set_song(song);
             guard.update_list_track_mml().unwrap();
             let song_status = guard.get_signal_mml_song_status();
-            drop(guard);
 
-            let handle = Handle::current();
             let player_state = player_state.clone();
-            let song_state = song_state.clone();
-
-            handle.spawn(async move {
-                let song = song_state.lock().await;
-                let mut player = player_state.lock().await;
-                player.parse_mmls(song.mmls.to_owned());
-            });
+            parse_mmls_parallel(player_state, guard.mmls.to_owned());
 
             debug_print!("[listen_load_song_from_path] Loaded song from {}", &midi_path);
             SignalLoadSongFromPathResponse { song_status }.send_signal_to_dart();
@@ -64,11 +56,10 @@ pub async fn listen_update_mml_song_option(
 
             match song.set_song_options_by_signal(&song_options) {
                 Ok(_) => {
-                    {
-                        song.update_list_track_mml().unwrap();
-                        let mut player = player_state.lock().await;
-                        player.parse_mmls(song.mmls.to_owned());
-                    }
+                    song.update_list_track_mml().unwrap();
+
+                    let player_state = player_state.clone();
+                    parse_mmls_parallel(player_state, song.mmls.to_owned());
 
                     let tracks = song.get_list_track_signal();
 
@@ -100,11 +91,10 @@ pub async fn listen_split_track(
 
         match song.split_track(track_index) {
             Ok(_) => {
-                {
-                    song.update_list_track_mml().unwrap();
-                    let mut player = player_state.lock().await;
-                    player.parse_mmls(song.mmls.to_owned());
-                }
+                song.update_list_track_mml().unwrap();
+
+                let player_state = player_state.clone();
+                parse_mmls_parallel(player_state, song.mmls.to_owned());
 
                 let tracks = song.get_list_track_signal();
 
@@ -136,11 +126,10 @@ pub async fn listen_merge_tracks(
 
         match song.merge_tracks(track_index_a, track_index_b) {
             Ok(_) => {
-                {
-                    song.update_list_track_mml().unwrap();
-                    let mut player = player_state.lock().await;
-                    player.parse_mmls(song.mmls.to_owned());
-                }
+                song.update_list_track_mml().unwrap();
+
+                let player_state = player_state.clone();
+                parse_mmls_parallel(player_state, song.mmls.to_owned());
 
                 let tracks = song.get_list_track_signal();
 
@@ -172,11 +161,10 @@ pub async fn listen_equalize_tracks(
 
         match song.equalize_tracks(track_index_a, track_index_b) {
             Ok(_) => {
-                {
-                    song.update_list_track_mml().unwrap();
-                    let mut player = player_state.lock().await;
-                    player.parse_mmls(song.mmls.to_owned());
-                }
+                song.update_list_track_mml().unwrap();
+
+                let player_state = player_state.clone();
+                parse_mmls_parallel(player_state, song.mmls.to_owned());
 
                 let tracks = song.get_list_track_signal();
 

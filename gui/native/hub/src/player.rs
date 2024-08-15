@@ -1,6 +1,7 @@
 use lib_player::{MmlPlayer, MmlPlayerOptions, NoteOnCallbackData};
 use revelation_mobile_midi_to_mml::Instrument;
 use rinf::debug_print;
+use tokio::{task, sync::Mutex};
 use std::{sync::Arc, time::Instant};
 use crate::messages::{rust_to_dart::SignalMmlNoteOn, types::SignalPlayStatus};
 
@@ -58,5 +59,15 @@ impl PlayerState {
 
         Ok(())
     }
+}
+
+pub fn parse_mmls_parallel(
+    player_state: Arc<Mutex<PlayerState>>,
+    mmls: Vec<(String, Instrument)>,
+) {
+    task::spawn(async move {
+        let mut player = player_state.lock().await;
+        player.parse_mmls(mmls);
+    });
 }
 
