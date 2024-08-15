@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::{runtime::Handle, sync::Mutex};
 use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 use crate::{
     messages::{
@@ -27,13 +27,18 @@ pub async fn listen_load_song_from_path(
             let mut guard = song_state.lock().await;
             guard.set_song(song);
             guard.update_list_track_mml().unwrap();
-
-            {
-                let mut player = player_state.lock().await;
-                player.parse_mmls(guard.mmls.to_owned());
-            }
-
             let song_status = guard.get_signal_mml_song_status();
+            drop(guard);
+
+            let handle = Handle::current();
+            let player_state = player_state.clone();
+            let song_state = song_state.clone();
+
+            handle.spawn(async move {
+                let song = song_state.lock().await;
+                let mut player = player_state.lock().await;
+                player.parse_mmls(song.mmls.to_owned());
+            });
 
             debug_print!("[listen_load_song_from_path] Loaded song from {}", &midi_path);
             SignalLoadSongFromPathResponse { song_status }.send_signal_to_dart();
