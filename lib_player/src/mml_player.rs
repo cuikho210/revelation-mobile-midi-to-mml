@@ -2,7 +2,7 @@ use std::{
     path::{PathBuf, Path}, sync::{Arc, Mutex, RwLock},
     thread::{self, JoinHandle}, time::{Duration, Instant},
 };
-use cpal::Stream;
+use cpal::{Stream, traits::StreamTrait};
 use revelation_mobile_midi_to_mml::{Instrument, MmlSong};
 use crate::{Parser, Synth, SynthOutputConnection, TrackPlayer};
 
@@ -116,6 +116,8 @@ impl MmlPlayer {
     }
 
     pub fn play(&mut self, note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>) {
+        self.stream.stream.play().unwrap();
+
         {
             let mut guard = self.playback_status.write().unwrap();
             *guard = PlaybackStatus::PLAY;
@@ -144,6 +146,8 @@ impl MmlPlayer {
     }
 
     pub fn pause(&mut self) {
+        self.stream.stream.pause().unwrap();
+
         {
             let mut guard = self.playback_status.write().unwrap();
             *guard = PlaybackStatus::PAUSE;
@@ -153,6 +157,8 @@ impl MmlPlayer {
     }
 
     pub fn stop(&mut self) {
+        self.stream.stream.pause().unwrap();
+
         {
             let mut guard = self.playback_status.write().unwrap();
             *guard = PlaybackStatus::STOP;

@@ -1,6 +1,6 @@
 use std::{fs::File, io::Cursor, path::Path, sync::{mpsc::Receiver, Arc, Mutex}, thread::{self, JoinHandle}};
 use cpal::{
-    traits::{DeviceTrait, HostTrait, StreamTrait},
+    traits::{DeviceTrait, HostTrait},
     FromSample, SizedSample
 };
 use oxisynth::{MidiEvent, SoundFont};
@@ -238,7 +238,6 @@ impl Synth {
                 None,
             ).unwrap();
 
-        stream.play().unwrap();
         stream
     }
 }

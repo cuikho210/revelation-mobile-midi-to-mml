@@ -256,8 +256,6 @@ pub async fn listen_load_soundfont(
 
         if let Err(message) = player.load_soundfont_from_bytes(bytes) {
             debug_print!("[listen_load_list_soundfont] error: {}", message);
-        } else {
-            debug_print!("[listen_load_list_soundfont] Loaded");
         }
     }
 

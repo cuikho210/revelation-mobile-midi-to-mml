@@ -1,7 +1,7 @@
 use lib_player::{MmlPlayer, MmlPlayerOptions, NoteOnCallbackData};
 use revelation_mobile_midi_to_mml::Instrument;
 use rinf::debug_print;
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 use crate::messages::{rust_to_dart::SignalMmlNoteOn, types::SignalPlayStatus};
 
 pub struct PlayerState {
@@ -50,7 +50,13 @@ impl PlayerState {
     }
 
     pub fn load_soundfont_from_bytes(&mut self, bytes: Vec<u8>) -> Result<(), String> {
-        self.player.load_soundfont_from_bytes(bytes)
+        let time = Instant::now();
+        self.player.load_soundfont_from_bytes(bytes)?;
+
+        let elapsed = time.elapsed();
+        debug_print!("[load_soundfont_from_bytes] loaded a soundfont in {} ms", elapsed.as_millis());
+
+        Ok(())
     }
 }
 

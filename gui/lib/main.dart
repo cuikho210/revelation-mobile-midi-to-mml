@@ -5,14 +5,16 @@ import 'package:rinf/rinf.dart';
 import './messages/generated.dart';
 
 void main() async {
-  await initializeRust(assignRustSignal);
+	await initializeRust(
+		assignRustSignal,
+	);
 
-  runApp(GetMaterialApp(
-    home: const HomePage(),
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData.from(
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xffff907f)),
-      useMaterial3: true,
-    ),
-  ));
+	runApp(GetMaterialApp(
+		home: const HomePage(),
+		debugShowCheckedModeBanner: false,
+		theme: ThemeData.from(
+			colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xffff907f)),
+			useMaterial3: true,
+		),
+	));
 }

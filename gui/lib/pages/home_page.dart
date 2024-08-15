@@ -24,8 +24,8 @@ class HomePage extends StatelessWidget {
 	}
 
 	loadSoundfont() async {
-		// final bytes = await rootBundle.load('assets/soundfonts/gm.sf2');
-		final bytes = await rootBundle.load('/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2');
+		final bytes = await rootBundle.load('assets/soundfonts/gm.sf2');
+		// final bytes = await rootBundle.load('/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2');
 		LoadSoundfont(bytes.buffer.asUint8List());
 	}
 

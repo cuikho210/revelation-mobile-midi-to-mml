@@ -82,15 +82,11 @@ impl TrackPlayer {
         if let Ok(guard) = playback_status.read() {
             if *guard != PlaybackStatus::PLAY {
                 if *guard == PlaybackStatus::PAUSE {
-                    println!("[parser.play_notes_linear] Paused");
-
                     return PlaybackStatus::PAUSE;
 
                 } else {
                     self.reset_state();
                     self.stop_all_notes();
-
-                    println!("[parser.play_notes_linear] Stopped");
 
                     return PlaybackStatus::STOP;
                 }
