@@ -14,9 +14,6 @@ class TrackContent extends GetView<AppController> {
 
 	@override
 	Widget build(context) {
-		final screenWidth = MediaQuery.sizeOf(context).width;
-		final isOverBreakpoint = screenWidth > 420;
-
 		return Expanded(
 			child: Column(children: [
 				const _TrackControls(),
@@ -24,36 +21,35 @@ class TrackContent extends GetView<AppController> {
 				const Gap(8),
 
 				Expanded(
-					child: Builder(builder: (context) {
-						const paddingValue = 16.0;
-						var padding = const EdgeInsets.all(paddingValue);
+					child: SelectionArea(child:
+						ListView(
+							padding: const EdgeInsets.all(16),
+							children: [
+								Obx(() => Text(
+									controller.currentTrack()?.title ?? '',
+									style: Theme.of(context).textTheme.titleMedium,
+								)),
+								Obx(() => Text(
+									"MIDI: "
+									"${controller.currentTrack()?.instrument.instrumentId}. "
+									"${controller.currentTrack()?.instrument.name}"
+								)),
+								Obx(() => Text(
+									"Channel: "
+									"${controller.currentTrack()?.instrument.midiChannel}"
+								)),
+								const Gap(16),
+								Obx(() {
+									final track = controller.currentTrack();
 
-						if (isOverBreakpoint) {
-							padding = const EdgeInsets.fromLTRB(paddingValue, 0, paddingValue, paddingValue);
-						}
-
-						return Padding(
-							padding: padding,
-							child: SelectionArea(child:
-								ListView(children: [
-									Obx(() => Text(
-										controller.currentTrack()?.title ?? '',
-										style: Theme.of(context).textTheme.titleMedium,
-									)),
-									Obx(() => Text(controller.currentTrack()?.instrument.name ?? '')),
-									const Gap(16),
-									Obx(() {
-										final track = controller.currentTrack();
-
-										return _HighlightedText(
-											track?.mml ?? '',
-											track?.index ?? 0,
-										);
-									}),
-								]),
-							),
-						);
-					}),
+									return _HighlightedText(
+										track?.mml ?? '',
+										track?.index ?? 0,
+									);
+								}),
+							],
+						),
+					),
 				),
 			]),
 		);
@@ -102,20 +98,16 @@ class _TrackControls extends GetView<AppController> {
 	@override
 	Widget build(BuildContext context) {
 		final screenWidth = MediaQuery.sizeOf(context).width;
-		final isOverBreakpoint = screenWidth > 444;
+		final isOverBreakpoint = screenWidth > 888;
 
 		var direction = Axis.vertical;
-		var padding = const EdgeInsets.all(0);
-		var gap = const SizedBox(height: 8);
 
 		if (isOverBreakpoint) {
 			direction = Axis.horizontal;
-			padding = const EdgeInsets.all(16);
-			gap = const SizedBox();
 		}
 
 		return Padding(
-			padding: padding,
+			padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
 			child: Flex(
 				direction: direction,
 				mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -124,7 +116,6 @@ class _TrackControls extends GetView<AppController> {
 						"Track ${controller.currentTrack()?.index}",
 						style: Theme.of(context).textTheme.headlineSmall,
 					)),
-					gap,
 					Wrap(
 						alignment: WrapAlignment.center,
 						crossAxisAlignment: WrapCrossAlignment.center,
@@ -139,47 +130,31 @@ class _TrackControls extends GetView<AppController> {
 								icon: const Icon(Remix.git_pull_request_line),
 								label: const Text("Merge"),
 							),
-							MenuAnchor(
-								builder: (context, controller, child) {
-									return IconButton(
-										onPressed: () {
-											if (controller.isOpen) {
-												controller.close();
-											} else {
-												controller.open();
-											}
-										},
-										icon: const Icon(Remix.more_2_line),
-									);
-								},
-								menuChildren: [
-									MenuItemButton(
-										onPressed: () => openEqualizeTracksDialog(context),
-										leadingIcon: const Icon(Remix.equalizer_2_line),
-										child: const Text("Equalize"),
-									),
-									MenuItemButton(
-										onPressed: () => openRenameTrackDialog(context),
-										leadingIcon: const Icon(Remix.edit_line),
-										child: const Text("Rename"),
-									),
-									MenuItemButton(
-										onPressed: () => Clipboard.setData(
-											ClipboardData(
-												text: controller.currentTrack()?.mml ?? '')
-											).then((_) {
-												Get.showSnackbar(
-													const GetSnackBar(
-														message: "Copied to clipboard!",
-														duration: Duration(seconds: 3),
-													),
-												);
-											}
-										),
-										leadingIcon: const Icon(Remix.file_copy_line),
-										child: const Text("Copy to clipboard"),
-									),
-								],
+							TextButton.icon(
+								onPressed: () => openEqualizeTracksDialog(context),
+								icon: const Icon(Remix.equalizer_2_line),
+								label: const Text("Equalize"),
+							),
+							TextButton.icon(
+								onPressed: () => openRenameTrackDialog(context),
+								icon: const Icon(Remix.edit_line),
+								label: const Text("Rename"),
+							),
+							TextButton.icon(
+								onPressed: () => Clipboard.setData(
+									ClipboardData(
+										text: controller.currentTrack()?.mml ?? '')
+									).then((_) {
+										Get.showSnackbar(
+											const GetSnackBar(
+												message: "Copied to clipboard!",
+												duration: Duration(seconds: 3),
+											),
+										);
+									}
+								),
+								icon: const Icon(Remix.file_copy_line),
+								label: const Text("Copy"),
 							),
 						],
 					),
@@ -313,7 +288,6 @@ class TrackTabButton extends GetView<AppController> {
 					),
 				),
 			)),
-			const Gap(4),
 			Text(
 				"${track.mmlNoteLength} notes",
 				style: Theme.of(context).textTheme.labelSmall,

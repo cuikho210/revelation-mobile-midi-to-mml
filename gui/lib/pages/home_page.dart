@@ -105,4 +105,3 @@ class _AppTitle extends GetView<AppController> {
 		return Obx(() => Text("MIDI to MML ${controller.packageInfo().version}"));
 	}
 }
-

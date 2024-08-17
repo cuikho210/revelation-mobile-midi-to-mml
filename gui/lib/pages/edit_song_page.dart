@@ -73,7 +73,7 @@ class _Tracks extends GetView<AppController> {
 		final scrollController = ScrollController();
 
 		return SizedBox(
-			height: 72,
+			height: 80,
 			child: Scrollbar(
 				controller: scrollController,
 				child: Obx(() => ListView(
