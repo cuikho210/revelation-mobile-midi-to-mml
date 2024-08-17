@@ -59,6 +59,21 @@ impl PlayerState {
 
         Ok(())
     }
+
+    pub fn load_soundfont_from_bytes_parallel(&mut self, list_bytes: Vec<Vec<u8>>) -> Result<(), String> {
+        let time = Instant::now();
+        let length = list_bytes.len();
+        self.player.load_soundfont_from_bytes_parallel(list_bytes)?;
+
+        let elapsed = time.elapsed();
+        debug_print!(
+            "[load_soundfont_from_bytes_parallel] loaded {} soundfonts in {} ms",
+            length,
+            elapsed.as_millis()
+        );
+
+        Ok(())
+    }
 }
 
 pub fn parse_mmls_parallel(

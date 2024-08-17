@@ -54,5 +54,14 @@ class LoadSoundfont {
 	LoadSoundfont(Uint8List bytes) {
 		SignalLoadSoundfontPayload().sendSignalToRust(bytes);
 	}
+
+	LoadSoundfont.fromPath(String path) {
+		loadSoundfontFromPath(path);
+	}
+
+	loadSoundfontFromPath(String path) async {
+		final bytes = await rootBundle.load(path);
+		LoadSoundfont(bytes.buffer.asUint8List());
+	}
 }
 

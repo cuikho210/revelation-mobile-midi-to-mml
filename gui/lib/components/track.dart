@@ -102,7 +102,7 @@ class _TrackControls extends GetView<AppController> {
 	@override
 	Widget build(BuildContext context) {
 		final screenWidth = MediaQuery.sizeOf(context).width;
-		final isOverBreakpoint = screenWidth > 420;
+		final isOverBreakpoint = screenWidth > 444;
 
 		var direction = Axis.vertical;
 		var padding = const EdgeInsets.all(0);
@@ -189,8 +189,11 @@ class _TrackControls extends GetView<AppController> {
 											ClipboardData(
 												text: controller.currentTrack()?.mml ?? '')
 											).then((_) {
-												ScaffoldMessenger.of(context).showSnackBar(
-													const SnackBar(content: Text("Copied to clipboard!"))
+												Get.showSnackbar(
+													const GetSnackBar(
+														message: "Copied to clipboard!",
+														duration: Duration(seconds: 3),
+													),
 												);
 											}
 										),

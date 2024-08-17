@@ -77,5 +77,11 @@ async fn main() {
             player.clone(),
         )
     );
+
+    tokio::spawn(
+        signal_bridge::listen_load_list_soundfont(
+            player.clone(),
+        )
+    );
 }
 

@@ -4,10 +4,7 @@ use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 use crate::{
     messages::{
         dart_to_rust::{
-            SignalEqualizeTracksPayload, SignalLoadSongFromPathPayload,
-            SignalLoadSoundfontPayload, SignalMergeTracksPayload,
-            SignalRenameTrackPayload, SignalSetSongPlayStatusPayload,
-            SignalSplitTrackPayload, SignalUpdateMmlSongOptionsPayload,
+            SignalEqualizeTracksPayload, SignalLoadListSoundfontPayload, SignalLoadSongFromPathPayload, SignalLoadSoundfontPayload, SignalMergeTracksPayload, SignalRenameTrackPayload, SignalSetSongPlayStatusPayload, SignalSplitTrackPayload, SignalUpdateMmlSongOptionsPayload
         },
         rust_to_dart::{SignalLoadSongFromPathResponse, SignalUpdateMmlTracks},
     }, player::{parse_mmls_parallel, PlayerState}, song::SongState
@@ -248,6 +245,23 @@ pub async fn listen_load_soundfont(
         let mut player = player_state.lock().await;
 
         if let Err(message) = player.load_soundfont_from_bytes(bytes) {
+            debug_print!("[listen_load_list_soundfont] error: {}", message);
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn listen_load_list_soundfont(
+    player_state: Arc<Mutex<PlayerState>>,
+) -> Result<(), RinfError> {
+    let mut receiver = SignalLoadListSoundfontPayload::get_dart_signal_receiver()?;
+
+    while let Some(signal) = receiver.recv().await {
+        let list_bytes = signal.message.list_soundfont_bytes;
+        let mut player = player_state.lock().await;
+
+        if let Err(message) = player.load_soundfont_from_bytes_parallel(list_bytes) {
             debug_print!("[listen_load_list_soundfont] error: {}", message);
         }
     }

@@ -1,11 +1,11 @@
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:midi_to_mml/command_signals.dart';
 import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 import 'package:midi_to_mml/messages/types.pb.dart';
 import 'package:midi_to_mml/pages/edit_song_page.dart';
+import 'package:midi_to_mml/pages/settings_page.dart';
 import 'package:midi_to_mml/utils.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:midi_to_mml/file_importer/from_midi_file.dart';
@@ -24,9 +24,8 @@ class HomePage extends StatelessWidget {
 	}
 
 	loadSoundfont() async {
-		final bytes = await rootBundle.load('assets/soundfonts/gm.sf2');
-		// final bytes = await rootBundle.load('/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2');
-		LoadSoundfont(bytes.buffer.asUint8List());
+		const path = '/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2';
+		LoadSoundfont.fromPath(path);
 	}
 
 	@override
@@ -37,7 +36,13 @@ class HomePage extends StatelessWidget {
 		return Scaffold(
 			appBar: AppBar(
 				title: const _AppTitle(),
-				actions: const [],
+				actions: [
+					TextButton.icon(
+						onPressed: () => Get.to(const SettingsPage()),
+						icon: const Icon(Remix.settings_line),
+						label: const Text("Settings"),
+					)
+				],
 			),
 			body: DropTarget(
 				onDragDone: (detail) {
@@ -97,7 +102,7 @@ class HomePage extends StatelessWidget {
 									final uri = Uri.parse("https://github.com/cuikho210/revelation-mobile-midi-to-mml/blob/main/README/DONATE.md");
 									launchUrl(uri);
 								},
-							),
+							)
 						])
 					]),
 				)
