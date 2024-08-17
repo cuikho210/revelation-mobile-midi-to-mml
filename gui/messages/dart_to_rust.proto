@@ -50,3 +50,8 @@ message SignalSetSongPlayStatusPayload {
 // [RINF:DART-SIGNAL-BINARY]
 message SignalLoadSoundfontPayload {}
 
+// [RINF:DART-SIGNAL-BINARY]
+message SignalLoadListSoundfontPayload {
+	repeated bytes list_soundfont_bytes = 1;
+}
+

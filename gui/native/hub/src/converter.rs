@@ -32,7 +32,6 @@ pub fn mml_song_tracks_to_signal(tracks: &Vec<MmlTrack>) -> Vec<SignalMmlTrack> 
             instrument: Some(instrument),
             mml: track.to_mml_debug(),
             mml_note_length: track.mml_note_length as u64,
-            is_muted: false,
         });
     }
 

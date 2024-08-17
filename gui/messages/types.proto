@@ -26,9 +26,8 @@ message SignalMmlTrack {
 	uint32 index = 1;
     string name = 2;
     SignalInstrument instrument = 3;
-	bool is_muted = 4;
-	string mml = 5;
-	uint64 mml_note_length = 6;
+	string mml = 4;
+	uint64 mml_note_length = 5;
 }
 
 message SignalMmlSongStatus {

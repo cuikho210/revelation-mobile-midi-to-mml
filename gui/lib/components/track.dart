@@ -139,27 +139,6 @@ class _TrackControls extends GetView<AppController> {
 								icon: const Icon(Remix.git_pull_request_line),
 								label: const Text("Merge"),
 							),
-							Obx(() {
-								final track = controller.currentTrack();
-
-								IconData icon = Remix.volume_up_line;
-								String label = "Mute";
-
-								if (track == null || track.isMuted) {
-									icon = Remix.volume_mute_line;
-									label = "Muted";
-								}
-
-								return TextButton.icon(
-									onPressed: () {
-										if (track == null) return;
-										track.isMuted = !track.isMuted;
-										controller.currentTrack.refresh();
-									},
-									icon: Icon(icon),
-									label: Text(label),
-								);
-							}),
 							MenuAnchor(
 								builder: (context, controller, child) {
 									return IconButton(
@@ -290,28 +269,10 @@ class TrackTabButton extends GetView<AppController> {
 
 	@override
 	Widget build(context) {
-
 		return Column(children: [
 			Obx(() => TextButton.icon(
 				onPressed: () => controller.currentTrack(track),
-				icon: Builder(builder: (context) {
-					const icon = ImageIcon(AssetImage("assets/icon-instruments/piano.png"));
-
-					if (track.isMuted) {
-						return Badge(
-							label: Icon(
-								Remix.volume_mute_line,
-								color: Theme.of(context).colorScheme.onPrimary,
-								size: 12,
-							),
-							backgroundColor: Theme.of(context).colorScheme.error,
-							offset: const Offset(4, -4),
-							child: icon,
-						);
-					}
-
-					return icon;
-				}),
+				icon: const ImageIcon(AssetImage("assets/icon-instruments/piano.png")),
 				label: Text("Track ${track.index}"),
 				style: ButtonStyle(
 					shape: const WidgetStatePropertyAll(
