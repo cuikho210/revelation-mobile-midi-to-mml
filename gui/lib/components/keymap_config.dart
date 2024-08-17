@@ -8,11 +8,11 @@ class KeymapConfig extends GetView<AppController> {
 	@override
 	Widget build(BuildContext context) {
 
-		return ListView(children: const [
-			Padding(
-				padding: EdgeInsets.all(16),
-				child: Text("Keymap config"),
-			),
-		]);
+		return ListView(
+			padding: const EdgeInsets.all(16),
+			children: const [
+				Text("Keymap config"),
+			],
+		);
 	}
 }

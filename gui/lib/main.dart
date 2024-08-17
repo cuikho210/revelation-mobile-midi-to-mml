@@ -18,9 +18,12 @@ void main() async {
 			useMaterial3: true,
 		),
 	));
+
+	loadSoundfont();
 }
 
 void loadSoundfont() async {
-	const path = '/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2';
+	const path = 'assets/soundfonts/gm.sf2';
+	// const path = '/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2';
 	LoadSoundfont.fromPath(path);
 }

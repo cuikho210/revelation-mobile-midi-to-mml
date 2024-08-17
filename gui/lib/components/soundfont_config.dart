@@ -31,12 +31,20 @@ class SoundfontConfig extends GetView<AppController> {
 				),
 			),
 			Expanded(child: ListView(
-				children: const [
-					Text("Currently")
+				padding: const EdgeInsets.all(16),
+				children: [
+					const Text("Currently"),
+					const Gap(16),
+					Text("Developing area", style: Theme.of(context).textTheme.titleLarge),
+					Text("Khu vực đang phát triển", style: Theme.of(context).textTheme.titleLarge),
+					const Gap(16),
+					Text("Please wait for the next version!", style: Theme.of(context).textTheme.titleLarge),
+					Text("Vui lòng chờ phiên bản sau nhé!", style: Theme.of(context).textTheme.titleLarge),
 				],
 			)),
 			const Divider(),
 			Expanded(child: ListView(
+				padding: const EdgeInsets.all(16),
 				children: const [
 					Text("Available")
 				],
