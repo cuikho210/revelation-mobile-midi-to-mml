@@ -3,6 +3,7 @@ import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:midi_to_mml/pages/home_page.dart';
 import 'package:rinf/rinf.dart';
 import './messages/generated.dart';
+import 'package:midi_to_mml/command_signals.dart';
 
 void main() async {
 	await initializeRust(
@@ -17,4 +18,9 @@ void main() async {
 			useMaterial3: true,
 		),
 	));
+}
+
+void loadSoundfont() async {
+	const path = '/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2';
+	LoadSoundfont.fromPath(path);
 }

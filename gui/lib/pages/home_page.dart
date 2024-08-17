@@ -23,11 +23,6 @@ class HomePage extends StatelessWidget {
 		controller.playbackStatus(SignalPlayStatus.STOP);
 	}
 
-	loadSoundfont() async {
-		const path = '/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2';
-		LoadSoundfont.fromPath(path);
-	}
-
 	listenLoadSongStream(AppController controller) {
 		SignalLoadSongFromPathResponse.rustSignalStream.listen((signal) {
 			final songStatus = signal.message.songStatus;
@@ -46,7 +41,6 @@ class HomePage extends StatelessWidget {
 	Widget build(context) {
 		final controller = Get.put(AppController());
 		listenLoadSongStream(controller);
-		loadSoundfont();
 
 		return Scaffold(
 			appBar: AppBar(
