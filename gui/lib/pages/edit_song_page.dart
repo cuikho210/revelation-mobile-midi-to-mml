@@ -45,10 +45,12 @@ class EditSongPage extends GetView<AppController> {
 
 	void listenOnTrackEndStream() async {
 		SignalOnTrackEnd.rustSignalStream.listen((signal) {
-			controller.playingLength(controller.playingLength() - 1);
+			if (controller.playbackStatus() == SignalPlayStatus.PLAY) {
+				controller.playingLength(controller.playingLength() - 1);
 
-			if (controller.playingLength() == 0) {
-				controller.playbackStatus(SignalPlayStatus.STOP);
+				if (controller.playingLength() == 0) {
+					controller.playbackStatus(SignalPlayStatus.STOP);
+				}
 			}
 		});
 	}

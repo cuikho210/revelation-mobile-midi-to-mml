@@ -151,19 +151,16 @@ impl MmlPlayer {
     }
 
     pub fn pause(&mut self) {
-        self.stream.stream.pause().unwrap();
-
         {
             let mut guard = self.playback_status.write().unwrap();
             *guard = PlaybackStatus::PAUSE;
         }
 
         self.time_pause = Some(Instant::now());
+        self.stream.stream.pause().unwrap();
     }
 
     pub fn stop(&mut self) {
-        self.stream.stream.pause().unwrap();
-
         {
             let mut guard = self.playback_status.write().unwrap();
             *guard = PlaybackStatus::STOP;
@@ -171,6 +168,7 @@ impl MmlPlayer {
 
         self.time_start = None;
         self.time_pause = None;
+        self.stream.stream.pause().unwrap();
     }
 
     pub fn load_soundfont_from_bytes<B>(&mut self, bytes: B) -> Result<(), String>
