@@ -15,6 +15,7 @@ class EditSongPage extends GetView<AppController> {
 	@override
 	Widget build(context) {
 		listenUpdateMmlTracksStream();
+		listenOnTrackEndStream();
 
 		return Scaffold(
 			appBar: AppBar(
@@ -37,11 +38,19 @@ class EditSongPage extends GetView<AppController> {
 	}
 
 	void listenUpdateMmlTracksStream() async {
-		await for (final signal in SignalUpdateMmlTracks.rustSignalStream) {
-			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-				controller.setTracks(signal.message.tracks);
-			});
-		}
+		SignalUpdateMmlTracks.rustSignalStream.listen((signal) {
+			controller.setTracks(signal.message.tracks);
+		});
+	}
+
+	void listenOnTrackEndStream() async {
+		SignalOnTrackEnd.rustSignalStream.listen((signal) {
+			controller.playingLength(controller.playingLength() - 1);
+
+			if (controller.playingLength() == 0) {
+				controller.playbackStatus(SignalPlayStatus.STOP);
+			}
+		});
 	}
 }
 
@@ -87,6 +96,7 @@ class _SongControls extends GetView<AppController> {
 	void playSong() {
 		PlaySong();
 		controller.playbackStatus(SignalPlayStatus.PLAY);
+		controller.playingLength(controller.tracks().length);
 	}
 
 	void pauseSong() {

@@ -205,8 +205,8 @@ class _HighlightedTextState extends State<_HighlightedText> {
 	int charEnd = 0;
 
 	void listenNoteOnEventStream() async {
-		await for (final signal in SignalMmlNoteOn.rustSignalStream) {
-			final signalTrackIndex = signal.message.trackId.toInt();
+		SignalMmlNoteOn.rustSignalStream.listen((signal) {
+			final signalTrackIndex = signal.message.trackIndex.toInt();
 			final signalCharIndex = signal.message.charIndex.toInt();
 
 			if (widget.trackIndex == signalTrackIndex && mounted) {
@@ -216,7 +216,7 @@ class _HighlightedTextState extends State<_HighlightedText> {
 					charEnd = charIndex + charLength + 1;
 				});
 			}
-		}
+		});
 	}
 
 	@override

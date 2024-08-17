@@ -30,7 +30,7 @@ impl PlayerState {
             println!("Received {}", data.char_index);
         });
 
-        self.player.play(Some(callback));
+        self.player.play(Some(callback), None);
     }
 }
 

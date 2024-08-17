@@ -24,6 +24,7 @@ pub struct TrackPlayer {
     absolute_duration: isize,
     current_note_index: usize,
     note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>,
+    track_end_callback: Option<Arc<fn(usize)>>,
 }
 
 impl TrackPlayer {
@@ -51,15 +52,18 @@ impl TrackPlayer {
             absolute_duration: 0,
             current_note_index: 0,
             note_on_callback: None,
+            track_end_callback: None,
         }
     }
 
     pub fn play(
         &mut self,
-        note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>,
         time_start: Instant,
+        note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>,
+        track_end_callback: Option<Arc<fn(usize)>>,
     ) {
         self.note_on_callback = note_on_callback;
+        self.track_end_callback = track_end_callback;
         self.play_notes_linear(time_start);
     }
     
@@ -255,6 +259,10 @@ impl TrackPlayer {
         }
 
         self.reset_state();
+
+        if let Some(callback) = self.track_end_callback.as_ref() {
+            callback(self.index);
+        }
     }
 
 }

@@ -28,9 +28,24 @@ class HomePage extends StatelessWidget {
 		LoadSoundfont.fromPath(path);
 	}
 
+	listenLoadSongStream(AppController controller) {
+		SignalLoadSongFromPathResponse.rustSignalStream.listen((signal) {
+			final songStatus = signal.message.songStatus;
+
+			if (songStatus.tracks.isNotEmpty) {
+				controller.songOptions(songStatus.songOptions);
+				controller.setTracks(songStatus.tracks);
+				toEditPage(controller);
+			} else {
+				AlertMessage.error("Invalid MIDI file");
+			}
+		});
+	}
+
 	@override
 	Widget build(context) {
 		final controller = Get.put(AppController());
+		listenLoadSongStream(controller);
 		loadSoundfont();
 
 		return Scaffold(
@@ -52,29 +67,6 @@ class HomePage extends StatelessWidget {
 				child: Center(child: Column(
 					mainAxisAlignment: MainAxisAlignment.center,
 					children: [
-						StreamBuilder(
-							stream: SignalLoadSongFromPathResponse.rustSignalStream,
-							builder: (context, snapshot) {
-								final signal = snapshot.data;
-
-								if (signal != null) {
-									WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-										final songStatus = signal.message.songStatus;
-
-										if (songStatus.tracks.isNotEmpty) {
-											controller.songOptions(songStatus.songOptions);
-											controller.setTracks(songStatus.tracks);
-											toEditPage(controller);
-										} else {
-											AlertMessage.error("Invalid MIDI file");
-										}
-									});
-								}
-								
-								return const SizedBox();
-							}
-						),
-
 						ElevatedButton.icon(
 							onPressed: () => FromMidiFile.pickFile(),
 							icon: const Icon(Remix.file_music_line),

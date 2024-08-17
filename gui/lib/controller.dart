@@ -16,6 +16,7 @@ class AppController extends GetxController {
 	final currentTrack = Rx<SignalMmlTrack?>(null);
 	final fileName = "new_song".obs;
 	final playbackStatus = SignalPlayStatus.STOP.obs;
+	final playingLength = 0.obs;
 
 	final soundfonts = <String>[
 		'assets/soundfonts/gm.sf2',
@@ -31,7 +32,6 @@ class AppController extends GetxController {
 
 	void setTracks(List<SignalMmlTrack> listNewTrack) {
 		tracks(listNewTrack);
-		tracks.refresh();
 
 		if (currentTrack() == null) {
 			currentTrack(listNewTrack.first);
@@ -40,6 +40,8 @@ class AppController extends GetxController {
 		} else {
 			currentTrack(listNewTrack[currentTrack()!.index]);
 		}
+
+		tracks.refresh();
 	}
 
 	/// Export the final MML result

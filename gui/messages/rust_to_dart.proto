@@ -15,8 +15,13 @@ message SignalUpdateMmlTracks {
 
 // [RINF:RUST-SIGNAL]
 message SignalMmlNoteOn {
-	uint64 track_id = 1;
+	uint64 track_index = 1;
     uint64 char_index = 2;
     uint64 char_length = 3;
+}
+
+// [RINF:RUST-SIGNAL]
+message SignalOnTrackEnd {
+	uint64 track_index = 1;
 }
 

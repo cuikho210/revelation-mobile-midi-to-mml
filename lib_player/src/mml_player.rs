@@ -115,7 +115,11 @@ impl MmlPlayer {
         self.tracks = tracks;
     }
 
-    pub fn play(&mut self, note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>) {
+    pub fn play(
+        &mut self,
+        note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>,
+        track_end_callback: Option<Arc<fn(usize)>>,
+    ) {
         self.stream.stream.play().unwrap();
 
         {
@@ -129,13 +133,14 @@ impl MmlPlayer {
         let mut index = 0;
         for track in self.tracks.iter() {
             let parsed = track.clone();
-            let callback = note_on_callback.clone();
+            let note_on_callback = note_on_callback.clone();
+            let track_end_callback = track_end_callback.clone();
 
             thread::Builder::new()
                 .name(format!("Track player {}", index))
                 .spawn(move || {
                     if let Ok(mut guard) = parsed.lock() {
-                        guard.play(callback, time_start);
+                        guard.play(time_start, note_on_callback, track_end_callback);
                     } else {
                         eprintln!("[mml_player.play] Cannot lock Parsed track");
                     }

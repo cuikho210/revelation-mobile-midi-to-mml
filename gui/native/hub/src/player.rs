@@ -3,7 +3,7 @@ use revelation_mobile_midi_to_mml::Instrument;
 use rinf::debug_print;
 use tokio::{task, sync::Mutex};
 use std::{sync::Arc, time::Instant};
-use crate::messages::{rust_to_dart::SignalMmlNoteOn, types::SignalPlayStatus};
+use crate::messages::{rust_to_dart::{SignalMmlNoteOn, SignalOnTrackEnd}, types::SignalPlayStatus};
 
 pub struct PlayerState {
     pub player: MmlPlayer,
@@ -25,16 +25,22 @@ impl PlayerState {
     }
 
     pub fn play(&mut self) {
-        let callback: Arc<fn(NoteOnCallbackData)> = Arc::new(|data: NoteOnCallbackData| {
+        let note_on_callback: Arc<fn(NoteOnCallbackData)> = Arc::new(|data: NoteOnCallbackData| {
             SignalMmlNoteOn {
-                track_id: data.track_index as u64,
+                track_index: data.track_index as u64,
                 char_index: data.char_index as u64,
                 char_length: data.char_length as u64,
             }.send_signal_to_dart();
         });
 
-        self.player.play(Some(callback));
+        let track_end_callback: Arc<fn(usize)> = Arc::new(|track_index| {
+            SignalOnTrackEnd {
+                track_index: track_index as u64,
+            }.send_signal_to_dart();
+        });
+
         self.playback_state = SignalPlayStatus::Play;
+        self.player.play(Some(note_on_callback), Some(track_end_callback));
         debug_print!("Set player play");
     }
 
