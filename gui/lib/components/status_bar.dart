@@ -1,27 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:midi_to_mml/controller.dart';
-import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
+import 'package:midi_to_mml/pages/status_detail_page.dart';
+import 'package:remixicon/remixicon.dart';
 
 class StatusBar extends GetView<AppController> {
 	const StatusBar({ super.key });
-
-	listenLogMessageStream() {
-		SignalLogMessage.rustSignalStream.listen((signal) {
-			final message = signal.message;
-			final isLoading = signal.message.isLoading;
-
-			controller.isLoading(isLoading);
-			controller.listLog.add(message.message);
-			controller.listLog.refresh();
-		});
-	}
 	
 	@override
 	Widget build(BuildContext context) {
-		listenLogMessageStream();
-
-		const containerHeight = 24.0;
+		const containerHeight = 32.0;
 
 		return Container(
 			height: containerHeight,
@@ -29,9 +17,18 @@ class StatusBar extends GetView<AppController> {
 				color: Theme.of(context).colorScheme.primaryContainer,
 			),
 			child: Row(children: [
+				IconButton(
+					onPressed: () => Get.to(
+						const StatusDetailPage(),
+						transition: Transition.cupertino,
+					),
+					icon: const Icon(Remix.expand_up_down_line),
+					iconSize: containerHeight / 2,
+					tooltip: 'Expand',
+				),
 				Expanded(child: Obx(() {
 					if (controller.listLog().isNotEmpty) {
-						return Text(controller.listLog().last);
+						return Text(controller.listLog().last.message);
 					} else {
 						return const Text('Ahihi');
 					}

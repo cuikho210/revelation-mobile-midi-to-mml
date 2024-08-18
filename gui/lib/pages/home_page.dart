@@ -41,10 +41,25 @@ class HomePage extends StatelessWidget {
 		});
 	}
 
+	listenLogMessageStream(AppController controller) {
+		SignalLogMessage.rustSignalStream.listen((signal) {
+			final message = signal.message.message;
+			final isLoading = signal.message.isLoading;
+
+			controller.isLoading(isLoading);
+			controller.listLog.add(LogData(
+				DateTime.now(),
+				message,
+			));
+			controller.listLog.refresh();
+		});
+	}
+
 	@override
 	Widget build(context) {
 		final controller = Get.put(AppController());
 		listenLoadSongStream(controller);
+		listenLogMessageStream(controller);
 
 		return Scaffold(
 			appBar: AppBar(

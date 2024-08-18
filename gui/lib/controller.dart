@@ -3,6 +3,16 @@ import 'package:midi_to_mml/messages/types.pb.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:midi_to_mml/extensions/track.dart';
 
+class LogData {
+	final DateTime time;
+	final String message;
+
+	const LogData(
+		this.time,
+		this.message,
+	);
+}
+
 class AppController extends GetxController {
 	final packageInfo = PackageInfo(
 		appName: "",
@@ -20,7 +30,7 @@ class AppController extends GetxController {
 	final playbackStatus = SignalPlayStatus.STOP.obs;
 	final playingLength = 0.obs;
 
-	final listLog = RxList<String>([]);
+	final listLog = RxList<LogData>([]);
 	final isLoading = false.obs;
 	
 	AppController() {
