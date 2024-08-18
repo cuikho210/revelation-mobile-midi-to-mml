@@ -1,9 +1,14 @@
 use lib_player::{MmlPlayer, MmlPlayerOptions, NoteOnCallbackData};
 use revelation_mobile_midi_to_mml::Instrument;
-use rinf::debug_print;
 use tokio::{task, sync::Mutex};
-use std::{sync::Arc, time::Instant};
-use crate::messages::{rust_to_dart::{SignalMmlNoteOn, SignalOnTrackEnd}, types::SignalPlayStatus};
+use std::sync::Arc;
+use crate::{
+    messages::{
+        rust_to_dart::{SignalMmlNoteOn, SignalOnTrackEnd},
+        types::SignalPlayStatus
+    },
+    logger::{log, Logger},
+};
 
 pub struct PlayerState {
     pub player: MmlPlayer,
@@ -41,54 +46,41 @@ impl PlayerState {
 
         self.playback_state = SignalPlayStatus::Play;
         self.player.play(Some(note_on_callback), Some(track_end_callback));
-        debug_print!("Set player play");
     }
 
     pub fn pause(&mut self) {
         self.player.pause();
         self.playback_state = SignalPlayStatus::Pause;
-        debug_print!("Set player pause");
     }
 
     pub fn stop(&mut self) {
         self.player.stop();
         self.playback_state = SignalPlayStatus::Stop;
-        debug_print!("Set player stop");
     }
 
     pub fn load_soundfont_from_bytes(&mut self, bytes: Vec<u8>) -> Result<(), String> {
-        let time = Instant::now();
         self.player.load_soundfont_from_bytes(bytes)?;
-
-        let elapsed = time.elapsed();
-        debug_print!("[load_soundfont_from_bytes] loaded a soundfont in {} ms", elapsed.as_millis());
-
         Ok(())
     }
 
     pub fn load_soundfont_from_bytes_parallel(&mut self, list_bytes: Vec<Vec<u8>>) -> Result<(), String> {
-        let time = Instant::now();
-        let length = list_bytes.len();
         self.player.load_soundfont_from_bytes_parallel(list_bytes)?;
-
-        let elapsed = time.elapsed();
-        debug_print!(
-            "[load_soundfont_from_bytes_parallel] loaded {} soundfonts in {} ms",
-            length,
-            elapsed.as_millis()
-        );
-
         Ok(())
     }
 }
 
 pub fn parse_mmls_parallel(
     player_state: Arc<Mutex<PlayerState>>,
+    logger_state: Arc<Mutex<Logger>>,
     mmls: Vec<(String, Instrument)>,
 ) {
     task::spawn(async move {
+        log(logger_state.clone(), crate::logger::LogType::ParseMmlInit).await;
+
         let mut player = player_state.lock().await;
         player.parse_mmls(mmls);
+
+        log(logger_state, crate::logger::LogType::ParseMmlEnd).await;
     });
 }
 

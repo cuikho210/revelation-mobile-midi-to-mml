@@ -14,13 +14,14 @@ class AppController extends GetxController {
 	final songOptions = SignalMmlSongOptions().obs;
 	final tracks = <SignalMmlTrack>[].obs;
 	final currentTrack = Rx<SignalMmlTrack?>(null);
+
 	final fileName = "new_song".obs;
+
 	final playbackStatus = SignalPlayStatus.STOP.obs;
 	final playingLength = 0.obs;
 
-	final soundfonts = <String>[
-		'assets/soundfonts/gm.sf2',
-	].obs;
+	final listLog = RxList<String>([]);
+	final isLoading = false.obs;
 	
 	AppController() {
 		getAppVersion();

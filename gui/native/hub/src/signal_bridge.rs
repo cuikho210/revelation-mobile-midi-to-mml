@@ -2,7 +2,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 use crate::{
-    messages::{
+    logger::{log, LogType, Logger}, messages::{
         dart_to_rust::{
             SignalEqualizeTracksPayload, SignalLoadListSoundfontPayload,
             SignalLoadSongFromPathPayload, SignalLoadSoundfontPayload,
@@ -18,11 +18,13 @@ use rinf::{debug_print, RinfError};
 pub async fn listen_load_song_from_path(
     song_state: Arc<Mutex<SongState>>,
     player_state: Arc<Mutex<PlayerState>>,
+    logger_state: Arc<Mutex<Logger>>,
 ) -> Result<(), RinfError> {
     let mut receiver = SignalLoadSongFromPathPayload::get_dart_signal_receiver()?;
 
     while let Some(signal) = receiver.recv().await {
         let midi_path = signal.message.path;
+        log(logger_state.clone(), LogType::ParseMidiInit).await;
 
         if let Ok(song) = MmlSong::from_path(&midi_path, MmlSongOptions::default()) {
             let mut guard = song_state.lock().await;
@@ -30,12 +32,18 @@ pub async fn listen_load_song_from_path(
             guard.update_list_track_mml().unwrap();
             let song_status = guard.get_signal_mml_song_status();
 
-            let player_state = player_state.clone();
-            parse_mmls_parallel(player_state, guard.mmls.to_owned());
+            log(logger_state.clone(), LogType::ParseMidiEnd).await;
 
-            debug_print!("[listen_load_song_from_path] Loaded song from {}", &midi_path);
+            let player_state = player_state.clone();
+            parse_mmls_parallel(
+                player_state,
+                logger_state.clone(),
+                guard.mmls.to_owned(),
+            );
+
             SignalLoadSongFromPathResponse { song_status }.send_signal_to_dart();
         } else {
+            log(logger_state.clone(), LogType::ParseMidiError).await;
             debug_print!("[listen_load_song_from_path] Cannot load song from path {}", &midi_path);
         }
     }
@@ -46,6 +54,7 @@ pub async fn listen_load_song_from_path(
 pub async fn listen_update_mml_song_option(
     song_state: Arc<Mutex<SongState>>,
     player_state: Arc<Mutex<PlayerState>>,
+    logger_state: Arc<Mutex<Logger>>,
 ) -> Result<(), RinfError> {
     let mut receiver = SignalUpdateMmlSongOptionsPayload::get_dart_signal_receiver()?;
 
@@ -53,14 +62,22 @@ pub async fn listen_update_mml_song_option(
         let song_options = signal.message.song_options;
 
         if let Some(song_options) = song_options {
+            log(logger_state.clone(), LogType::SetSongOptionsInit).await;
+
             let mut song = song_state.lock().await;
 
             match song.set_song_options_by_signal(&song_options) {
                 Ok(_) => {
                     song.update_list_track_mml().unwrap();
 
+                    log(logger_state.clone(), LogType::SetSongOptionsEnd).await;
+
                     let player_state = player_state.clone();
-                    parse_mmls_parallel(player_state, song.mmls.to_owned());
+                    parse_mmls_parallel(
+                        player_state,
+                        logger_state.clone(),
+                        song.mmls.to_owned(),
+                    );
 
                     let tracks = song.get_list_track_signal();
 
@@ -71,6 +88,7 @@ pub async fn listen_update_mml_song_option(
                     }
                 }
                 Err(err_message) => {
+                    log(logger_state.clone(), LogType::SetSongOptionsError).await;
                     debug_print!("[listen_update_mml_song_option] {}", err_message);
                 }
             }
@@ -83,10 +101,13 @@ pub async fn listen_update_mml_song_option(
 pub async fn listen_split_track(
     song_state: Arc<Mutex<SongState>>,
     player_state: Arc<Mutex<PlayerState>>,
+    logger_state: Arc<Mutex<Logger>>,
 ) -> Result<(), RinfError> {
     let mut receiver = SignalSplitTrackPayload::get_dart_signal_receiver()?;
 
     while let Some(signal) = receiver.recv().await {
+        log(logger_state.clone(), LogType::SplitTrackInit).await;
+
         let track_index = signal.message.index as usize;
         let mut song = song_state.lock().await;
 
@@ -94,8 +115,14 @@ pub async fn listen_split_track(
             Ok(_) => {
                 song.update_list_track_mml().unwrap();
 
+                log(logger_state.clone(), LogType::SplitTrackEnd).await;
+
                 let player_state = player_state.clone();
-                parse_mmls_parallel(player_state, song.mmls.to_owned());
+                parse_mmls_parallel(
+                    player_state,
+                    logger_state.clone(),
+                    song.mmls.to_owned(),
+                );
 
                 let tracks = song.get_list_track_signal();
 
@@ -106,6 +133,7 @@ pub async fn listen_split_track(
                 }
             }
             Err(err) => {
+                log(logger_state.clone(), LogType::SplitTrackError).await;
                 debug_print!("[listen_update_mml_song_option] {}", err);
             }
         }
@@ -117,10 +145,13 @@ pub async fn listen_split_track(
 pub async fn listen_merge_tracks(
     song_state: Arc<Mutex<SongState>>,
     player_state: Arc<Mutex<PlayerState>>,
+    logger_state: Arc<Mutex<Logger>>,
 ) -> Result<(), RinfError> {
     let mut receiver = SignalMergeTracksPayload::get_dart_signal_receiver()?;
 
     while let Some(signal) = receiver.recv().await {
+        log(logger_state.clone(), LogType::MergeTrackInit).await;
+
         let track_index_a = signal.message.index_a as usize;
         let track_index_b = signal.message.index_b as usize;
         let mut song = song_state.lock().await;
@@ -129,8 +160,14 @@ pub async fn listen_merge_tracks(
             Ok(_) => {
                 song.update_list_track_mml().unwrap();
 
+                log(logger_state.clone(), LogType::MergeTrackEnd).await;
+
                 let player_state = player_state.clone();
-                parse_mmls_parallel(player_state, song.mmls.to_owned());
+                parse_mmls_parallel(
+                    player_state,
+                    logger_state.clone(),
+                    song.mmls.to_owned(),
+                );
 
                 let tracks = song.get_list_track_signal();
 
@@ -141,6 +178,7 @@ pub async fn listen_merge_tracks(
                 }
             }
             Err(err) => {
+                log(logger_state.clone(), LogType::MergeTrackError).await;
                 debug_print!("[listen_update_mml_song_option] {}", err);
             }
         }
@@ -152,10 +190,13 @@ pub async fn listen_merge_tracks(
 pub async fn listen_equalize_tracks(
     song_state: Arc<Mutex<SongState>>,
     player_state: Arc<Mutex<PlayerState>>,
+    logger_state: Arc<Mutex<Logger>>,
 ) -> Result<(), RinfError> {
     let mut receiver = SignalEqualizeTracksPayload::get_dart_signal_receiver()?;
 
     while let Some(signal) = receiver.recv().await {
+        log(logger_state.clone(), LogType::EqualizeTrackInit).await;
+        
         let track_index_a = signal.message.index_a as usize;
         let track_index_b = signal.message.index_b as usize;
         let mut song = song_state.lock().await;
@@ -164,8 +205,14 @@ pub async fn listen_equalize_tracks(
             Ok(_) => {
                 song.update_list_track_mml().unwrap();
 
+                log(logger_state.clone(), LogType::EqualizeTrackEnd).await;
+
                 let player_state = player_state.clone();
-                parse_mmls_parallel(player_state, song.mmls.to_owned());
+                parse_mmls_parallel(
+                    player_state,
+                    logger_state.clone(),
+                    song.mmls.to_owned(),
+                );
 
                 let tracks = song.get_list_track_signal();
 
@@ -176,6 +223,7 @@ pub async fn listen_equalize_tracks(
                 }
             }
             Err(err) => {
+                log(logger_state.clone(), LogType::EqualizeTrackError).await;
                 debug_print!("[listen_update_mml_song_option] {}", err);
             }
         }
@@ -213,13 +261,9 @@ pub async fn listen_rename_tracks(
     Ok(())
 }
 
-pub async fn listen_set_track_is_muted() -> Result<(), RinfError> {
-
-    Ok(())
-}
-
 pub async fn listen_set_song_play_status(
     player_state: Arc<Mutex<PlayerState>>,
+    logger_state: Arc<Mutex<Logger>>,
 ) -> Result<(), RinfError> {
     let mut receiver = SignalSetSongPlayStatusPayload::get_dart_signal_receiver()?;
 
@@ -228,11 +272,17 @@ pub async fn listen_set_song_play_status(
         let mut player = player_state.lock().await;
 
         if status == 0 {
+            log(logger_state.clone(), LogType::SetPlaybackPlayInit).await;
             player.play();
+            log(logger_state.clone(), LogType::SetPlaybackPlayEnd).await;
         } else if status == 1 {
+            log(logger_state.clone(), LogType::SetPlaybackPauseInit).await;
             player.pause();
+            log(logger_state.clone(), LogType::SetPlaybackPauseEnd).await;
         } else {
+            log(logger_state.clone(), LogType::SetPlaybackStopInit).await;
             player.stop();
+            log(logger_state.clone(), LogType::SetPlaybackStopEnd).await;
         }
     }
 
@@ -241,6 +291,7 @@ pub async fn listen_set_song_play_status(
 
 pub async fn listen_load_soundfont(
     player_state: Arc<Mutex<PlayerState>>,
+    logger_state: Arc<Mutex<Logger>>,
 ) -> Result<(), RinfError> {
     let mut receiver = SignalLoadSoundfontPayload::get_dart_signal_receiver()?;
 
@@ -248,8 +299,13 @@ pub async fn listen_load_soundfont(
         let bytes = signal.binary;
         let mut player = player_state.lock().await;
 
+        log(logger_state.clone(), LogType::LoadSoundfontInit).await;
+
         if let Err(message) = player.load_soundfont_from_bytes(bytes) {
+            log(logger_state.clone(), LogType::LoadSoundfontError).await;
             debug_print!("[listen_load_list_soundfont] error: {}", message);
+        } else {
+            log(logger_state.clone(), LogType::LoadSoundfontEnd).await;
         }
     }
 
@@ -258,6 +314,7 @@ pub async fn listen_load_soundfont(
 
 pub async fn listen_load_list_soundfont(
     player_state: Arc<Mutex<PlayerState>>,
+    logger_state: Arc<Mutex<Logger>>,
 ) -> Result<(), RinfError> {
     let mut receiver = SignalLoadListSoundfontPayload::get_dart_signal_receiver()?;
 
@@ -265,8 +322,13 @@ pub async fn listen_load_list_soundfont(
         let list_bytes = signal.message.list_soundfont_bytes;
         let mut player = player_state.lock().await;
 
+        log(logger_state.clone(), LogType::LoadSoundfontInit).await;
+
         if let Err(message) = player.load_soundfont_from_bytes_parallel(list_bytes) {
+            log(logger_state.clone(), LogType::LoadSoundfontError).await;
             debug_print!("[listen_load_list_soundfont] error: {}", message);
+        } else {
+            log(logger_state.clone(), LogType::LoadSoundfontEnd).await;
         }
     }
 

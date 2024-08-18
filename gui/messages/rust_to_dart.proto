@@ -25,3 +25,9 @@ message SignalOnTrackEnd {
 	uint64 track_index = 1;
 }
 
+// [RINF:RUST-SIGNAL]
+message SignalLogMessage {
+	string message = 1;
+	bool is_loading = 2;
+}
+

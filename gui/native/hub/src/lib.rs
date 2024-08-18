@@ -6,7 +6,9 @@ mod song;
 mod player;
 mod converter;
 mod signal_bridge;
+mod logger;
 
+use logger::Logger;
 use tokio;
 use player::PlayerState;
 use song::SongState;
@@ -23,11 +25,13 @@ rinf::write_interface!();
 async fn main() {
     let song: Arc<Mutex<SongState>> = Arc::new(Mutex::new(SongState::new()));
     let player: Arc<Mutex<PlayerState>> = Arc::new(Mutex::new(PlayerState::new()));
+    let logger: Arc<Mutex<Logger>> = Arc::new(Mutex::new(Logger::new()));
 
     tokio::spawn(
         signal_bridge::listen_load_song_from_path(
             song.clone(),
             player.clone(),
+            logger.clone(),
         )
     );
 
@@ -35,6 +39,7 @@ async fn main() {
         signal_bridge::listen_update_mml_song_option(
             song.clone(),
             player.clone(),
+            logger.clone(),
         )
     );
 
@@ -42,6 +47,7 @@ async fn main() {
         signal_bridge::listen_split_track(
             song.clone(),
             player.clone(),
+            logger.clone(),
         )
     );
 
@@ -50,6 +56,7 @@ async fn main() {
         signal_bridge::listen_merge_tracks(
             song.clone(),
             player.clone(),
+            logger.clone(),
         )
     );
 
@@ -57,6 +64,7 @@ async fn main() {
         signal_bridge::listen_equalize_tracks(
             song.clone(),
             player.clone(),
+            logger.clone(),
         )
     );
 
@@ -69,18 +77,21 @@ async fn main() {
     tokio::spawn(
         signal_bridge::listen_set_song_play_status(
             player.clone(),
+            logger.clone(),
         )
     );
 
     tokio::spawn(
         signal_bridge::listen_load_soundfont(
             player.clone(),
+            logger.clone(),
         )
     );
 
     tokio::spawn(
         signal_bridge::listen_load_list_soundfont(
             player.clone(),
+            logger.clone(),
         )
     );
 }

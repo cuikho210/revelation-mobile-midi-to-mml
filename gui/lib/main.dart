@@ -27,3 +27,4 @@ void loadSoundfont() async {
 	// const path = '/home/cuikho210/Documents/soundfonts/FluidR3_GM.sf2';
 	LoadSoundfont.fromPath(path);
 }
+

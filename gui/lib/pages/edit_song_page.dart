@@ -3,6 +3,7 @@ import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:midi_to_mml/command_signals.dart';
 import 'package:midi_to_mml/components/song_options.dart';
+import 'package:midi_to_mml/components/status_bar.dart';
 import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 import 'package:midi_to_mml/messages/types.pb.dart';
 import 'package:remixicon/remixicon.dart';
@@ -33,6 +34,7 @@ class EditSongPage extends GetView<AppController> {
 				Gap(8),
 				_Tracks(),
 				TrackContent(),
+				StatusBar(),
 			]),
 		);
 	}
