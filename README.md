@@ -3,7 +3,7 @@
 
   <p>
     <a href="https://github.com/cuikho210/revelation-mobile-midi-to-mml/releases">Releases</a> - 
-    <a href="https://github.com/cuikho210/revelation-mobile-midi-to-mml/blob/main/README/DONATE.md">Donate</a>
+    <a href="https://github.com/cuikho210/revelation-mobile-midi-to-mml?tab=readme-ov-file#donate">Donate</a>
   </p>
 
   <a href="https://play.google.com/store/apps/details?id=com.mtlkms.revelation_mobile_midi_to_mml">
