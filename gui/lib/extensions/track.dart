@@ -1,7 +1,7 @@
 import 'package:midi_to_mml/messages/types.pb.dart';
 
-extension GetTitle on Track {
+extension GetTitle on SignalMmlTrack {
 	String get title {
-		return "$index. Track $name - $noteLength notes";
+		return "$index. Track $name - $mmlNoteLength notes";
 	}
 }

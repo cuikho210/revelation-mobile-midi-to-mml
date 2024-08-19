@@ -1,15 +1,98 @@
-mod state;
-mod messages;
-mod commands;
-mod utils;
+//! This `hub` crate is the
+//! entry point of the Rust logic.
 
-use tokio_with_wasm::tokio;
+mod messages;
+mod song;
+mod player;
+mod converter;
+mod signal_bridge;
+mod logger;
+
+use logger::Logger;
+use tokio;
+use player::PlayerState;
+use song::SongState;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 rinf::write_interface!();
 
+// Use `tokio::spawn` to run concurrent tasks.
+// Always use non-blocking async functions
+// such as `tokio::fs::File::open`.
+// If you really need to use blocking code,
+// use `tokio::task::spawn_blocking`.
 async fn main() {
-    tokio::spawn(commands::import_midi_data());
-    tokio::spawn(commands::split_track());
-    tokio::spawn(commands::merge_tracks());
-    tokio::spawn(commands::to_mml());
+    let song: Arc<Mutex<SongState>> = Arc::new(Mutex::new(SongState::new()));
+    let player: Arc<Mutex<PlayerState>> = Arc::new(Mutex::new(PlayerState::new()));
+    let logger: Arc<Mutex<Logger>> = Arc::new(Mutex::new(Logger::new()));
+
+    tokio::spawn(
+        signal_bridge::listen_load_song_from_path(
+            song.clone(),
+            player.clone(),
+            logger.clone(),
+        )
+    );
+
+    tokio::spawn(
+        signal_bridge::listen_update_mml_song_option(
+            song.clone(),
+            player.clone(),
+            logger.clone(),
+        )
+    );
+
+    tokio::spawn(
+        signal_bridge::listen_split_track(
+            song.clone(),
+            player.clone(),
+            logger.clone(),
+        )
+    );
+
+
+    tokio::spawn(
+        signal_bridge::listen_merge_tracks(
+            song.clone(),
+            player.clone(),
+            logger.clone(),
+        )
+    );
+
+    tokio::spawn(
+        signal_bridge::listen_equalize_tracks(
+            song.clone(),
+            player.clone(),
+            logger.clone(),
+        )
+    );
+
+    tokio::spawn(
+        signal_bridge::listen_rename_tracks(
+            song.clone(),
+        )
+    );
+
+    tokio::spawn(
+        signal_bridge::listen_set_song_play_status(
+            player.clone(),
+            logger.clone(),
+        )
+    );
+
+    tokio::spawn(
+        signal_bridge::listen_load_soundfont(
+            player.clone(),
+            logger.clone(),
+        )
+    );
+
+    tokio::spawn(
+        signal_bridge::listen_load_list_soundfont(
+            player.clone(),
+            logger.clone(),
+        )
+    );
 }
+

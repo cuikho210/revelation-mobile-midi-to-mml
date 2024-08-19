@@ -1,20 +1,36 @@
 syntax = "proto3";
 package types;
 
-message SongOptions {
-	bool auto_boot_velocity = 1;
-	uint32 velocity_min = 2;
-	uint32 velocity_max = 3;
+enum SignalPlayStatus {
+	PLAY = 0;
+	PAUSE = 1;
+	STOP = 2;
 }
 
-message Track {
+message SignalMmlSongOptions {
+    bool auto_boot_velocity = 1;
+    bool auto_equalize_note_length = 2;
+    uint32 velocity_min = 3;
+    uint32 velocity_max = 4;
+    uint32 min_gap_for_chord = 5;
+    uint32 smallest_unit = 6;
+}
+
+message SignalInstrument {
+    string name = 1;
+    uint32 instrument_id = 2;
+    uint32 midi_channel = 3;
+}
+
+message SignalMmlTrack {
 	uint32 index = 1;
-	string name = 2;
-	string instrument_name = 3;
-	uint32 note_length = 4;
+    string name = 2;
+    SignalInstrument instrument = 3;
+	string mml = 4;
+	uint64 mml_note_length = 5;
 }
 
-message SongStatus {
-	SongOptions options = 1;
-	repeated Track tracks = 2;
+message SignalMmlSongStatus {
+	SignalMmlSongOptions song_options = 1;
+	repeated SignalMmlTrack tracks = 2;
 }

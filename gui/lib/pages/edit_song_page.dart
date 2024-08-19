@@ -2,141 +2,134 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:midi_to_mml/command_signals.dart';
-import 'package:midi_to_mml/pages/display_mmls.dart';
+import 'package:midi_to_mml/components/song_options.dart';
+import 'package:midi_to_mml/components/status_bar.dart';
+import 'package:midi_to_mml/messages/types.pb.dart';
+import 'package:midi_to_mml/utils.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:midi_to_mml/components/track.dart';
 import 'package:midi_to_mml/controller.dart';
-import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 
-class EditSongPage extends StatelessWidget {
+class EditSongPage extends GetView<AppController> {
 	const EditSongPage({ super.key });
 
 	@override
 	Widget build(context) {
-		final controller = Get.put(AppController());
-
-		listenToMmlSignalStream(controller);
-		listenSplitTrackSignalStream(controller);
-		listenMergeTracksSignalStream(controller);
-
 		return Scaffold(
 			appBar: AppBar(
-				title: Text("Edit: ${controller.fileName()}"),
+				title: Text(controller.fileName(), style: Theme.of(context).textTheme.titleMedium),
 				actions: [
 					TextButton.icon(
 						icon: const Icon(Remix.export_line),
 						label: const Text("Export"),
-						onPressed: () => ExportToMML(controller.songStatus().options),
+						onPressed: () => SaveToTextFile(
+							fileName: controller.fileName(),
+							content: controller.exportMML(),
+						),
 					),
 				],
 			),
-			body: ListView(children: const [
-				_Options(),
-				Gap(32),
+			body: const Column(children: [
+				_SongControls(),
+				Gap(8),
 				_Tracks(),
+				TrackContent(),
+				StatusBar(),
 			]),
 		);
-	}
-
-	void listenToMmlSignalStream(AppController controller) async {
-		await for (final signal in GetMMLOutput.rustSignalStream) {
-			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-				final mmls = signal.message.mml;
-				controller.mmls(mmls);
-				Get.to(const DisplayMmls());
-			});
-		}
-	}
-
-	void listenMergeTracksSignalStream(AppController controller) async {
-		await for (final signal in MergeTracksOutput.rustSignalStream) {
-			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-				final tracks = signal.message.tracks;
-				controller.songStatus.value.tracks.clear();
-				controller.songStatus.value.tracks.addAll(tracks);
-				controller.songStatus.refresh();
-			});
-		}
-	}
-
-	void listenSplitTrackSignalStream(AppController controller) async {
-		await for (final signal in SplitTrackOutput.rustSignalStream) {
-			WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-				final tracks = signal.message.tracks;
-				controller.songStatus.value.tracks.clear();
-				controller.songStatus.value.tracks.addAll(tracks);
-				controller.songStatus.refresh();
-			});
-		}
 	}
 }
 
 class _Tracks extends GetView<AppController> {
 	const _Tracks();
 
-	List<Widget> getTrackWidgets() {
-		return controller.songStatus().tracks.map((track) => TrackListTitle(track: track)).toList();
+	List<Widget> getListTrackTabButton() {
+		return controller.tracks().map<Widget>((track) =>
+			Padding(
+				padding: const EdgeInsets.only(right: 4),
+				child: TrackTabButton(track: track),
+			)
+		).toList();
 	}
 
 	@override
 	Widget build(context) {
-		return Obx(() =>Column(children: [
-			Text("Tracks", style: Theme.of(context).textTheme.titleLarge),
-			const Gap(16),
-			
-			...getTrackWidgets()
-		]));
-	}
+		final scrollController = ScrollController();
 
+		return SizedBox(
+			height: 80,
+			child: Scrollbar(
+				controller: scrollController,
+				child: Obx(() => ListView(
+					controller: scrollController,
+					scrollDirection: Axis.horizontal,
+					children: getListTrackTabButton(),
+				)),
+			),
+		);
+	}
 }
 
-class _Options extends GetView<AppController> {
-	const _Options();
+class _SongControls extends GetView<AppController> {
+	const _SongControls();
+
+	Future<void> showOptionsModal(BuildContext context) async {
+		return showModalBottomSheet<void>(context: context, builder: (context) {
+			return const SongOptions();
+		});
+	}
+
+	void playSong() {
+		PlaySong();
+		controller.playbackStatus(SignalPlayStatus.PLAY);
+		controller.playingLength(controller.tracks().length);
+	}
+
+	void pauseSong() {
+		PauseSong();
+		controller.playbackStatus(SignalPlayStatus.PAUSE);
+	}
+
+	void stopSong() {
+		if (controller.playbackStatus() != SignalPlayStatus.STOP) {
+			StopSong();
+			controller.playbackStatus(SignalPlayStatus.STOP);
+		}
+	}
 
 	@override
 	Widget build(context) {
-		return Column(children: [
-			Text("Song options", style: Theme.of(context).textTheme.titleLarge),
-			const Gap(16),
-
-			Obx(() => CheckboxListTile(
-				title: const Text("Auto boot velocity"),
-				value: controller.songStatus().options.autoBootVelocity,
-				onChanged: (newValue) {
-					controller.songStatus.value.options.autoBootVelocity = (newValue == true);
-					controller.songStatus.refresh();
-				},
-			)),
-
-			ListTile(
-				title: const Text("Velocity min"),
-				trailing: SizedBox(
-					width: 48,
-					child: Obx(() => TextFormField(
-						textAlign: TextAlign.end,
-						initialValue: controller.songStatus().options.velocityMin.toString(),
-						keyboardType: TextInputType.number,
-						onChanged: (newValue) {
-							controller.songStatus.value.options.velocityMin = int.parse(newValue);
-						},
-					)),
+		return Flex(
+			direction: Axis.horizontal,
+			mainAxisAlignment: MainAxisAlignment.spaceBetween,
+			children: [
+				TextButton.icon(
+					onPressed: () => showOptionsModal(context),
+					label: const Text("Song Options"),
+					icon: const Icon(Remix.settings_line),
 				),
-			),
+				Row(children: [
+					Obx(() {
+						void Function() invoker = playSong;
+						IconData icon = Remix.play_line;
 
-			ListTile(
-				title: const Text("Velocity max"),
-				trailing: SizedBox(
-					width: 48,
-					child: Obx(() => TextFormField(
-						textAlign: TextAlign.end,
-						initialValue: controller.songStatus().options.velocityMax.toString(),
-						keyboardType: TextInputType.number,
-						onChanged: (newValue) {
-							controller.songStatus.value.options.velocityMax = int.parse(newValue);
-						},
-					)),
-				),
-			),
-		]);
+						if (controller.playbackStatus() == SignalPlayStatus.PLAY) {
+							invoker = pauseSong;
+							icon = Remix.pause_line;
+						}
+
+						return IconButton(
+							onPressed: invoker,
+							icon: Icon(icon),
+						);
+					}),
+					IconButton(
+						onPressed: stopSong,
+						icon: const Icon(Remix.stop_line),
+					),
+				])
+			],
+		);
 	}
 }
+

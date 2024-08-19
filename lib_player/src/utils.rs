@@ -1,4 +1,4 @@
-use std::{thread::sleep, time::Duration};
+use std::time::Duration;
 use crate::{SynthOutputConnection, NoteEvent};
 
 const SMALLEST_UNIT: usize = 256;
@@ -78,38 +78,39 @@ pub fn duration_in_smallest_unit_to_ms(duration_in_smallest_unit: usize, tempo: 
     result.round() as usize
 }
 
-pub fn play_note(connection: &mut SynthOutputConnection, note: &NoteEvent, channel: u8, duration: Option<Duration>) {
+pub fn play_note(
+    mut connection: SynthOutputConnection,
+    note: &NoteEvent,
+    channel: u8,
+    duration: Option<Duration>
+) -> Duration {
     let duration = match duration {
         Some(value) => value,
         None => Duration::from_millis(note.duration_in_ms as u64),
     };
 
     if let Some(key) = note.midi_key {
-        log_note_on(note, channel);
         connection.note_on(channel, key, note.midi_velocity);
+    }
 
-        sleep(duration);
+    duration
+}
+
+pub fn stop_note(
+    mut connection: SynthOutputConnection,
+    note: &NoteEvent,
+    channel: u8,
+) {
+    if let Some(key) = note.midi_key {
         connection.note_off(channel, key);
-    } else {
-        sleep(duration);
     }
 }
 
-pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>, channel: u8, duration: Option<Duration>) {
-    let duration = match duration {
-        Some(value) => value,
-        None => Duration::from_millis(chord.first().unwrap().duration_in_ms as u64),
-    };
-
-    for note in chord.iter() {
-        log_note_on(note, channel);
-        if let Some(key) = note.midi_key {
-            connection.note_on(channel, key, note.midi_velocity);
-        }
-    }
-
-    sleep(duration);
-
+pub fn stop_chord(
+    mut connection: SynthOutputConnection,
+    chord: &Vec<NoteEvent>,
+    channel: u8,
+) {
     for note in chord.iter() {
         if let Some(key) = note.midi_key {
             connection.note_off(channel, key);
@@ -117,20 +118,24 @@ pub fn play_chord(connection: &mut SynthOutputConnection, chord: &Vec<NoteEvent>
     }
 }
 
-pub fn log_note_on(note: &NoteEvent, channel: u8) {
-    let midi_key = match note.midi_key {
-        Some(key) => key.to_string(),
-        None => String::from("rest"),
+pub fn play_chord(
+    mut connection: SynthOutputConnection,
+    chord: &Vec<NoteEvent>,
+    channel: u8,
+    duration: Option<Duration>,
+) -> Duration {
+    let duration = match duration {
+        Some(value) => value,
+        None => Duration::from_millis(get_longest_note_duration(chord) as u64),
     };
 
-    println!(
-        "[play_note] note_on {} {} - velocity {} - duration {}ms - channel {}",
-        midi_key,
-        note.raw_mml,
-        note.midi_velocity,
-        note.duration_in_ms,
-        channel,
-    );
+    for note in chord.iter() {
+        if let Some(key) = note.midi_key {
+            connection.note_on(channel, key, note.midi_velocity);
+        }
+    }
+
+    duration
 }
 
 pub fn get_longest_note_duration(notes: &Vec<NoteEvent>) -> isize {

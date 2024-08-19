@@ -1,20 +1,67 @@
-import 'package:midi_to_mml/messages/commands.pb.dart';
+import 'package:flutter/services.dart';
+import 'package:midi_to_mml/messages/dart_to_rust.pb.dart';
 import 'package:midi_to_mml/messages/types.pb.dart';
 
 class SplitTrack {
 	SplitTrack(int index) {
-		Split(index: index).sendSignalToRust(null);
+		SignalSplitTrackPayload(index: index).sendSignalToRust();
 	}
 }
 
 class MergeTracks {
 	MergeTracks(int indexA, int indexB) {
-		Merge(indexA: indexA, indexB: indexB).sendSignalToRust(null);
+		SignalMergeTracksPayload(indexA: indexA, indexB: indexB).sendSignalToRust();
 	}
 }
 
-class ExportToMML {
-	ExportToMML(SongOptions options) {
-		ToMML(options: options).sendSignalToRust(null);
+class EqualizeTracks {
+	EqualizeTracks(int indexA, int indexB) {
+		SignalEqualizeTracksPayload(indexA: indexA, indexB: indexB).sendSignalToRust();
 	}
 }
+
+class RenameTrack {
+	RenameTrack(int index, String name) {
+		SignalRenameTrackPayload(index: index, name: name).sendSignalToRust();
+	}
+}
+
+class SaveSongOptions {
+	SaveSongOptions(SignalMmlSongOptions songOptions) {
+		SignalUpdateMmlSongOptionsPayload( songOptions: songOptions ).sendSignalToRust();
+	}
+}
+
+class PlaySong {
+	PlaySong() {
+		SignalSetSongPlayStatusPayload( status: SignalPlayStatus.PLAY ).sendSignalToRust();
+	}
+}
+
+class PauseSong {
+	PauseSong() {
+		SignalSetSongPlayStatusPayload( status: SignalPlayStatus.PAUSE ).sendSignalToRust();
+	}
+}
+
+class StopSong {
+	StopSong() {
+		SignalSetSongPlayStatusPayload( status: SignalPlayStatus.STOP ).sendSignalToRust();
+	}
+}
+
+class LoadSoundfont {
+	LoadSoundfont(Uint8List bytes) {
+		SignalLoadSoundfontPayload().sendSignalToRust(bytes);
+	}
+
+	LoadSoundfont.fromPath(String path) {
+		loadSoundfontFromPath(path);
+	}
+
+	loadSoundfontFromPath(String path) async {
+		final bytes = await rootBundle.load(path);
+		LoadSoundfont(bytes.buffer.asUint8List());
+	}
+}
+

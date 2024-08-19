@@ -1,217 +1,142 @@
-use std::time::{Duration, Instant};
-use revelation_mobile_midi_to_mml::Instrument;
-
 use crate::{
     mml_event::MmlEvent,
-    note_event::NoteEvent, SynthOutputConnection,
-    utils,
+    note_event::NoteEvent,
 };
 
 const NOTE_NAMES: [char; 8] = ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'r'];
+const NOTE_EXTRAS: [char; 3] = ['&', '.', '+'];
 
+#[derive(Debug, Clone)]
 pub struct Parser {
+    pub index: usize,
     pub raw_mml: String,
     pub notes: Vec<NoteEvent>,
-    pub instrument: Instrument,
-    pub connection: SynthOutputConnection,
 }
 
 impl Parser {
-    pub fn parse(mml: String, instrument: Instrument, connection: SynthOutputConnection) -> Self {
-        let program_id = instrument.instrument_id;
-        let channel = instrument.midi_channel;
+    pub fn parse(
+        index: usize,
+        mml: String,
+    ) -> Self {
 
         let mut result = Self {
+            index,
             raw_mml: mml,
             notes: Vec::new(),
-            instrument,
-            connection,
         };
 
-        result.parse_note_events();
-        result.connection.program_change(channel, program_id);
+        result.notes = parse_note_events(&result.raw_mml);
         result
     }
+}
 
-    pub fn play(&self) {
-        let time = Instant::now();
-        let mut before: Option<NoteEvent> = None;
-        let mut current_chord: Vec<NoteEvent> = Vec::new();
-        let mut absolute_duration: isize = 0;
-        let mut connection = self.connection.clone();
+fn parse_note_events(mml: &str) -> Vec<NoteEvent> {
+    let mut index = 0usize;
+    let mut current_mml_velocity = 12u8;
+    let mut current_octave = 4u8;
+    let mut current_tempo = 120usize;
+    let mut is_connect_chord = false;
+    let mut notes: Vec<NoteEvent> = Vec::new();
 
-        for note in self.notes.iter() {
-            if note.is_connected_to_prev_note {
-                if let Some(before_note) = before.as_ref() {
-                    if current_chord.len() == 0 {
-                        current_chord.push(before_note.to_owned());
+    loop {
+        if let Some(event) = parse_event(
+            mml,
+            &mut index,
+            current_mml_velocity,
+            current_octave,
+            current_tempo,
+            &mut is_connect_chord,
+        ) {
+            match event {
+                MmlEvent::SetNote(note) => notes.push(note),
+                MmlEvent::SetTempo(tempo) => current_tempo = tempo,
+                MmlEvent::SetOctave(octave) => current_octave = octave,
+                MmlEvent::IncreOctave => current_octave += 1,
+                MmlEvent::DecreOctave => {
+                    if current_octave > 0 {
+                        current_octave -= 1;
                     }
                 }
-
-                current_chord.push(note.to_owned());
-                continue;
+                MmlEvent::SetVelocity(velocity) => current_mml_velocity = velocity,
+                MmlEvent::ConnectChord => is_connect_chord = true,
+                MmlEvent::Empty => (),
             }
-
-            let correct_duration = time.elapsed().as_millis() as isize;
-            let duration_diff = correct_duration - absolute_duration;
-
-            if current_chord.len() > 0 {
-                let chord_duration = utils::get_longest_note_duration(&current_chord);
-                let duration = chord_duration - duration_diff;
-                let duration = Duration::from_millis(duration as u64);
-
-                utils::play_chord(
-                    &mut connection,
-                    &current_chord,
-                    self.instrument.midi_channel,
-                    Some(duration),
-                );
-
-                absolute_duration += chord_duration;
-                current_chord.clear();
-                before = Some(note.to_owned());
-                continue;
-            }
-
-            if let Some(before_note) = &before {
-                let note_duration = before_note.duration_in_ms as isize;
-                let duration = note_duration - duration_diff;
-                let duration = Duration::from_millis(duration as u64);
-
-                utils::play_note(
-                    &mut connection,
-                    before_note,
-                    self.instrument.midi_channel,
-                    Some(duration),
-                );
-
-                absolute_duration += note_duration;
-            }
-
-            before = Some(note.to_owned());
-        }
-
-        if current_chord.len() > 0 {
-            utils::play_chord(
-                &mut connection,
-                &current_chord,
-                self.instrument.midi_channel,
-                None,
-            );
-        }
-
-        if let Some(before_note) = before {
-            utils::play_note(
-                &mut connection,
-                &before_note,
-                self.instrument.midi_channel,
-                None,
-            );
+        } else {
+            break;
         }
     }
 
-    fn parse_note_events(&mut self) {
-        let mut index = 0usize;
-        let mut current_mml_velocity = 12u8;
-        let mut current_octave = 4u8;
-        let mut current_tempo = 120usize;
-        let mut is_connect_chord = false;
+    notes
+}
 
-        loop {
-            if let Some(event) = self.parse_event(
-                &mut index,
-                current_mml_velocity,
-                current_octave,
-                current_tempo,
-                &mut is_connect_chord,
-            ) {
-                match event {
-                    MmlEvent::SetNote(note) => self.notes.push(note),
-                    MmlEvent::SetTempo(tempo) => current_tempo = tempo,
-                    MmlEvent::SetOctave(octave) => current_octave = octave,
-                    MmlEvent::IncreOctave => current_octave += 1,
-                    MmlEvent::DecreOctave => {
-                        if current_octave > 0 {
-                            current_octave -= 1;
-                        }
-                    }
-                    MmlEvent::SetVelocity(velocity) => current_mml_velocity = velocity,
-                    MmlEvent::ConnectChord => is_connect_chord = true,
-                    MmlEvent::Empty => (),
-                }
+fn parse_event(
+    raw_mml: &str,
+    index: &mut usize,
+    current_mml_velocity: u8,
+    current_mml_octave: u8,
+    current_tempo: usize,
+    is_connect_chord: &mut bool,
+) -> Option<MmlEvent> {
+    match raw_mml.chars().nth(*index) {
+        Some(char) => {
+            let mml = &raw_mml[*index..];
+
+            if char == 't' {
+                let value = get_first_mml_value(mml);
+                *index += value.len() + 1;
+
+                let tempo = value.parse::<usize>().unwrap();
+
+                Some(MmlEvent::SetTempo(tempo))
+            } else if char == 'o' {
+                let value = &mml[1..2];
+                *index += 2;
+
+                let octave = value.parse::<u8>().unwrap();
+
+                Some(MmlEvent::SetOctave(octave))
+            } else if char == 'v' {
+                let value = get_first_mml_value(mml);
+                *index += value.len() + 1;
+
+                let velocity = value.parse::<u8>().unwrap();
+
+                Some(MmlEvent::SetVelocity(velocity))
+            } else if char == '>' {
+                *index += 1;
+
+                Some(MmlEvent::IncreOctave)
+            } else if char == '<' {
+                *index += 1;
+
+                Some(MmlEvent::DecreOctave)
+            } else if char == ':' {
+                *index += 1;
+
+                Some(MmlEvent::ConnectChord)
+            } else if NOTE_NAMES.contains(&char) {
+                let mml_note = get_first_mml_note(mml);
+                let mml_note_length = mml_note.len();
+
+                let note = NoteEvent::from_mml(
+                    mml_note,
+                    current_mml_octave,
+                    current_mml_velocity,
+                    current_tempo,
+                    *is_connect_chord,
+                    *index,
+                );
+
+                *is_connect_chord = false;
+                *index += mml_note_length;
+
+                Some(MmlEvent::SetNote(note))
             } else {
-                break;
+                *index += 1;
+                Some(MmlEvent::Empty)
             }
-        }
-    }
-
-    fn parse_event(
-        &self,
-        index: &mut usize,
-        current_mml_velocity: u8,
-        current_mml_octave: u8,
-        current_tempo: usize,
-        is_connect_chord: &mut bool,
-    ) -> Option<MmlEvent> {
-        match self.raw_mml.chars().nth(*index) {
-            Some(char) => {
-                let mml = &self.raw_mml.as_str()[*index..];
-
-                if char == 't' {
-                    let value = get_first_mml_value(mml);
-                    *index += value.len() + 1;
-
-                    let tempo = value.parse::<usize>().unwrap();
-
-                    Some(MmlEvent::SetTempo(tempo))
-                } else if char == 'o' {
-                    let value = get_first_mml_value(mml);
-                    *index += value.len() + 1;
-
-                    let octave = value.parse::<u8>().unwrap();
-
-                    Some(MmlEvent::SetOctave(octave))
-                } else if char == 'v' {
-                    let value = get_first_mml_value(mml);
-                    *index += value.len() + 1;
-
-                    let velocity = value.parse::<u8>().unwrap();
-
-                    Some(MmlEvent::SetVelocity(velocity))
-                } else if char == '>' {
-                    *index += 1;
-
-                    Some(MmlEvent::IncreOctave)
-                } else if char == '<' {
-                    *index += 1;
-
-                    Some(MmlEvent::DecreOctave)
-                } else if char == ':' {
-                    *index += 1;
-
-                    Some(MmlEvent::ConnectChord)
-                } else if NOTE_NAMES.contains(&char) {
-                    let mml_note = get_first_mml_note(mml);
-                    *index += mml_note.len();
-
-                    let note = NoteEvent::from_mml(
-                        mml_note,
-                        current_mml_octave,
-                        current_mml_velocity,
-                        current_tempo,
-                        *is_connect_chord,
-                        *index,
-                    );
-
-                    *is_connect_chord = false;
-                    Some(MmlEvent::SetNote(note))
-                } else {
-                    *index += 1;
-                    Some(MmlEvent::Empty)
-                }
-            },
-            None => None
-        }
+        },
+        None => None
     }
 }
 
@@ -221,7 +146,6 @@ fn get_first_mml_note(mml: &str) -> String {
     let mut is_note_extra_checked = false;
     let mut before_char = chars.next().unwrap();
     let note_name = before_char;
-    let to_match = ['&', '.', '+'];
 
     result.push(note_name);
 
@@ -237,11 +161,11 @@ fn get_first_mml_note(mml: &str) -> String {
 
         let mut is_break = true;
 
-        if char.is_digit(10) || to_match.contains(&char) {
+        if char.is_digit(10) || NOTE_EXTRAS.contains(&char) {
             is_break = false;
         }
 
-        if char == note_name && before_char == '&' {
+        if is_break && (char == note_name && before_char == '&') {
             is_break = false;
         }
 
@@ -270,3 +194,4 @@ fn get_first_mml_value(mml: &str) -> String {
 
     result
 }
+
