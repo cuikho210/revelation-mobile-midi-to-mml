@@ -5,6 +5,7 @@ import 'package:midi_to_mml/command_signals.dart';
 import 'package:midi_to_mml/components/song_options.dart';
 import 'package:midi_to_mml/components/status_bar.dart';
 import 'package:midi_to_mml/messages/types.pb.dart';
+import 'package:midi_to_mml/utils.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:midi_to_mml/components/track.dart';
 import 'package:midi_to_mml/controller.dart';
@@ -21,7 +22,10 @@ class EditSongPage extends GetView<AppController> {
 					TextButton.icon(
 						icon: const Icon(Remix.export_line),
 						label: const Text("Export"),
-						onPressed: () => {},
+						onPressed: () => SaveToTextFile(
+							fileName: controller.fileName(),
+							content: controller.exportMML(),
+						),
 					),
 				],
 			),

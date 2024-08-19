@@ -64,7 +64,8 @@ class AppController extends GetxController {
 		result += "Copy each track below to correspond to each track in the game\n\n";
 
 		for (final track in tracks) {
-			result += "${track.title}\n\n";
+			result += "${track.title}\n";
+			result += "${track.instrument.name}\n\n";
 			result += "${track.mml}\n\n";
 		}
 
