@@ -55,11 +55,31 @@ class HomePage extends StatelessWidget {
 		});
 	}
 
+	void listenUpdateMmlTracksStream(AppController controller) async {
+		SignalUpdateMmlTracks.rustSignalStream.listen((signal) {
+			controller.setTracks(signal.message.tracks);
+		});
+	}
+
+	void listenOnTrackEndStream(AppController controller) async {
+		SignalOnTrackEnd.rustSignalStream.listen((signal) {
+			if (controller.playbackStatus() == SignalPlayStatus.PLAY) {
+				controller.playingLength(controller.playingLength() - 1);
+
+				if (controller.playingLength() == 0) {
+					controller.playbackStatus(SignalPlayStatus.STOP);
+				}
+			}
+		});
+	}
+
 	@override
 	Widget build(context) {
 		final controller = Get.put(AppController());
 		listenLoadSongStream(controller);
 		listenLogMessageStream(controller);
+		listenUpdateMmlTracksStream(controller);
+		listenOnTrackEndStream(controller);
 
 		return Scaffold(
 			appBar: AppBar(

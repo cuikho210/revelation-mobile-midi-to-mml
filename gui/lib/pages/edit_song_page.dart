@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:midi_to_mml/command_signals.dart';
 import 'package:midi_to_mml/components/song_options.dart';
 import 'package:midi_to_mml/components/status_bar.dart';
-import 'package:midi_to_mml/messages/rust_to_dart.pb.dart';
 import 'package:midi_to_mml/messages/types.pb.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:midi_to_mml/components/track.dart';
@@ -15,9 +14,6 @@ class EditSongPage extends GetView<AppController> {
 
 	@override
 	Widget build(context) {
-		listenUpdateMmlTracksStream();
-		listenOnTrackEndStream();
-
 		return Scaffold(
 			appBar: AppBar(
 				title: Text(controller.fileName(), style: Theme.of(context).textTheme.titleMedium),
@@ -37,24 +33,6 @@ class EditSongPage extends GetView<AppController> {
 				StatusBar(),
 			]),
 		);
-	}
-
-	void listenUpdateMmlTracksStream() async {
-		SignalUpdateMmlTracks.rustSignalStream.listen((signal) {
-			controller.setTracks(signal.message.tracks);
-		});
-	}
-
-	void listenOnTrackEndStream() async {
-		SignalOnTrackEnd.rustSignalStream.listen((signal) {
-			if (controller.playbackStatus() == SignalPlayStatus.PLAY) {
-				controller.playingLength(controller.playingLength() - 1);
-
-				if (controller.playingLength() == 0) {
-					controller.playbackStatus(SignalPlayStatus.STOP);
-				}
-			}
-		});
 	}
 }
 
