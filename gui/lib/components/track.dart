@@ -14,6 +14,8 @@ class TrackContent extends GetView<AppController> {
 
 	@override
 	Widget build(context) {
+		final scrollController = ScrollController();
+
 		return Expanded(
 			child: Column(children: [
 				const _TrackControls(),
@@ -23,6 +25,7 @@ class TrackContent extends GetView<AppController> {
 				Expanded(
 					child: SelectionArea(child:
 						ListView(
+							controller: scrollController,
 							padding: const EdgeInsets.all(16),
 							children: [
 								Obx(() => Text(
@@ -43,8 +46,9 @@ class TrackContent extends GetView<AppController> {
 									final track = controller.currentTrack();
 
 									return _HighlightedText(
-										track?.mml ?? '',
-										track?.index ?? 0,
+										text: track?.mml ?? '',
+										trackIndex: track?.index ?? 0,
+										scrollController: scrollController,
 									);
 								}),
 							],
@@ -167,15 +171,19 @@ class _TrackControls extends GetView<AppController> {
 class _HighlightedText extends StatefulWidget {
 	final String text;
 	final int trackIndex;
+	final ScrollController scrollController;
 
-	const _HighlightedText(this.text, this.trackIndex);
+	const _HighlightedText({
+		required this.text,
+		required this.trackIndex,
+		required this.scrollController,
+	});
 
 	@override
 	createState() => _HighlightedTextState();
 }
 
 class _HighlightedTextState extends State<_HighlightedText> {
-	int charLength = 0;
 	int charIndex = 0;
 	int charEnd = 0;
 
@@ -186,7 +194,7 @@ class _HighlightedTextState extends State<_HighlightedText> {
 
 			if (widget.trackIndex == signalTrackIndex && mounted) {
 				setState(() {
-					charLength = signal.message.charLength.toInt();
+					final charLength = signal.message.charLength.toInt();
 					charIndex = signalCharIndex;
 					charEnd = charIndex + charLength + 1;
 				});
@@ -194,10 +202,52 @@ class _HighlightedTextState extends State<_HighlightedText> {
 		});
 	}
 
+	void scrollToHighlight(BuildContext context) {
+		final textSpan = TextSpan(
+			text: widget.text,
+			style: Theme.of(context).textTheme.bodyMedium,
+		);
+
+		final textPainter = TextPainter(
+			text: textSpan,
+			textAlign: TextAlign.left,
+			textDirection: TextDirection.ltr,
+		);
+
+		textPainter.layout(
+			minWidth: 0,
+			maxWidth: MediaQuery.of(context).size.width - 32.0,
+		);
+
+		final highlightedWordOffset = textPainter.getOffsetForCaret(
+			TextPosition(offset: charEnd),
+			Rect.zero,
+		);
+
+		widget.scrollController.animateTo(
+			highlightedWordOffset.dy,
+			duration: const Duration(milliseconds: 200),
+			curve: Curves.linear,
+		);
+	}
+
+	@override
+	void initState() {
+		super.initState();
+		listenNoteOnEventStream();
+	}
+
+	@override
+	void didUpdateWidget(covariant _HighlightedText oldWidget) {
+		super.didUpdateWidget(oldWidget);
+		setState(() {
+			charIndex = 0;
+			charEnd = 0;
+		});
+	}
+
 	@override
 	build(context) {
-		listenNoteOnEventStream();
-
 		String textBefore = '';
 		String textCurrent = '';
 		String textAfter = '';
@@ -210,27 +260,27 @@ class _HighlightedTextState extends State<_HighlightedText> {
 			textAfter = widget.text;
 		}
 
-		return SizedBox(child: Text.rich(TextSpan(children: [
-			TextSpan(
-				text: textBefore,
-				style: TextStyle(
-					color: Theme.of(context).colorScheme.onSurface,
+		if (textBefore.isNotEmpty) {
+			scrollToHighlight(context);
+		}
+
+		return SizedBox(
+			child: Text.rich(
+				TextSpan(
+					children: [
+						TextSpan(text: textBefore),
+						TextSpan(
+							text: textCurrent,
+							style: TextStyle(
+								color: Theme.of(context).colorScheme.onPrimary,
+								backgroundColor: Theme.of(context).colorScheme.primary,
+							),
+						),
+						TextSpan(text: textAfter),
+					],
 				),
 			),
-			TextSpan(
-				text: textCurrent,
-				style: TextStyle(
-					color: Theme.of(context).colorScheme.onPrimary,
-					backgroundColor: Theme.of(context).colorScheme.primary,
-				),
-			),
-			TextSpan(
-				text: textAfter,
-				style: TextStyle(
-					color: Theme.of(context).colorScheme.onSurface,
-				),
-			),
-		])));
+		);
 	}
 }
 
