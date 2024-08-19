@@ -60,6 +60,6 @@ msix_config:
   publisher_display_name: cuikho210
   publisher: CN=686422A7-5A4A-4633-BAB3-4CB07D6870A6
   identity_name: cuikho210.MIDItoMML
-  msix_version: 0.0.1.0
+  msix_version: 1.1.0.0
   logo_path: windows/runner/resources/app_icon.png
   msstore_appId: 9NWBRMHF4TLH
