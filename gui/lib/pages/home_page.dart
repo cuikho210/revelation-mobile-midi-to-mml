@@ -132,7 +132,7 @@ class HomePage extends StatelessWidget {
 										icon: const Icon(Remix.hand_heart_line),
 										label: const Text("Donate"),
 										onPressed: () {
-											final uri = Uri.parse("https://github.com/cuikho210/revelation-mobile-midi-to-mml/blob/main/README/DONATE.md");
+											final uri = Uri.parse("https://github.com/cuikho210/revelation-mobile-midi-to-mml?tab=readme-ov-file#donate");
 											launchUrl(uri);
 										},
 									)

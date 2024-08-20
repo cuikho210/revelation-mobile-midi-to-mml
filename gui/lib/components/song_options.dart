@@ -4,6 +4,7 @@ import 'package:midi_to_mml/controller.dart';
 import 'package:midi_to_mml/command_signals.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:gap/gap.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SongOptions extends GetView<AppController> {
 	const SongOptions({ super.key });
@@ -37,6 +38,18 @@ class SongOptions extends GetView<AppController> {
 				)),
 
 				Expanded(child: ListView(children: [
+					Padding(
+						padding: const EdgeInsets.all(16),
+						child: OutlinedButton.icon(
+							onPressed: () {
+								final uri = Uri.parse("https://github.com/cuikho210/revelation-mobile-midi-to-mml?tab=readme-ov-file#song-options-guide");
+								launchUrl(uri);
+							},
+							label: const Text("Open Guide"),
+							icon: const Icon(Remix.question_line),
+						),
+					),
+	
 					Obx(() => CheckboxListTile(
 						title: const Text("Auto boot velocity"),
 						value: controller.songOptions().autoBootVelocity,

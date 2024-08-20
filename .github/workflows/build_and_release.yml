@@ -1,13 +1,13 @@
 name: Build and release
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*"
 
 jobs:
-  build:
+  build-android:
     runs-on: windows-latest
-    permissions: write-all
     defaults:
       run:
         working-directory: ./gui
@@ -31,26 +31,6 @@ jobs:
         run: cargo install rinf
       - name: Generate message code
         run: rinf message
-
-      # - name: Install flutter_distributor
-      #   run: dart pub global activate flutter_distributor
-      # - name: Build releases
-      #   run: flutter_distributor release --name default
-
-      # -------------------------
-      # Windows
-      # -------------------------
-
-      - name: Setup Microsoft Store Developer CLI
-        uses: microsoft/setup-msstore-cli@v1
-      - name: Configure Microsoft Store Developer CLI
-        run: msstore reconfigure --tenantId ${{ secrets.PARTNER_CENTER_TENANT_ID }} --sellerId ${{ secrets.PARTNER_CENTER_SELLER_ID }} --clientId ${{ secrets.PARTNER_CENTER_CLIENT_ID }} --clientSecret ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
-
-      - name: Build release for windows
-        run: msstore package
-
-      - name: Create microsoft store submission
-        run: msstore publish
 
       # -------------------------
       # Android
@@ -79,14 +59,39 @@ jobs:
           track: alpha
           status: completed
 
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./gui
+    steps:
       # -------------------------
-      # Release
+      # Setup
+      # -------------------------
+      
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Install rinf
+        run: cargo install rinf
+      - name: Generate message code
+        run: rinf message
+
+      # -------------------------
+      # Windows
       # -------------------------
 
-      - name: Release to artifacts
-        uses: ncipollo/release-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "gui/build/windows/x64/runner/Release/*,gui/build/app/outputs/bundle/release/app-release.aab"
-          generateReleaseNotes: true
-          artifactErrorsFailBuild: true
+      - name: Setup Microsoft Store Developer CLI
+        uses: microsoft/setup-msstore-cli@v1
+      - name: Configure Microsoft Store Developer CLI
+        run: msstore reconfigure --tenantId ${{ secrets.PARTNER_CENTER_TENANT_ID }} --sellerId ${{ secrets.PARTNER_CENTER_SELLER_ID }} --clientId ${{ secrets.PARTNER_CENTER_CLIENT_ID }} --clientSecret ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
+
+      - name: Build release for windows
+        run: msstore package
+
+      - name: Create microsoft store submission
+        run: msstore publish
+
