@@ -84,7 +84,7 @@ jobs:
       # -------------------------
       
       - name: Create microsoft store submission
-        run: msstore publish -i gui/dist
+        run: msstore publish -i ./dist
 
       # -------------------------
       # Release on github
