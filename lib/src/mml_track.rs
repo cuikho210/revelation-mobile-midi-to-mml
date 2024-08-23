@@ -80,23 +80,24 @@ impl MmlTrack {
         mml
     }
 
-    pub fn to_mml_debug(&self) -> String {
-        let mut mml = String::new();
-        let mut notes_on_row: usize = 0;
-
-        for event in self.events.iter() {
-            let current_mml = &event.to_mml_debug(self.song_options.smallest_unit);
-            mml.push_str(&current_mml);
-
-            notes_on_row += event.get_duration();
-            if notes_on_row >= 64 {
-                notes_on_row = 0;
-                mml.push('\n');
-            }
-        }
-
-        mml
-    }
+    // TODO: Whitespace causes error in mobile disclosure
+    // pub fn to_mml_debug(&self) -> String {
+    //     let mut mml = String::new();
+    //     let mut notes_on_row: usize = 0;
+    //
+    //     for event in self.events.iter() {
+    //         let current_mml = &event.to_mml_debug(self.song_options.smallest_unit);
+    //         mml.push_str(&current_mml);
+    //
+    //         notes_on_row += event.get_duration();
+    //         if notes_on_row >= 64 {
+    //             notes_on_row = 0;
+    //             mml.push('\n');
+    //         }
+    //     }
+    //
+    //     mml
+    // }
 
     pub fn apply_boot_velocity(&mut self, velocity_diff: u8) {
         if velocity_diff > 0 {

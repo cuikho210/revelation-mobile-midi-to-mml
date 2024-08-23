@@ -30,7 +30,7 @@ pub fn mml_song_tracks_to_signal(tracks: &Vec<MmlTrack>) -> Vec<SignalMmlTrack> 
             index: index as u32,
             name: track.name.to_owned(),
             instrument: Some(instrument),
-            mml: track.to_mml_debug(),
+            mml: track.to_mml(),
             mml_note_length: track.mml_note_length as u64,
         });
     }
