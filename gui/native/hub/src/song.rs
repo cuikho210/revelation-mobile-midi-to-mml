@@ -61,7 +61,7 @@ impl SongState {
     pub fn update_list_track_mml(&mut self) -> Result<(), String> {
         if let Some(song) = self.song.as_ref() {
             let list_track_mml = song.tracks.iter().map(|track| {
-                let mml = track.to_mml_debug();
+                let mml = track.to_mml();
                 let instrument = track.instrument.to_owned();
 
                 (mml, instrument)

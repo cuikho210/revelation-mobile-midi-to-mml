@@ -133,29 +133,30 @@ impl MmlEvent {
         }
     }
 
-    pub fn to_mml_debug(&self, smallest_unit: usize) -> String {
-        match self {
-            Self::ConnectChord => String::from(":"),
-            Self::IncreOctave => String::from(">"),
-            Self::DecreOctave => String::from("<"),
-            Self::Tempo(tempo) => format!("\nt{tempo}\n"),
-            Self::Octave(octave) => format!(" o{octave} "),
-            Self::Note(note) => {
-                format!(
-                    "{} ",
-                    utils::get_display_mml(note.duration_in_smallest_unit, &note.pitch_class, smallest_unit)
-                )
-            }
-            Self::Rest(rest) => {
-                format!(
-                    "{} ",
-                    utils::get_display_mml(rest.to_owned().into(), &PitchClass::Rest, smallest_unit)
-                )
-            },
-            Self::Velocity(vel) => format!(" v{} ", vel),
-            Self::NoteLength(length) => format!(" l{} ", length),
-        }
-    }
+    // TODO: Whitespace causes error in mobile disclosure
+    // pub fn to_mml_debug(&self, smallest_unit: usize) -> String {
+    //     match self {
+    //         Self::ConnectChord => String::from(":"),
+    //         Self::IncreOctave => String::from(">"),
+    //         Self::DecreOctave => String::from("<"),
+    //         Self::Tempo(tempo) => format!("\nt{tempo}\n"),
+    //         Self::Octave(octave) => format!(" o{octave} "),
+    //         Self::Note(note) => {
+    //             format!(
+    //                 "{} ",
+    //                 utils::get_display_mml(note.duration_in_smallest_unit, &note.pitch_class, smallest_unit)
+    //             )
+    //         }
+    //         Self::Rest(rest) => {
+    //             format!(
+    //                 "{} ",
+    //                 utils::get_display_mml(rest.to_owned().into(), &PitchClass::Rest, smallest_unit)
+    //             )
+    //         },
+    //         Self::Velocity(vel) => format!(" v{} ", vel),
+    //         Self::NoteLength(length) => format!(" l{} ", length),
+    //     }
+    // }
 
     /// Get duration in smallest unit
     pub fn get_duration(&self) -> usize {
