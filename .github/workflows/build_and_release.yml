@@ -70,14 +70,14 @@ jobs:
       # Publish android
       # -------------------------
 
-      - name: Publish to play store
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          packageName: com.mtlkms.revelation_mobile_midi_to_mml
-          releaseFiles: gui/build/app/outputs/bundle/release/app-release.aab
-          track: alpha
-          status: completed
+      # - name: Publish to play store
+      #   uses: r0adkll/upload-google-play@v1
+      #   with:
+      #     serviceAccountJsonPlainText: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      #     packageName: com.mtlkms.revelation_mobile_midi_to_mml
+      #     releaseFiles: gui/build/app/outputs/bundle/release/app-release.aab
+      #     track: alpha
+      #     status: completed
 
       # -------------------------
       # Publish windows
