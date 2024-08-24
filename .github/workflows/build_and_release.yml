@@ -119,6 +119,7 @@ jobs:
 
   github-release:
     runs-on: windows-latest
+    permissions: write-all
     defaults:
       run:
         working-directory: ./gui
