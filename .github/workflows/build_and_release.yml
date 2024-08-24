@@ -6,7 +6,7 @@ on:
       - "v*"
 
 jobs:
-  release:
+  publish-android:
     runs-on: windows-latest
     defaults:
       run:
@@ -17,11 +17,13 @@ jobs:
       # -------------------------
       
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: "zulu"
           java-version: "17"
           cache: "gradle"
+
       - uses: subosito/flutter-action@v2
         with:
           channel: "stable"
@@ -29,6 +31,118 @@ jobs:
 
       - name: Install rinf
         run: cargo install rinf
+
+      - name: Generate message code
+        run: rinf message
+
+      # -------------------------
+      # Setup android
+      # -------------------------
+
+      - name: Create upload keystore file
+        run: |
+          $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
+          [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
+
+      - name: Create key.properties file
+        run: |
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
+          echo "keyPassword=${{ secrets.KEYSTORE_PASSWORD }}" >> ./android/key.properties
+          echo "keyAlias=upload" >> ./android/key.properties
+          echo "storeFile=D:/keystore.jks" >> ./android/key.properties
+      
+      # -------------------------
+      # Build android
+      # -------------------------
+      
+      - name: Build release for android
+        run: flutter build appbundle --release
+
+      # -------------------------
+      # Publish android
+      # -------------------------
+
+      - name: Publish to play store
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          packageName: com.mtlkms.revelation_mobile_midi_to_mml
+          releaseFiles: gui/build/app/outputs/bundle/release/app-release.aab
+          track: alpha
+          status: completed
+
+  publish-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./gui
+    steps:
+      # -------------------------
+      # Setup
+      # -------------------------
+      
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Install rinf
+        run: cargo install rinf
+
+      - name: Generate message code
+        run: rinf message
+
+      # -------------------------
+      # Setup windows
+      # -------------------------
+
+      - name: Setup Microsoft Store Developer CLI
+        uses: microsoft/setup-msstore-cli@v1
+      - name: Configure Microsoft Store Developer CLI
+        run: msstore reconfigure --tenantId ${{ secrets.PARTNER_CENTER_TENANT_ID }} --sellerId ${{ secrets.PARTNER_CENTER_SELLER_ID }} --clientId ${{ secrets.PARTNER_CENTER_CLIENT_ID }} --clientSecret ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
+
+      # -------------------------
+      # Build windows
+      # -------------------------
+      
+      - name: Package windows
+        run: msstore package
+
+      # -------------------------
+      # Publish windows
+      # -------------------------
+      
+      - name: Create microsoft store submission
+        run: msstore publish
+
+  github-release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./gui
+    steps:
+      # -------------------------
+      # Setup
+      # -------------------------
+      
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+          cache: "gradle"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Install rinf
+        run: cargo install rinf
+
       - name: Generate message code
         run: rinf message
 
@@ -43,6 +157,7 @@ jobs:
         run: |
           $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
           [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
+
       - name: Create key.properties file
         run: |
           echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
@@ -51,42 +166,11 @@ jobs:
           echo "storeFile=D:/keystore.jks" >> ./android/key.properties
       
       # -------------------------
-      # Setup windows
-      # -------------------------
-
-      - name: Setup Microsoft Store Developer CLI
-        uses: microsoft/setup-msstore-cli@v1
-      - name: Configure Microsoft Store Developer CLI
-        run: msstore reconfigure --tenantId ${{ secrets.PARTNER_CENTER_TENANT_ID }} --sellerId ${{ secrets.PARTNER_CENTER_SELLER_ID }} --clientId ${{ secrets.PARTNER_CENTER_CLIENT_ID }} --clientSecret ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
-
-      # -------------------------
       # Build
       # -------------------------
 
       - name: Build releases
         run: flutter_distributor release --name default
-
-      # -------------------------
-      # Publish android
-      # -------------------------
-
-      # - name: Publish to play store
-      #   uses: r0adkll/upload-google-play@v1
-      #   with:
-      #     serviceAccountJsonPlainText: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-      #     packageName: com.mtlkms.revelation_mobile_midi_to_mml
-      #     releaseFiles: gui/build/app/outputs/bundle/release/app-release.aab
-      #     track: alpha
-      #     status: completed
-
-      # -------------------------
-      # Publish windows
-      # -------------------------
-      
-      - name: Create microsoft store submission
-        run: |
-          msstore package
-          msstore publish
 
       # -------------------------
       # Release on github
