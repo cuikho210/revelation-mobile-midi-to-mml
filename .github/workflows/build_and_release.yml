@@ -17,11 +17,11 @@ jobs:
       # -------------------------
       
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: "zulu"
-          java-version: "17"
-          cache: "gradle"
+      # - uses: actions/setup-java@v4
+      #   with:
+      #     distribution: "zulu"
+      #     java-version: "17"
+      #     cache: "gradle"
       - uses: subosito/flutter-action@v2
         with:
           channel: "stable"
@@ -39,16 +39,16 @@ jobs:
       # Setup android
       # -------------------------
 
-      - name: Create upload keystore file
-        run: |
-          $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
-          [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
-      - name: Create key.properties file
-        run: |
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
-          echo "keyPassword=${{ secrets.KEYSTORE_PASSWORD }}" >> ./android/key.properties
-          echo "keyAlias=upload" >> ./android/key.properties
-          echo "storeFile=D:/keystore.jks" >> ./android/key.properties
+      # - name: Create upload keystore file
+      #   run: |
+      #     $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
+      #     [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
+      # - name: Create key.properties file
+      #   run: |
+      #     echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
+      #     echo "keyPassword=${{ secrets.KEYSTORE_PASSWORD }}" >> ./android/key.properties
+      #     echo "keyAlias=upload" >> ./android/key.properties
+      #     echo "storeFile=D:/keystore.jks" >> ./android/key.properties
       
       # -------------------------
       # Setup windows
@@ -84,17 +84,17 @@ jobs:
       # -------------------------
       
       - name: Create microsoft store submission
-        run: msstore publish -i ./dist
+        run: msstore publish
 
       # -------------------------
       # Release on github
       # -------------------------
       
-      - name: Github release
-        uses: ncipollo/release-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: gui/dist/*/*
-          generateReleaseNotes: true
-          artifactErrorsFailBuild: true
+      # - name: Github release
+      #   uses: ncipollo/release-action@v1
+      #   with:
+      #     token: ${{ secrets.GITHUB_TOKEN }}
+      #     artifacts: gui/dist/*/*
+      #     generateReleaseNotes: true
+      #     artifactErrorsFailBuild: true
 
