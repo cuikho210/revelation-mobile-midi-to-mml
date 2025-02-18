@@ -1,7 +1,29 @@
 #!/usr/bin/bash
 
-MODEL="Qwen/Qwen2.5-Coder-32B-Instruct"
-API_URL="https://api-inference.huggingface.co/models/$MODEL/v1/chat/completions"
+provider="huggingface"
+
+# Parse command line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -p|--provider) provider="$2"; shift ;;
+        *) echo "Unknown parameter: $1"; exit 1 ;;
+    esac
+    shift
+done
+
+# Provider-specific configs
+if [ "$provider" = "huggingface" ]; then
+    MODEL="Qwen/Qwen2.5-Coder-32B-Instruct"
+    API_URL="https://api-inference.huggingface.co/models/$MODEL/v1/chat/completions"
+    AUTH_HEADER="Authorization: Bearer $HF_TOKEN"
+elif [ "$provider" = "openai" ]; then
+    MODEL="o3-mini"
+    API_URL="https://api.openai.com/v1/chat/completions"
+    AUTH_HEADER="Authorization: Bearer $OPENAI_API_KEY"
+else
+    echo "Invalid provider. Use 'huggingface' or 'openai'"
+    exit 1
+fi
 
 git_diff=$(git diff --cached | tr -d '\000-\037' | jq -Rs .)
 
@@ -67,7 +89,7 @@ function get_commit_message() {
     response=$(
         curl -s "$API_URL" \
         -X "POST" \
-        -H "Authorization: Bearer $HF_TOKEN" \
+        -H "$AUTH_HEADER" \
         -H "Content-Type: application/json" \
         -H "x-use-cache: false" \
         -d "{
@@ -81,11 +103,7 @@ function get_commit_message() {
                     \"role\": \"user\",
                     \"content\": ${git_diff}
                 }
-            ],
-            \"temperature\": 0.5,
-            \"max_tokens\": 2048,
-            \"top_p\": 0.7,
-            \"stream\": false
+            ]
         }"
     )
 
@@ -93,12 +111,6 @@ function get_commit_message() {
 
     if [ -z "$commit_message" ] || [ "$commit_message" = "null" ]; then
         echo "Error: Empty or null commit message. Full response:" >&2
-        echo "$response" >&2
-        exit 1
-    fi
-
-    if [ $? -ne 0 ]; then
-        echo "Error parsing response with jq. Full response:" >&2
         echo "$response" >&2
         exit 1
     fi
