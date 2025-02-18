@@ -52,8 +52,8 @@ impl OxisynthWrapper {
     {
         let mut cursor = Cursor::new(bytes);
 
-        let font =
-            SoundFont::load(&mut cursor).map_err(|_| anyhow!("Cannot load soundfont from bytes"));
+        let font = SoundFont::load(&mut cursor)
+            .map_err(|_| anyhow!("Cannot load soundfont from bytes"))?;
 
         self.synth.add_font(font, false);
 

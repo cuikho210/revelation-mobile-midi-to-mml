@@ -21,7 +21,6 @@ pub struct TrackPlayer {
     note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>,
     track_end_callback: Option<Arc<fn(usize)>>,
 }
-
 impl TrackPlayer {
     pub fn from_parser(
         index: usize,

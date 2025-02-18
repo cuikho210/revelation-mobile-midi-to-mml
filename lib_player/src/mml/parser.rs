@@ -1,5 +1,7 @@
-use crate::{mml_event::MmlEvent, note_event::NoteEvent};
+use crate::NoteEvent;
 use anyhow::{Context, Result};
+
+use super::event::MmlEvent;
 
 const NOTE_NAMES: [char; 8] = ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'r'];
 const NOTE_EXTRAS: [char; 3] = ['&', '.', '+'];

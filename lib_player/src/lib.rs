@@ -1,10 +1,8 @@
-mod synth;
-mod parser;
-mod note_event;
-mod mml_event;
-mod utils;
+mod audio;
+mod midi;
+mod mml;
 mod mml_player;
-mod track_player;
+mod utils;
 
 // https://github.com/fzyzcjy/flutter_rust_bridge/pull/1335/files
 #[cfg(target_os = "android")]
@@ -19,14 +17,10 @@ pub extern "C" fn JNI_OnLoad(vm: jni::JavaVM, res: *mut std::os::raw::c_void) ->
     jni::JNIVersion::V6.into()
 }
 
-pub use synth::Synth;
-pub use synth::SynthOutputConnection;
-
-pub use mml_player::MmlPlayer;
-pub use mml_player::MmlPlayerOptions;
-pub use mml_player::NoteOnCallbackData;
-pub use mml_player::PlaybackStatus;
-
-pub use note_event::NoteEvent;
-pub use parser::Parser;
-pub use track_player::TrackPlayer;
+pub use audio::{
+    player::TrackPlayer,
+    synth::{Synth, SynthOutputConnection},
+};
+pub use midi::event::NoteEvent;
+pub use mml::parser::Parser;
+pub use mml_player::{MmlPlayer, MmlPlayerOptions, NoteOnCallbackData, PlaybackStatus};
