@@ -86,6 +86,12 @@ pub struct Synth {
     pub synth: Arc<Mutex<OxisynthWrapper>>,
 }
 
+impl Default for Synth {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Synth {
     pub fn new() -> Self {
         let host = cpal::default_host();
@@ -216,7 +222,9 @@ impl Synth {
 
         let channels = config.channels as usize;
 
-        let stream = self
+        
+
+        self
             .device
             .build_output_stream(
                 &self.config.to_owned().into(),
@@ -236,9 +244,7 @@ impl Synth {
                 },
                 err_fn,
                 None,
-            ).unwrap();
-
-        stream
+            ).unwrap()
     }
 }
 

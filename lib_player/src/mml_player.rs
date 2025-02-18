@@ -1,10 +1,12 @@
-use std::{
-    path::{PathBuf, Path}, sync::{Arc, Mutex, RwLock},
-    thread::{self, JoinHandle}, time::{Duration, Instant},
-};
-use cpal::{Stream, traits::StreamTrait};
-use revelation_mobile_midi_to_mml::{Instrument, MmlSong};
 use crate::{Parser, Synth, SynthOutputConnection, TrackPlayer};
+use cpal::{traits::StreamTrait, Stream};
+use revelation_mobile_midi_to_mml::{Instrument, MmlSong};
+use std::{
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex, RwLock},
+    thread::{self, JoinHandle},
+    time::{Duration, Instant},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlaybackStatus {
@@ -46,11 +48,13 @@ impl MmlPlayer {
         let time = Instant::now();
 
         let mut synth = Synth::new();
-        synth.load_soundfont_from_file_parallel(options.soundfont_path).unwrap();
+        synth
+            .load_soundfont_from_file_parallel(options.soundfont_path)
+            .unwrap();
         let (stream, connection) = synth.new_stream();
 
         log_initialize_synth(time.elapsed());
-        
+
         Self {
             synth,
             stream: CpalStreamWrapper { stream },
@@ -63,9 +67,11 @@ impl MmlPlayer {
     }
 
     pub fn from_song(song: &MmlSong, options: MmlPlayerOptions) -> Self {
-        let mmls: Vec<(String, Instrument)> = song.tracks.iter().map::<(String, Instrument), _>(|track| {
-            (track.to_mml(), track.instrument.to_owned())
-        }).collect();
+        let mmls: Vec<(String, Instrument)> = song
+            .tracks
+            .iter()
+            .map::<(String, Instrument), _>(|track| (track.to_mml(), track.instrument.to_owned()))
+            .collect();
 
         Self::from_mmls(mmls, options)
     }
@@ -95,13 +101,7 @@ impl MmlPlayer {
             let handle = thread::spawn::<_, TrackPlayer>(move || {
                 let parser = Parser::parse(index, mml.0);
 
-                TrackPlayer::from_parser(
-                    index,
-                    parser,
-                    playback_status,
-                    mml.1,
-                    conn,
-                )
+                TrackPlayer::from_parser(index, parser, playback_status, mml.1, conn)
             });
             handles.push(handle);
         }
@@ -130,8 +130,7 @@ impl MmlPlayer {
         let time_start = self.get_time_start();
         self.time_start = Some(time_start);
 
-        let mut index = 0;
-        for track in self.tracks.iter() {
+        for (index, track) in self.tracks.iter().enumerate() {
             let parsed = track.clone();
             let note_on_callback = note_on_callback.clone();
             let track_end_callback = track_end_callback.clone();
@@ -144,9 +143,8 @@ impl MmlPlayer {
                     } else {
                         eprintln!("[mml_player.play] Cannot lock Parsed track");
                     }
-                }).unwrap();
-
-            index += 1;
+                })
+                .unwrap();
         }
     }
 
@@ -172,19 +170,25 @@ impl MmlPlayer {
     }
 
     pub fn load_soundfont_from_bytes<B>(&mut self, bytes: B) -> Result<(), String>
-        where B: AsRef<[u8]>,
+    where
+        B: AsRef<[u8]>,
     {
         self.synth.load_soundfont_from_bytes(bytes)
     }
 
-    pub fn load_soundfont_from_bytes_parallel<B>(&mut self, list_bytes: Vec<B>) -> Result<(), String>
-        where B: AsRef<[u8]> + Sync + Send + Clone + 'static,
+    pub fn load_soundfont_from_bytes_parallel<B>(
+        &mut self,
+        list_bytes: Vec<B>,
+    ) -> Result<(), String>
+    where
+        B: AsRef<[u8]> + Sync + Send + Clone + 'static,
     {
         self.synth.load_soundfont_from_bytes_parallel(list_bytes)
     }
 
     pub fn load_soundfont_from_file_parallel<P>(&mut self, paths: Vec<P>) -> Result<(), String>
-        where P: AsRef<Path> + Sync + Send + Clone + 'static,
+    where
+        P: AsRef<Path> + Sync + Send + Clone + 'static,
     {
         self.synth.load_soundfont_from_file_parallel(paths)
     }
@@ -209,5 +213,10 @@ fn log_initialize_synth(duration: Duration) {
 }
 
 fn log_parse_mmls(duration: Duration, track_length: usize, char_length: usize) {
-    println!("Parsed {} tracks, {} chars in {}ms", track_length, char_length, duration.as_millis());
+    println!(
+        "Parsed {} tracks, {} chars in {}ms",
+        track_length,
+        char_length,
+        duration.as_millis()
+    );
 }

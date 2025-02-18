@@ -1,16 +1,10 @@
-use crate::{
-    Parser, PlaybackStatus,
-    SynthOutputConnection,
-    NoteOnCallbackData,
-    NoteEvent,
-    utils,
-};
+use crate::{utils, NoteEvent, NoteOnCallbackData, Parser, PlaybackStatus, SynthOutputConnection};
+use revelation_mobile_midi_to_mml::Instrument;
 use std::{
     sync::{Arc, RwLock},
-    time::{Instant, Duration},
     thread::sleep,
+    time::{Duration, Instant},
 };
-use revelation_mobile_midi_to_mml::Instrument;
 
 pub struct TrackPlayer {
     pub index: usize,
@@ -35,11 +29,7 @@ impl TrackPlayer {
         instrument: Instrument,
         mut connection: SynthOutputConnection,
     ) -> Self {
-
-        connection.program_change(
-            instrument.midi_channel,
-            instrument.instrument_id,
-        );
+        connection.program_change(instrument.midi_channel, instrument.instrument_id);
 
         Self {
             index,
@@ -66,7 +56,7 @@ impl TrackPlayer {
         self.track_end_callback = track_end_callback;
         self.play_notes_linear(time_start);
     }
-    
+
     fn reset_state(&mut self) {
         self.current_note_index = 0;
         self.absolute_duration = 0;
@@ -75,9 +65,7 @@ impl TrackPlayer {
     }
 
     fn stop_all_notes(&mut self) {
-        self.connection.all_notes_off(
-            self.instrument.midi_channel
-        );
+        self.connection.all_notes_off(self.instrument.midi_channel);
     }
 
     fn handle_playback_status(&mut self) -> PlaybackStatus {
@@ -87,7 +75,6 @@ impl TrackPlayer {
             if *guard != PlaybackStatus::PLAY {
                 if *guard == PlaybackStatus::PAUSE {
                     return PlaybackStatus::PAUSE;
-
                 } else {
                     self.reset_state();
                     self.stop_all_notes();
@@ -111,7 +98,11 @@ impl TrackPlayer {
             }
 
             let remaining = duration - elapsed;
-            let sleep_duration = if remaining > time_loop { time_loop } else { remaining };
+            let sleep_duration = if remaining > time_loop {
+                time_loop
+            } else {
+                remaining
+            };
 
             let status = self.handle_playback_status();
             if status != PlaybackStatus::PLAY {
@@ -136,7 +127,7 @@ impl TrackPlayer {
 
             if note.is_connected_to_prev_note {
                 if let Some(before_note) = self.note_before.as_ref() {
-                    if self.current_chord.len() == 0 {
+                    if self.current_chord.is_empty() {
                         self.current_chord.push(before_note.to_owned());
                     }
                 }
@@ -148,18 +139,25 @@ impl TrackPlayer {
             let correct_duration = time_start.elapsed().as_millis() as isize;
             let duration_diff = correct_duration - self.absolute_duration;
 
-            if self.current_chord.len() > 0 {
+            if !self.current_chord.is_empty() {
                 let chord_duration = utils::get_longest_note_duration(&self.current_chord);
                 let duration = chord_duration - duration_diff;
 
                 if duration <= 0 {
-                    println!("[track_player.play_notes_linear] skip by duration is {} ms", duration);
+                    println!(
+                        "[track_player.play_notes_linear] skip by duration is {} ms",
+                        duration
+                    );
                     continue;
                 }
 
                 let duration = Duration::from_millis(duration as u64);
 
-                send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index);
+                send_note_on_event_from_chord(
+                    &self.note_on_callback,
+                    &self.current_chord,
+                    self.index,
+                );
 
                 let sleep_duration = utils::play_chord(
                     connection.to_owned(),
@@ -188,7 +186,10 @@ impl TrackPlayer {
                 let duration = note_duration - duration_diff;
 
                 if duration <= 0 {
-                    println!("[track_player.play_notes_linear] skip by duration is {} ms", duration);
+                    println!(
+                        "[track_player.play_notes_linear] skip by duration is {} ms",
+                        duration
+                    );
                     continue;
                 }
 
@@ -219,7 +220,7 @@ impl TrackPlayer {
             continue;
         }
 
-        if self.current_chord.len() > 0 {
+        if !self.current_chord.is_empty() {
             send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index);
 
             let sleep_duration = utils::play_chord(
@@ -239,11 +240,11 @@ impl TrackPlayer {
         }
 
         if let Some(before_note) = self.note_before.as_ref() {
-            send_note_on_event_from_note(&self.note_on_callback, &before_note, self.index);
+            send_note_on_event_from_note(&self.note_on_callback, before_note, self.index);
 
             let sleep_duration = utils::play_note(
                 connection.to_owned(),
-                &before_note,
+                before_note,
                 self.instrument.midi_channel,
                 None,
             );
@@ -264,10 +265,13 @@ impl TrackPlayer {
             callback(self.index);
         }
     }
-
 }
 
-fn send_note_on_event_from_note(note_on_tx: &Option<Arc<fn(NoteOnCallbackData)>>, note: &NoteEvent, track_index: usize) {
+fn send_note_on_event_from_note(
+    note_on_tx: &Option<Arc<fn(NoteOnCallbackData)>>,
+    note: &NoteEvent,
+    track_index: usize,
+) {
     if let Some(callback) = note_on_tx {
         callback(NoteOnCallbackData {
             track_index,
@@ -279,7 +283,7 @@ fn send_note_on_event_from_note(note_on_tx: &Option<Arc<fn(NoteOnCallbackData)>>
 
 fn send_note_on_event_from_chord(
     note_on_callback: &Option<Arc<fn(NoteOnCallbackData)>>,
-    chord: &Vec<NoteEvent>,
+    chord: &[NoteEvent],
     track_index: usize,
 ) {
     if let Some(callback) = note_on_callback {
@@ -297,4 +301,3 @@ fn send_note_on_event_from_chord(
         });
     }
 }
-

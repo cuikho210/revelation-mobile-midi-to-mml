@@ -1,5 +1,5 @@
+use crate::{NoteEvent, SynthOutputConnection};
 use std::time::Duration;
-use crate::{SynthOutputConnection, NoteEvent};
 
 const SMALLEST_UNIT: usize = 256;
 
@@ -10,10 +10,10 @@ pub fn mml_velocity_to_midi_velocity(mml_velocity: u8) -> u8 {
 
 pub fn mml_to_midi_key(mml: &str, octave: u8) -> Option<u8> {
     let mml = mml.to_lowercase();
-    let mut chars = mml.chars();
+    let chars = mml.chars();
     let mut midi_key: i8 = -1;
 
-    while let Some(char) = chars.next() {
+    for char in chars {
         match char {
             'c' => midi_key = 12,
             'd' => midi_key = 14,
@@ -61,7 +61,7 @@ pub fn mml_duration_to_duration_in_smallest_unit(mml_duration: &str) -> usize {
 
     let mml_duration = mml.parse::<usize>().unwrap();
     let mut result = SMALLEST_UNIT / mml_duration;
-    
+
     if is_has_a_dot {
         result += result / 2;
     }
@@ -82,8 +82,9 @@ pub fn play_note(
     mut connection: SynthOutputConnection,
     note: &NoteEvent,
     channel: u8,
-    duration: Option<Duration>
+    duration: Option<Duration>,
 ) -> Duration {
+    println!("Play note {}", note.raw_mml);
     let duration = match duration {
         Some(value) => value,
         None => Duration::from_millis(note.duration_in_ms as u64),
@@ -96,21 +97,13 @@ pub fn play_note(
     duration
 }
 
-pub fn stop_note(
-    mut connection: SynthOutputConnection,
-    note: &NoteEvent,
-    channel: u8,
-) {
+pub fn stop_note(mut connection: SynthOutputConnection, note: &NoteEvent, channel: u8) {
     if let Some(key) = note.midi_key {
         connection.note_off(channel, key);
     }
 }
 
-pub fn stop_chord(
-    mut connection: SynthOutputConnection,
-    chord: &Vec<NoteEvent>,
-    channel: u8,
-) {
+pub fn stop_chord(mut connection: SynthOutputConnection, chord: &[NoteEvent], channel: u8) {
     for note in chord.iter() {
         if let Some(key) = note.midi_key {
             connection.note_off(channel, key);
@@ -124,6 +117,8 @@ pub fn play_chord(
     channel: u8,
     duration: Option<Duration>,
 ) -> Duration {
+    println!("Play chord {}", chord.first().unwrap().raw_mml);
+
     let duration = match duration {
         Some(value) => value,
         None => Duration::from_millis(get_longest_note_duration(chord) as u64),
@@ -140,7 +135,7 @@ pub fn play_chord(
 
 pub fn get_longest_note_duration(notes: &Vec<NoteEvent>) -> isize {
     let mut max: isize = 0;
-    
+
     for note in notes {
         let duration = note.duration_in_ms as isize;
 

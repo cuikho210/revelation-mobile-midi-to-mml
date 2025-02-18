@@ -22,15 +22,15 @@ impl NoteEvent {
         is_connected_to_prev_note: bool,
         char_index: usize,
     ) -> Self {
-        let mut parts = mml.split('&');
+        let parts = mml.split('&');
         let mut mml_key: Option<String> = None;
         let mut key_length: usize = 1;
         let mut midi_key: Option<u8> = None;
         let mut duration_in_smallest_unit: usize = 0;
         let midi_velocity = utils::mml_velocity_to_midi_velocity(velocity);
         
-        while let Some(part) = parts.next() {
-            if let None = mml_key {
+        for part in parts {
+            if mml_key.is_none() {
                 let mml_key_value = utils::get_mml_key(part);
 
                 key_length = mml_key_value.len();
