@@ -1,4 +1,5 @@
 use crate::{utils, NoteEvent, NoteOnCallbackData, Parser, PlaybackStatus, SynthOutputConnection};
+use anyhow::{Context, Result};
 use revelation_mobile_midi_to_mml::Instrument;
 use std::{
     sync::{Arc, RwLock},
@@ -28,10 +29,10 @@ impl TrackPlayer {
         playback_status: Arc<RwLock<PlaybackStatus>>,
         instrument: Instrument,
         mut connection: SynthOutputConnection,
-    ) -> Self {
-        connection.program_change(instrument.midi_channel, instrument.instrument_id);
+    ) -> Result<Self> {
+        connection.program_change(instrument.midi_channel, instrument.instrument_id)?;
 
-        Self {
+        Ok(Self {
             index,
             parser,
             playback_status,
@@ -43,7 +44,7 @@ impl TrackPlayer {
             current_note_index: 0,
             note_on_callback: None,
             track_end_callback: None,
-        }
+        })
     }
 
     pub fn play(
@@ -51,10 +52,10 @@ impl TrackPlayer {
         time_start: Instant,
         note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>,
         track_end_callback: Option<Arc<fn(usize)>>,
-    ) {
+    ) -> Result<()> {
         self.note_on_callback = note_on_callback;
         self.track_end_callback = track_end_callback;
-        self.play_notes_linear(time_start);
+        self.play_notes_linear(time_start)
     }
 
     fn reset_state(&mut self) {
@@ -64,30 +65,30 @@ impl TrackPlayer {
         self.current_chord = Vec::new();
     }
 
-    fn stop_all_notes(&mut self) {
-        self.connection.all_notes_off(self.instrument.midi_channel);
+    fn stop_all_notes(&mut self) -> Result<()> {
+        self.connection.all_notes_off(self.instrument.midi_channel)
     }
 
-    fn handle_playback_status(&mut self) -> PlaybackStatus {
+    fn handle_playback_status(&mut self) -> Result<PlaybackStatus> {
         let playback_status = self.playback_status.clone();
 
         if let Ok(guard) = playback_status.read() {
             if *guard != PlaybackStatus::PLAY {
                 if *guard == PlaybackStatus::PAUSE {
-                    return PlaybackStatus::PAUSE;
+                    return Ok(PlaybackStatus::PAUSE);
                 } else {
                     self.reset_state();
-                    self.stop_all_notes();
+                    self.stop_all_notes()?;
 
-                    return PlaybackStatus::STOP;
+                    return Ok(PlaybackStatus::STOP);
                 }
             }
         }
 
-        PlaybackStatus::PLAY
+        Ok(PlaybackStatus::PLAY)
     }
 
-    fn handle_note_blocking(&mut self, duration: Duration) {
+    fn handle_note_blocking(&mut self, duration: Duration) -> Result<()> {
         let time_start = Instant::now();
         let time_loop = Duration::from_millis(32);
 
@@ -104,26 +105,32 @@ impl TrackPlayer {
                 remaining
             };
 
-            let status = self.handle_playback_status();
-            if status != PlaybackStatus::PLAY {
+            if self.handle_playback_status()? != PlaybackStatus::PLAY {
                 break;
             }
 
             sleep(sleep_duration);
         }
+
+        Ok(())
     }
 
-    fn play_notes_linear(&mut self, time_start: Instant) {
+    fn play_notes_linear(&mut self, time_start: Instant) -> Result<()> {
         let connection = self.connection.clone();
 
         for index in self.current_note_index..self.parser.notes.len() {
             self.current_note_index = index;
 
-            if self.handle_playback_status() != PlaybackStatus::PLAY {
-                return;
+            if self.handle_playback_status()? != PlaybackStatus::PLAY {
+                return Ok(());
             }
 
-            let note = self.parser.notes.get(index).unwrap().to_owned();
+            let note = self
+                .parser
+                .notes
+                .get(index)
+                .context("Failed to get note")?
+                .to_owned();
 
             if note.is_connected_to_prev_note {
                 if let Some(before_note) = self.note_before.as_ref() {
@@ -157,22 +164,22 @@ impl TrackPlayer {
                     &self.note_on_callback,
                     &self.current_chord,
                     self.index,
-                );
+                )?;
 
                 let sleep_duration = utils::play_chord(
                     connection.to_owned(),
                     &self.current_chord,
                     self.instrument.midi_channel,
                     Some(duration),
-                );
+                )?;
 
-                self.handle_note_blocking(sleep_duration);
+                self.handle_note_blocking(sleep_duration)?;
 
                 utils::stop_chord(
                     connection.to_owned(),
                     &self.current_chord,
                     self.instrument.midi_channel,
-                );
+                )?;
 
                 self.absolute_duration += chord_duration;
                 self.current_chord.clear();
@@ -202,16 +209,16 @@ impl TrackPlayer {
                     before_note,
                     self.instrument.midi_channel,
                     Some(duration),
-                );
+                )?;
 
                 let before_note = before_note.to_owned();
-                self.handle_note_blocking(sleep_duration);
+                self.handle_note_blocking(sleep_duration)?;
 
                 utils::stop_note(
                     connection.to_owned(),
                     &before_note,
                     self.instrument.midi_channel,
-                );
+                )?;
 
                 self.absolute_duration += note_duration;
             }
@@ -221,22 +228,22 @@ impl TrackPlayer {
         }
 
         if !self.current_chord.is_empty() {
-            send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index);
+            send_note_on_event_from_chord(&self.note_on_callback, &self.current_chord, self.index)?;
 
             let sleep_duration = utils::play_chord(
                 connection.to_owned(),
                 &self.current_chord,
                 self.instrument.midi_channel,
                 None,
-            );
+            )?;
 
-            self.handle_note_blocking(sleep_duration);
+            self.handle_note_blocking(sleep_duration)?;
 
             utils::stop_chord(
                 connection.to_owned(),
                 &self.current_chord,
                 self.instrument.midi_channel,
-            );
+            )?;
         }
 
         if let Some(before_note) = self.note_before.as_ref() {
@@ -247,16 +254,16 @@ impl TrackPlayer {
                 before_note,
                 self.instrument.midi_channel,
                 None,
-            );
+            )?;
 
             let before_note = before_note.to_owned();
-            self.handle_note_blocking(sleep_duration);
+            self.handle_note_blocking(sleep_duration)?;
 
             utils::stop_note(
                 connection.to_owned(),
                 &before_note,
                 self.instrument.midi_channel,
-            );
+            )?;
         }
 
         self.reset_state();
@@ -264,6 +271,8 @@ impl TrackPlayer {
         if let Some(callback) = self.track_end_callback.as_ref() {
             callback(self.index);
         }
+
+        Ok(())
     }
 }
 
@@ -285,10 +294,10 @@ fn send_note_on_event_from_chord(
     note_on_callback: &Option<Arc<fn(NoteOnCallbackData)>>,
     chord: &[NoteEvent],
     track_index: usize,
-) {
+) -> Result<()> {
     if let Some(callback) = note_on_callback {
-        let first_note = chord.first().unwrap();
-        let last_note = chord.last().unwrap();
+        let first_note = chord.first().context("Failed to get first note of chord")?;
+        let last_note = chord.last().context("Failed to get last note of chord")?;
 
         let end_at = last_note.char_index + last_note.char_length;
         let char_index = first_note.char_index;
@@ -300,4 +309,6 @@ fn send_note_on_event_from_chord(
             char_length,
         });
     }
+
+    Ok(())
 }

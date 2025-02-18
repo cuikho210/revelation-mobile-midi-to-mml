@@ -1,4 +1,5 @@
 use crate::utils;
+use anyhow::Result;
 
 #[derive(Debug, Clone)]
 pub struct NoteEvent {
@@ -12,7 +13,6 @@ pub struct NoteEvent {
     pub char_index: usize,
     pub char_length: usize,
 }
-
 impl NoteEvent {
     pub fn from_mml(
         mml: String,
@@ -21,31 +21,32 @@ impl NoteEvent {
         tempo: usize,
         is_connected_to_prev_note: bool,
         char_index: usize,
-    ) -> Self {
+    ) -> Result<Self> {
         let parts = mml.split('&');
         let mut mml_key: Option<String> = None;
         let mut key_length: usize = 1;
         let mut midi_key: Option<u8> = None;
         let mut duration_in_smallest_unit: usize = 0;
         let midi_velocity = utils::mml_velocity_to_midi_velocity(velocity);
-        
+
         for part in parts {
             if mml_key.is_none() {
-                let mml_key_value = utils::get_mml_key(part);
+                let mml_key_value = utils::get_mml_key(part)?;
 
                 key_length = mml_key_value.len();
-                midi_key = utils::mml_to_midi_key(&mml_key_value, octave);
+                midi_key = utils::mml_to_midi_key(&mml_key_value, octave)?;
                 mml_key = Some(mml_key_value);
             }
 
             let duration_part = &part[key_length..];
-            let duration = utils::mml_duration_to_duration_in_smallest_unit(duration_part);
+            let duration = utils::mml_duration_to_duration_in_smallest_unit(duration_part)?;
             duration_in_smallest_unit += duration;
         }
 
-        let duration_in_ms: usize = utils::duration_in_smallest_unit_to_ms(duration_in_smallest_unit, tempo);
+        let duration_in_ms: usize =
+            utils::duration_in_smallest_unit_to_ms(duration_in_smallest_unit, tempo);
 
-        Self {
+        Ok(Self {
             tempo,
             midi_key,
             midi_velocity,
@@ -55,6 +56,6 @@ impl NoteEvent {
             char_index,
             char_length: mml.len(),
             raw_mml: mml,
-        }
+        })
     }
 }

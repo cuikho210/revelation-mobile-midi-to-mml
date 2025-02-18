@@ -1,19 +1,21 @@
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 use crate::{
-    logger::{log, LogType, Logger}, messages::{
+    logger::{log, LogType, Logger},
+    messages::{
         dart_to_rust::{
             SignalEqualizeTracksPayload, SignalLoadListSoundfontPayload,
-            SignalLoadSongFromPathPayload, SignalLoadSoundfontPayload,
-            SignalMergeTracksPayload, SignalRenameTrackPayload,
-            SignalSetSongPlayStatusPayload, SignalSplitTrackPayload,
+            SignalLoadSongFromPathPayload, SignalLoadSoundfontPayload, SignalMergeTracksPayload,
+            SignalRenameTrackPayload, SignalSetSongPlayStatusPayload, SignalSplitTrackPayload,
             SignalUpdateMmlSongOptionsPayload,
         },
         rust_to_dart::{SignalLoadSongFromPathResponse, SignalUpdateMmlTracks},
-    }, player::{parse_mmls_parallel, PlayerState}, song::SongState
+    },
+    player::{parse_mmls_parallel, PlayerState},
+    song::SongState,
 };
+use revelation_mobile_midi_to_mml::{MmlSong, MmlSongOptions};
 use rinf::{debug_print, RinfError};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 pub async fn listen_load_song_from_path(
     song_state: Arc<Mutex<SongState>>,
@@ -35,16 +37,15 @@ pub async fn listen_load_song_from_path(
             log(logger_state.clone(), LogType::ParseMidiEnd).await;
 
             let player_state = player_state.clone();
-            parse_mmls_parallel(
-                player_state,
-                logger_state.clone(),
-                guard.mmls.to_owned(),
-            );
+            parse_mmls_parallel(player_state, logger_state.clone(), guard.mmls.to_owned());
 
             SignalLoadSongFromPathResponse { song_status }.send_signal_to_dart();
         } else {
             log(logger_state.clone(), LogType::ParseMidiError).await;
-            debug_print!("[listen_load_song_from_path] Cannot load song from path {}", &midi_path);
+            debug_print!(
+                "[listen_load_song_from_path] Cannot load song from path {}",
+                &midi_path
+            );
         }
     }
 
@@ -73,11 +74,7 @@ pub async fn listen_update_mml_song_option(
                     log(logger_state.clone(), LogType::SetSongOptionsEnd).await;
 
                     let player_state = player_state.clone();
-                    parse_mmls_parallel(
-                        player_state,
-                        logger_state.clone(),
-                        song.mmls.to_owned(),
-                    );
+                    parse_mmls_parallel(player_state, logger_state.clone(), song.mmls.to_owned());
 
                     let tracks = song.get_list_track_signal();
 
@@ -118,11 +115,7 @@ pub async fn listen_split_track(
                 log(logger_state.clone(), LogType::SplitTrackEnd).await;
 
                 let player_state = player_state.clone();
-                parse_mmls_parallel(
-                    player_state,
-                    logger_state.clone(),
-                    song.mmls.to_owned(),
-                );
+                parse_mmls_parallel(player_state, logger_state.clone(), song.mmls.to_owned());
 
                 let tracks = song.get_list_track_signal();
 
@@ -163,11 +156,7 @@ pub async fn listen_merge_tracks(
                 log(logger_state.clone(), LogType::MergeTrackEnd).await;
 
                 let player_state = player_state.clone();
-                parse_mmls_parallel(
-                    player_state,
-                    logger_state.clone(),
-                    song.mmls.to_owned(),
-                );
+                parse_mmls_parallel(player_state, logger_state.clone(), song.mmls.to_owned());
 
                 let tracks = song.get_list_track_signal();
 
@@ -196,7 +185,7 @@ pub async fn listen_equalize_tracks(
 
     while let Some(signal) = receiver.recv().await {
         log(logger_state.clone(), LogType::EqualizeTrackInit).await;
-        
+
         let track_index_a = signal.message.index_a as usize;
         let track_index_b = signal.message.index_b as usize;
         let mut song = song_state.lock().await;
@@ -208,11 +197,7 @@ pub async fn listen_equalize_tracks(
                 log(logger_state.clone(), LogType::EqualizeTrackEnd).await;
 
                 let player_state = player_state.clone();
-                parse_mmls_parallel(
-                    player_state,
-                    logger_state.clone(),
-                    song.mmls.to_owned(),
-                );
+                parse_mmls_parallel(player_state, logger_state.clone(), song.mmls.to_owned());
 
                 let tracks = song.get_list_track_signal();
 
@@ -232,9 +217,7 @@ pub async fn listen_equalize_tracks(
     Ok(())
 }
 
-pub async fn listen_rename_tracks(
-    song_state: Arc<Mutex<SongState>>,
-) -> Result<(), RinfError> {
+pub async fn listen_rename_tracks(song_state: Arc<Mutex<SongState>>) -> Result<(), RinfError> {
     let mut receiver = SignalRenameTrackPayload::get_dart_signal_receiver()?;
 
     while let Some(signal) = receiver.recv().await {
@@ -273,15 +256,39 @@ pub async fn listen_set_song_play_status(
 
         if status == 0 {
             log(logger_state.clone(), LogType::SetPlaybackPlayInit).await;
-            player.play();
+
+            if let Err(err) = player.play() {
+                debug_print!(
+                    "[listen_set_song_play_status] Failed to play player: {}",
+                    err
+                );
+                log(logger_state.clone(), LogType::Error(err.to_string())).await;
+            };
+
             log(logger_state.clone(), LogType::SetPlaybackPlayEnd).await;
         } else if status == 1 {
             log(logger_state.clone(), LogType::SetPlaybackPauseInit).await;
-            player.pause();
+
+            if let Err(err) = player.pause() {
+                debug_print!(
+                    "[listen_set_song_play_status] Failed to pause player: {}",
+                    err
+                );
+                log(logger_state.clone(), LogType::Error(err.to_string())).await;
+            };
+
             log(logger_state.clone(), LogType::SetPlaybackPauseEnd).await;
         } else {
             log(logger_state.clone(), LogType::SetPlaybackStopInit).await;
-            player.stop();
+
+            if let Err(err) = player.stop() {
+                debug_print!(
+                    "[listen_set_song_play_status] Failed to stop player: {}",
+                    err
+                );
+                log(logger_state.clone(), LogType::Error(err.to_string())).await;
+            }
+
             log(logger_state.clone(), LogType::SetPlaybackStopEnd).await;
         }
     }
@@ -334,4 +341,3 @@ pub async fn listen_load_list_soundfont(
 
     Ok(())
 }
-

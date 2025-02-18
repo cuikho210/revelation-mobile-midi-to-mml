@@ -1,16 +1,22 @@
-use std::{fs::File, io::Cursor, path::Path, sync::{mpsc::Receiver, Arc, Mutex}, thread::{self, JoinHandle}};
+use anyhow::{anyhow, Context, Result};
 use cpal::{
     traits::{DeviceTrait, HostTrait},
-    FromSample, SizedSample
+    FromSample, SizedSample,
 };
 use oxisynth::{MidiEvent, SoundFont};
+use std::{
+    fs::File,
+    io::Cursor,
+    path::Path,
+    sync::{mpsc::Receiver, Arc, Mutex},
+    thread::{self, JoinHandle},
+};
 
 pub struct OxisynthWrapper {
     pub synth: oxisynth::Synth,
 }
-
 impl OxisynthWrapper {
-    pub fn from_cpal_config(config: cpal::StreamConfig) -> Self {
+    pub fn from_cpal_config(config: cpal::StreamConfig) -> Result<Self> {
         let sample_rate = config.sample_rate.0 as f32;
 
         let settings = oxisynth::SynthDescriptor {
@@ -19,63 +25,64 @@ impl OxisynthWrapper {
             ..Default::default()
         };
 
-        let synth = oxisynth::Synth::new(settings).unwrap();
+        let synth = oxisynth::Synth::new(settings)
+            .map_err(|e| anyhow!("Failed to create synthesizer: {:?}", e))?;
 
-        Self { synth }
+        Ok(Self { synth })
     }
-    
-    pub fn load_soundfont_from_file<P>(&mut self, path: P) -> Result<(), String>
-        where P: AsRef<Path>,
-    {
-        let mut file = File::open(&path).ok().ok_or(
-            format!("Cannot open file from path {:?}", path.as_ref())
-        )?;
 
-        let font = SoundFont::load(&mut file).ok().ok_or(
-            format!("Cannot load soundfont from file {:?}", path.as_ref())
-        )?;
+    pub fn load_soundfont_from_file<P>(&mut self, path: P) -> Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        let mut file =
+            File::open(&path).context(format!("Cannot open file from path {:?}", path.as_ref()))?;
+
+        let font = SoundFont::load(&mut file)
+            .map_err(|_| anyhow!("Cannot load soundfont from file {:?}", path.as_ref()))?;
 
         self.synth.add_font(font, false);
 
         Ok(())
     }
 
-    pub fn load_soundfont_from_bytes<B>(&mut self, bytes: B) -> Result<(), String>
-        where B: AsRef<[u8]>,
+    pub fn load_soundfont_from_bytes<B>(&mut self, bytes: B) -> Result<()>
+    where
+        B: AsRef<[u8]>,
     {
         let mut cursor = Cursor::new(bytes);
 
-        let font = SoundFont::load(&mut cursor).ok().ok_or(
-            "Cannot load soundfont from bytes".to_owned()
-        )?;
+        let font =
+            SoundFont::load(&mut cursor).map_err(|_| anyhow!("Cannot load soundfont from bytes"));
 
         self.synth.add_font(font, false);
 
         Ok(())
     }
 }
-
 
 #[derive(Clone, Debug)]
 pub struct SynthOutputConnection {
     pub tx: std::sync::mpsc::Sender<MidiEvent>,
 }
-
 impl SynthOutputConnection {
-    pub fn note_on(&mut self, channel: u8, key: u8, vel: u8) {
-        self.tx.send(MidiEvent::NoteOn { channel, key, vel }).unwrap();
-    }
-    
-    pub fn note_off(&mut self, channel: u8, key: u8) {
-        self.tx.send(MidiEvent::NoteOff { channel, key }).unwrap();
+    pub fn note_on(&mut self, channel: u8, key: u8, vel: u8) -> Result<()> {
+        Ok(self.tx.send(MidiEvent::NoteOn { channel, key, vel })?)
     }
 
-    pub fn program_change(&mut self, channel: u8, program_id: u8) {
-        self.tx.send(MidiEvent::ProgramChange { channel, program_id }).unwrap();
+    pub fn note_off(&mut self, channel: u8, key: u8) -> Result<()> {
+        Ok(self.tx.send(MidiEvent::NoteOff { channel, key })?)
     }
 
-    pub fn all_notes_off(&mut self, channel: u8) {
-        self.tx.send(MidiEvent::AllNotesOff { channel }).unwrap();
+    pub fn program_change(&mut self, channel: u8, program_id: u8) -> Result<()> {
+        Ok(self.tx.send(MidiEvent::ProgramChange {
+            channel,
+            program_id,
+        })?)
+    }
+
+    pub fn all_notes_off(&mut self, channel: u8) -> Result<()> {
+        Ok(self.tx.send(MidiEvent::AllNotesOff { channel })?)
     }
 }
 
@@ -85,29 +92,27 @@ pub struct Synth {
     pub config: cpal::SupportedStreamConfig,
     pub synth: Arc<Mutex<OxisynthWrapper>>,
 }
-
-impl Default for Synth {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Synth {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self> {
         let host = cpal::default_host();
-        let device = host.default_output_device().unwrap();
-        let config = device.default_output_config().unwrap();
+        let device = host
+            .default_output_device()
+            .context("No output device found")?;
+        let config = device.default_output_config()?;
 
-        let synth = Arc::new(Mutex::new(
-            OxisynthWrapper::from_cpal_config(config.to_owned().into())
-        ));
+        let synth = Arc::new(Mutex::new(OxisynthWrapper::from_cpal_config(
+            config.to_owned().into(),
+        )?));
 
-        Self { host, device, config, synth }
+        Ok(Self {
+            host,
+            device,
+            config,
+            synth,
+        })
     }
 
-    pub fn new_stream(&self)
-        -> (cpal::Stream, SynthOutputConnection)
-    {
+    pub fn new_stream(&self) -> Result<(cpal::Stream, SynthOutputConnection)> {
         let (tx, rx) = std::sync::mpsc::channel::<MidiEvent>();
 
         let stream = match self.config.sample_format() {
@@ -121,83 +126,91 @@ impl Synth {
             cpal::SampleFormat::U64 => self.make_stream::<u64>(rx),
             cpal::SampleFormat::F32 => self.make_stream::<f32>(rx),
             cpal::SampleFormat::F64 => self.make_stream::<f64>(rx),
-            _ => panic!("[Synth.new_stream] Unsupported format")
-        };
+            _ => panic!("[Synth.new_stream] Unsupported format"),
+        }?;
 
-        (stream, SynthOutputConnection { tx })
+        Ok((stream, SynthOutputConnection { tx }))
     }
 
-    pub fn load_soundfont_from_file<P>(&mut self, path: P) -> Result<(), String>
-        where P: AsRef<Path>,
+    pub fn load_soundfont_from_file<P>(&mut self, path: P) -> Result<()>
+    where
+        P: AsRef<Path>,
     {
-        if let Ok(mut synth) = self.synth.lock() {
-            synth.load_soundfont_from_file(path)?;
-
-            Ok(())
-        } else {
-            Err("[Synth.load_soundfont_from_file] Cannot lock synth".to_owned())
-        }
+        let mut synth = self
+            .synth
+            .lock()
+            .map_err(|e| anyhow!("Cannot lock synth: {}", e))?;
+        synth.load_soundfont_from_file(path)
     }
 
-    pub fn load_soundfont_from_file_parallel<P>(&mut self, paths: Vec<P>) -> Result<(), String>
-        where P: AsRef<Path> + Sync + Send + Clone + 'static,
+    pub fn load_soundfont_from_file_parallel<P>(&mut self, paths: Vec<P>) -> Result<()>
+    where
+        P: AsRef<Path> + Sync + Send + Clone + 'static,
     {
-        let handles: Vec<JoinHandle<()>> = paths.iter().map::<JoinHandle<()>, _>(|path| {
-            let synth = self.synth.clone();
-            let path = path.to_owned();
+        let handles: Vec<JoinHandle<Result<()>>> = paths
+            .iter()
+            .map::<JoinHandle<Result<()>>, _>(|path| {
+                let synth = self.synth.clone();
+                let path = path.to_owned();
 
-            thread::spawn(move || {
-                if let Ok(mut synth_guard) = synth.lock() {
-                    synth_guard.load_soundfont_from_file(path).unwrap();
-                }
+                thread::spawn(move || -> Result<()> {
+                    let mut synth_guard = synth
+                        .lock()
+                        .map_err(|e| anyhow::anyhow!("Cannot lock synth: {}", e))?;
+                    synth_guard.load_soundfont_from_file(path)
+                })
             })
-        }).collect();
+            .collect();
 
         for handle in handles {
-            handle.join().ok().ok_or(
-                "[Synth.load_soundfont_from_file_parallel] Cannot join thread".to_owned()
-            )?;
+            handle
+                .join()
+                .map_err(|e| anyhow::anyhow!("Thread join error: {:?}", e))??;
         }
 
         Ok(())
     }
 
-    pub fn load_soundfont_from_bytes<B>(&mut self, bytes: B) -> Result<(), String>
-        where B: AsRef<[u8]>,
+    pub fn load_soundfont_from_bytes<B>(&mut self, bytes: B) -> Result<()>
+    where
+        B: AsRef<[u8]>,
     {
-        if let Ok(mut synth) = self.synth.lock() {
-            synth.load_soundfont_from_bytes(bytes)?;
-
-            Ok(())
-        } else {
-            Err("[Synth.load_soundfont_from_file] Cannot lock synth".to_owned())
-        }
+        let mut synth = self
+            .synth
+            .lock()
+            .map_err(|e| anyhow::anyhow!("Cannot lock synth: {}", e))?;
+        synth.load_soundfont_from_bytes(bytes)
     }
 
-    pub fn load_soundfont_from_bytes_parallel<B>(&mut self, list_bytes: Vec<B>) -> Result<(), String>
-        where B: AsRef<[u8]> + Sync + Send + Clone + 'static,
+    pub fn load_soundfont_from_bytes_parallel<B>(&mut self, list_bytes: Vec<B>) -> Result<()>
+    where
+        B: AsRef<[u8]> + Sync + Send + Clone + 'static,
     {
-        let handles: Vec<JoinHandle<()>> = list_bytes.iter().map::<JoinHandle<()>, _>(|bytes| {
-            let synth = self.synth.clone();
-            let bytes = bytes.to_owned();
+        let handles: Vec<JoinHandle<Result<()>>> = list_bytes
+            .iter()
+            .map::<JoinHandle<Result<()>>, _>(|bytes| {
+                let synth = self.synth.clone();
+                let bytes = bytes.to_owned();
 
-            thread::spawn(move || {
-                if let Ok(mut synth_guard) = synth.lock() {
-                    synth_guard.load_soundfont_from_bytes(bytes).unwrap();
-                }
+                thread::spawn(move || {
+                    let mut synth_guard = synth
+                        .lock()
+                        .map_err(|e| anyhow::anyhow!("Cannot lock synth: {}", e))?;
+                    synth_guard.load_soundfont_from_bytes(bytes)
+                })
             })
-        }).collect();
+            .collect();
 
         for handle in handles {
-            handle.join().ok().ok_or(
-                "[Synth.load_soundfont_from_bytes_parallel] Cannot join thread".to_owned()
-            )?;
+            handle
+                .join()
+                .map_err(|e| anyhow::anyhow!("Thread join error: {:?}", e))??;
         }
 
         Ok(())
     }
 
-    fn make_stream<T>(&self, rx: Receiver<MidiEvent>) -> cpal::Stream
+    fn make_stream<T>(&self, rx: Receiver<MidiEvent>) -> Result<cpal::Stream>
     where
         T: SizedSample + FromSample<f32>,
     {
@@ -209,7 +222,11 @@ impl Synth {
                 let (l, r) = synth.synth.read_next();
 
                 if let Ok(e) = rx.try_recv() {
-                    synth.synth.send_event(e).ok();
+                    synth
+                        .synth
+                        .send_event(e)
+                        .map_err(|e| eprintln!("Failed to send midi event: {:?}", e))
+                        .ok();
                 }
 
                 (l, r)
@@ -222,10 +239,7 @@ impl Synth {
 
         let channels = config.channels as usize;
 
-        
-
-        self
-            .device
+        self.device
             .build_output_stream(
                 &self.config.to_owned().into(),
                 move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
@@ -244,7 +258,7 @@ impl Synth {
                 },
                 err_fn,
                 None,
-            ).unwrap()
+            )
+            .context("Cannot build output stream")
     }
 }
-

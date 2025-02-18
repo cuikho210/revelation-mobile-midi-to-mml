@@ -1,4 +1,5 @@
 use crate::{mml_event::MmlEvent, note_event::NoteEvent};
+use anyhow::{Context, Result};
 
 const NOTE_NAMES: [char; 8] = ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'r'];
 const NOTE_EXTRAS: [char; 3] = ['&', '.', '+'];
@@ -11,19 +12,19 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn parse(index: usize, mml: String) -> Self {
+    pub fn parse(index: usize, mml: String) -> Result<Self> {
         let mut result = Self {
             index,
             raw_mml: mml,
             notes: Vec::new(),
         };
 
-        result.notes = parse_note_events(&result.raw_mml);
-        result
+        result.notes = parse_note_events(&result.raw_mml)?;
+        Ok(result)
     }
 }
 
-fn parse_note_events(mml: &str) -> Vec<NoteEvent> {
+fn parse_note_events(mml: &str) -> Result<Vec<NoteEvent>> {
     let mut index = 0usize;
     let mut current_mml_velocity = 12u8;
     let mut current_octave = 4u8;
@@ -38,7 +39,7 @@ fn parse_note_events(mml: &str) -> Vec<NoteEvent> {
         current_octave,
         current_tempo,
         &mut is_connect_chord,
-    ) {
+    )? {
         match event {
             MmlEvent::SetNote(note) => notes.push(note),
             MmlEvent::SetTempo(tempo) => current_tempo = tempo,
@@ -53,7 +54,7 @@ fn parse_note_events(mml: &str) -> Vec<NoteEvent> {
         }
     }
 
-    notes
+    Ok(notes)
 }
 
 fn parse_event(
@@ -63,7 +64,7 @@ fn parse_event(
     current_mml_octave: u8,
     current_tempo: usize,
     is_connect_chord: &mut bool,
-) -> Option<MmlEvent> {
+) -> Result<Option<MmlEvent>> {
     match raw_mml.chars().nth(*index) {
         Some(char) => {
             let mml = &raw_mml[*index..];
@@ -72,37 +73,37 @@ fn parse_event(
                 let value = get_first_mml_value(mml);
                 *index += value.len() + 1;
 
-                let tempo = value.parse::<usize>().unwrap();
+                let tempo = value.parse::<usize>()?;
 
-                Some(MmlEvent::SetTempo(tempo))
+                Ok(Some(MmlEvent::SetTempo(tempo)))
             } else if char == 'o' {
                 let value = &mml[1..2];
                 *index += 2;
 
-                let octave = value.parse::<u8>().unwrap();
+                let octave = value.parse::<u8>()?;
 
-                Some(MmlEvent::SetOctave(octave))
+                Ok(Some(MmlEvent::SetOctave(octave)))
             } else if char == 'v' {
                 let value = get_first_mml_value(mml);
                 *index += value.len() + 1;
 
-                let velocity = value.parse::<u8>().unwrap();
+                let velocity = value.parse::<u8>()?;
 
-                Some(MmlEvent::SetVelocity(velocity))
+                Ok(Some(MmlEvent::SetVelocity(velocity)))
             } else if char == '>' {
                 *index += 1;
 
-                Some(MmlEvent::IncreOctave)
+                Ok(Some(MmlEvent::IncreOctave))
             } else if char == '<' {
                 *index += 1;
 
-                Some(MmlEvent::DecreOctave)
+                Ok(Some(MmlEvent::DecreOctave))
             } else if char == ':' {
                 *index += 1;
 
-                Some(MmlEvent::ConnectChord)
+                Ok(Some(MmlEvent::ConnectChord))
             } else if NOTE_NAMES.contains(&char) {
-                let mml_note = get_first_mml_note(mml);
+                let mml_note = get_first_mml_note(mml)?;
                 let mml_note_length = mml_note.len();
 
                 let note = NoteEvent::from_mml(
@@ -112,26 +113,28 @@ fn parse_event(
                     current_tempo,
                     *is_connect_chord,
                     *index,
-                );
+                )?;
 
                 *is_connect_chord = false;
                 *index += mml_note_length;
 
-                Some(MmlEvent::SetNote(note))
+                Ok(Some(MmlEvent::SetNote(note)))
             } else {
                 *index += 1;
-                Some(MmlEvent::Empty)
+                Ok(Some(MmlEvent::Empty))
             }
         }
-        None => None,
+        None => Ok(None),
     }
 }
 
-fn get_first_mml_note(mml: &str) -> String {
+fn get_first_mml_note(mml: &str) -> Result<String> {
     let mut chars = mml.chars();
     let mut result = String::new();
     let mut is_note_extra_checked = false;
-    let mut before_char = chars.next().unwrap();
+    let mut before_char = chars
+        .next()
+        .context("Cannot get first character from MML string")?;
     let note_name = before_char;
 
     result.push(note_name);
@@ -164,7 +167,7 @@ fn get_first_mml_note(mml: &str) -> String {
         }
     }
 
-    result
+    Ok(result)
 }
 
 fn get_first_mml_value(mml: &str) -> String {
