@@ -1,10 +1,7 @@
-use std::{
-    fs,
-    path::Path,
-    thread::{self, JoinHandle},
-};
+use std::{fs, path::Path};
 
 use midly::{Smf, Timing, TrackEvent};
+use rayon::prelude::*;
 
 use crate::{
     MmlTrack,
@@ -85,9 +82,7 @@ impl MmlSong {
         let ppq = get_ppq_from_smf(&smf).unwrap_or(480);
 
         let meta_events = get_bridge_meta_events(&smf.tracks);
-
-        let smf_tracks = smf.make_static().tracks;
-        let bridge_note_events = get_bridge_note_events(smf_tracks);
+        let bridge_note_events = get_bridge_note_events(&smf.tracks);
 
         let tracks = bridge_events_to_tracks(meta_events, bridge_note_events, &options, ppq);
 
@@ -128,10 +123,11 @@ impl MmlSong {
         let (mut track_a, mut track_b) = track.split();
 
         if self.options.auto_boot_velocity
-            && let Some(velocity_diff) = self.velocity_diff {
-                track_a.apply_boot_velocity(velocity_diff);
-                track_b.apply_boot_velocity(velocity_diff);
-            }
+            && let Some(velocity_diff) = self.velocity_diff
+        {
+            track_a.apply_boot_velocity(velocity_diff);
+            track_b.apply_boot_velocity(velocity_diff);
+        }
 
         *track = track_a;
         self.tracks.insert(index + 1, track_b);
@@ -141,29 +137,10 @@ impl MmlSong {
 
     pub fn set_song_options(&mut self, options: MmlSongOptions) -> Result<(), String> {
         self.options = options.clone();
-
-        let mut handles: Vec<JoinHandle<MmlTrack>> = Vec::new();
-
-        for track in self.tracks.iter() {
-            let mut track = track.clone();
+        self.tracks.par_iter_mut().for_each(|track| {
             track.song_options = options.clone();
-
-            let handle = thread::spawn(move || {
-                track.generate_mml_events();
-                track
-            });
-            handles.push(handle);
-        }
-
-        self.tracks.clear();
-        for handle in handles {
-            let track = handle
-                .join()
-                .ok()
-                .ok_or(String::from("[set_song_options] Cannot join thread"))?;
-            self.tracks.push(track);
-        }
-
+            track.generate_mml_events();
+        });
         self.appy_song_options();
         Ok(())
     }
@@ -183,67 +160,29 @@ fn bridge_events_to_tracks(
     song_options: &MmlSongOptions,
     ppq: u16,
 ) -> Vec<MmlTrack> {
-    let mut tracks: Vec<MmlTrack> = Vec::new();
-    let mut handles: Vec<JoinHandle<MmlTrack>> = Vec::new();
-
-    for events in bridge_events {
-        let options = song_options.to_owned();
-        let index = handles.len();
-        let meta_events = bridge_meta_events.to_owned();
-
-        let handle = thread::spawn::<_, MmlTrack>(move || {
+    bridge_events
+        .into_par_iter()
+        .enumerate()
+        .map(|(index, events)| {
+            let options = song_options.to_owned();
+            let meta_events = bridge_meta_events.to_owned();
             MmlTrack::from_bridge_events(index.to_string(), meta_events, events, options, ppq)
-        });
-        handles.push(handle);
-    }
-
-    for handle in handles {
-        match handle.join() {
-            Ok(track) => {
-                tracks.push(track);
-            }
-            Err(_) => {
-                eprintln!("[bridge_events_to_tracks] Cannot join thread");
-            }
-        }
-    }
-
-    tracks
+        })
+        .collect()
 }
 
-fn get_bridge_note_events(smf_tracks: Vec<Vec<TrackEvent<'static>>>) -> Vec<Vec<BridgeEvent>> {
-    let mut events: Vec<Vec<BridgeEvent>> = Vec::new();
-    let mut handles: Vec<JoinHandle<Vec<BridgeEvent>>> = Vec::new();
-
-    for track in smf_tracks {
-        let handle =
-            thread::spawn::<_, Vec<BridgeEvent>>(move || bridge_notes_from_midi_track(&track));
-        handles.push(handle);
-    }
-
-    for handle in handles {
-        match handle.join() {
-            Ok(note_events) => {
-                events.push(note_events);
-            }
-            Err(_) => {
-                eprintln!("[bridge_smf_tracks] Cannot join thread");
-            }
-        }
-    }
-
-    events
+fn get_bridge_note_events(smf_tracks: &Vec<Vec<TrackEvent>>) -> Vec<Vec<BridgeEvent>> {
+    smf_tracks
+        .par_iter()
+        .map(bridge_notes_from_midi_track)
+        .collect()
 }
 
 fn get_bridge_meta_events(smf_tracks: &Vec<Vec<TrackEvent>>) -> Vec<BridgeEvent> {
-    let mut meta_events: Vec<BridgeEvent> = Vec::new();
-
-    for track in smf_tracks.iter() {
-        let mut events = bridge_meta_from_midi_track(track);
-        meta_events.append(&mut events);
-    }
-
-    meta_events
+    smf_tracks
+        .par_iter()
+        .flat_map(bridge_meta_from_midi_track)
+        .collect()
 }
 
 fn get_ppq_from_smf(smf: &Smf) -> Option<u16> {
