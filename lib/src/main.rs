@@ -12,16 +12,15 @@ fn main() {
         min_gap_for_chord: 1,
         smallest_unit: 16,
         ..Default::default()
-    }).unwrap();
+    })
+    .unwrap();
 
     for track in song.tracks.iter() {
         println!(
             "Track {} - {} - {} notes --------------------------",
-            track.name,
-            track.instrument.name,
-            track.mml_note_length,
+            track.name, track.instrument.name, track.mml_note_length,
         );
 
-        println!("{}\n", track.to_mml_debug());
+        println!("{}\n", track.to_mml());
     }
 }
