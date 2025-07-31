@@ -6,3 +6,7 @@ edition = "2024"
 [dependencies]
 midly = "0.5.3"
 rayon = "1.10.0"
+
+[dev-dependencies]
+tempfile = "3.8"
+proptest = "1.4"

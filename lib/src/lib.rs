@@ -6,10 +6,12 @@ mod mml_song;
 mod mml_track;
 mod parser;
 mod pitch_class;
-mod utils;
+
+pub mod utils;
 
 pub use instrument::Instrument;
-pub use mml_event::MmlEvent;
+pub use mml_event::{BridgeEvent, MidiNoteState, MidiState, MmlEvent};
+pub use mml_note::MmlNote;
 pub use mml_song::{MmlSong, MmlSongOptions};
 pub use mml_track::MmlTrack;
 pub use pitch_class::PitchClass;

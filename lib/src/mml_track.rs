@@ -210,3 +210,319 @@ impl MmlTrack {
         (track_a, track_b)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        MmlSongOptions,
+        mml_event::{BridgeEvent, MidiNoteState, MidiState, MmlEvent},
+    };
+
+    fn create_test_midi_note_state(
+        key: u8,
+        velocity: u8,
+        position: usize,
+        duration: usize,
+    ) -> MidiNoteState {
+        MidiNoteState {
+            key,
+            velocity,
+            midi_state: MidiState {
+                position_in_tick: position,
+                duration_in_tick: duration,
+                channel: 0,
+            },
+        }
+    }
+
+    #[test]
+    fn test_mml_track_from_bridge_events_basic() {
+        let options = MmlSongOptions::default();
+        let ppq = 480;
+
+        let midi_note = create_test_midi_note_state(60, 64, 0, 480); // C4 quarter note
+        let bridge_note_events = vec![BridgeEvent::Note(midi_note)];
+        let bridge_meta_events = vec![];
+
+        let track = MmlTrack::from_bridge_events(
+            "test_track".to_string(),
+            bridge_meta_events,
+            bridge_note_events,
+            options,
+            ppq,
+        );
+
+        assert_eq!(track.name, "test_track");
+        assert_eq!(track.events.len(), 3); // Velocity, Octave, Note
+        assert_eq!(track.mml_note_length, 1);
+
+        // Check that it contains a note event
+        let has_note = track.events.iter().any(|e| matches!(e, MmlEvent::Note(_)));
+        assert!(has_note);
+    }
+
+    #[test]
+    fn test_mml_track_to_mml() {
+        let options = MmlSongOptions::default();
+        let ppq = 480;
+
+        let midi_note = create_test_midi_note_state(60, 64, 0, 480);
+        let bridge_note_events = vec![BridgeEvent::Note(midi_note)];
+        let bridge_meta_events = vec![];
+
+        let track = MmlTrack::from_bridge_events(
+            "test".to_string(),
+            bridge_meta_events,
+            bridge_note_events,
+            options,
+            ppq,
+        );
+
+        let mml_string = track.to_mml();
+
+        // Should contain velocity, octave, and note
+        assert!(mml_string.contains("v"));
+        assert!(mml_string.contains("o"));
+        assert!(mml_string.contains("c4"));
+    }
+
+    #[test]
+    fn test_mml_track_merge() {
+        let options = MmlSongOptions::default();
+        let ppq = 480;
+
+        // Create first track with C note
+        let midi_note1 = create_test_midi_note_state(60, 64, 0, 480);
+        let bridge_events1 = vec![BridgeEvent::Note(midi_note1)];
+        let mut track1 = MmlTrack::from_bridge_events(
+            "track1".to_string(),
+            vec![],
+            bridge_events1,
+            options.clone(),
+            ppq,
+        );
+
+        // Create second track with D note at different time
+        let midi_note2 = create_test_midi_note_state(62, 64, 480, 480);
+        let bridge_events2 = vec![BridgeEvent::Note(midi_note2)];
+        let mut track2 = MmlTrack::from_bridge_events(
+            "track2".to_string(),
+            vec![],
+            bridge_events2,
+            options,
+            ppq,
+        );
+
+        let original_events_count = track1.events.len();
+        track1.merge(&mut track2);
+
+        // Name should be combined
+        assert_eq!(track1.name, "track1+track2");
+
+        // Should have more bridge events (but events are regenerated)
+        assert_eq!(track1.bridge_note_events.len(), 2);
+
+        // Should have regenerated MML events (could be different count due to merging logic)
+        assert!(track1.events.len() >= original_events_count);
+    }
+
+    #[test]
+    fn test_mml_track_split() {
+        let options = MmlSongOptions::default();
+        let ppq = 480;
+
+        // Create track with multiple notes
+        let midi_note1 = create_test_midi_note_state(60, 64, 0, 480);
+        let midi_note2 = create_test_midi_note_state(62, 64, 480, 480);
+        let midi_note3 = create_test_midi_note_state(64, 64, 960, 480);
+
+        let bridge_events = vec![
+            BridgeEvent::Note(midi_note1),
+            BridgeEvent::Note(midi_note2),
+            BridgeEvent::Note(midi_note3),
+        ];
+
+        let track = MmlTrack::from_bridge_events(
+            "original".to_string(),
+            vec![],
+            bridge_events,
+            options,
+            ppq,
+        );
+
+        let (track_a, track_b) = track.split();
+
+        // Names should be suffixed
+        assert_eq!(track_a.name, "original.0");
+        assert_eq!(track_b.name, "original.1");
+
+        // Both tracks should have some notes
+        let total_bridge_events =
+            track_a.bridge_note_events.len() + track_b.bridge_note_events.len();
+        assert_eq!(total_bridge_events, 3); // All original notes should be distributed
+
+        // Both should have some events
+        assert!(!track_a.events.is_empty());
+        // track_b might be empty if all notes went to track_a due to split logic
+    }
+
+    #[test]
+    fn test_mml_track_apply_boot_velocity() {
+        let options = MmlSongOptions::default();
+        let ppq = 480;
+
+        let midi_note = create_test_midi_note_state(60, 64, 0, 480);
+        let bridge_events = vec![BridgeEvent::Note(midi_note)];
+        let mut track =
+            MmlTrack::from_bridge_events("test".to_string(), vec![], bridge_events, options, ppq);
+
+        // Find original velocity
+        let original_velocity = track
+            .events
+            .iter()
+            .find_map(|e| match e {
+                MmlEvent::Velocity(v) => Some(*v),
+                _ => None,
+            })
+            .expect("Should have velocity event");
+
+        // Apply boot velocity
+        track.apply_boot_velocity(3);
+
+        // Find new velocity
+        let new_velocity = track
+            .events
+            .iter()
+            .find_map(|e| match e {
+                MmlEvent::Velocity(v) => Some(*v),
+                _ => None,
+            })
+            .expect("Should have velocity event");
+
+        assert_eq!(new_velocity, original_velocity + 3);
+    }
+
+    #[test]
+    fn test_mml_track_with_tempo_events() {
+        let options = MmlSongOptions::default();
+        let ppq = 480;
+
+        let tempo_event = BridgeEvent::Tempo(
+            120,
+            MidiState {
+                position_in_tick: 0,
+                duration_in_tick: 0,
+                channel: 0,
+            },
+        );
+
+        let midi_note = create_test_midi_note_state(60, 64, 0, 480);
+        let note_event = BridgeEvent::Note(midi_note);
+
+        let bridge_meta_events = vec![tempo_event];
+        let bridge_note_events = vec![note_event];
+
+        let track = MmlTrack::from_bridge_events(
+            "tempo_test".to_string(),
+            bridge_meta_events,
+            bridge_note_events,
+            options,
+            ppq,
+        );
+
+        // Should have tempo event in the results
+        let has_tempo = track.events.iter().any(|e| matches!(e, MmlEvent::Tempo(_)));
+        assert!(has_tempo);
+
+        let mml = track.to_mml();
+        assert!(mml.contains("t120"));
+    }
+
+    #[test]
+    fn test_mml_track_duration_calculation() {
+        let options = MmlSongOptions::default();
+        let ppq = 480;
+
+        // Create notes with known durations
+        let midi_note1 = create_test_midi_note_state(60, 64, 0, 480); // Quarter note
+        let midi_note2 = create_test_midi_note_state(62, 64, 480, 240); // Eighth note
+
+        let bridge_events = vec![BridgeEvent::Note(midi_note1), BridgeEvent::Note(midi_note2)];
+
+        let track = MmlTrack::from_bridge_events(
+            "duration_test".to_string(),
+            vec![],
+            bridge_events,
+            options,
+            ppq,
+        );
+
+        // mml_note_length should be calculated correctly
+        // Each note contributes to the total MML note length
+        assert!(track.mml_note_length > 0);
+
+        // Verify the calculation by checking individual notes
+        let mut expected_length = 0;
+        for event in &track.events {
+            if let MmlEvent::Note(note) = event {
+                expected_length += note.mml_note_length;
+            }
+        }
+        assert_eq!(track.mml_note_length, expected_length);
+    }
+
+    #[test]
+    fn test_mml_track_empty_events() {
+        let options = MmlSongOptions::default();
+        let ppq = 480;
+
+        // Create track with no notes
+        let track = MmlTrack::from_bridge_events("empty".to_string(), vec![], vec![], options, ppq);
+
+        assert_eq!(track.events.len(), 0);
+        assert_eq!(track.mml_note_length, 0);
+        assert_eq!(track.to_mml(), "");
+    }
+
+    #[test]
+    fn test_mml_track_bridge_events_sorting() {
+        let options = MmlSongOptions::default();
+        let ppq = 480;
+
+        // Create events out of order
+        let midi_note1 = create_test_midi_note_state(60, 64, 480, 240); // Later note
+        let midi_note2 = create_test_midi_note_state(62, 64, 0, 240); // Earlier note
+
+        let bridge_events = vec![BridgeEvent::Note(midi_note1), BridgeEvent::Note(midi_note2)];
+
+        let track = MmlTrack::from_bridge_events(
+            "sorting_test".to_string(),
+            vec![],
+            bridge_events,
+            options,
+            ppq,
+        );
+
+        // Verify that events are processed in time order
+        // The track should handle the sorting internally
+        assert_eq!(track.bridge_note_events.len(), 2);
+
+        // Check that events are sorted by position
+        for i in 1..track.bridge_events.len() {
+            let prev_pos = match &track.bridge_events[i - 1] {
+                BridgeEvent::Note(note) => note.midi_state.position_in_tick,
+                BridgeEvent::Tempo(_, state) => state.position_in_tick,
+                BridgeEvent::ProgramChange(_, state) => state.position_in_tick,
+            };
+
+            let curr_pos = match &track.bridge_events[i] {
+                BridgeEvent::Note(note) => note.midi_state.position_in_tick,
+                BridgeEvent::Tempo(_, state) => state.position_in_tick,
+                BridgeEvent::ProgramChange(_, state) => state.position_in_tick,
+            };
+
+            assert!(curr_pos >= prev_pos, "Events should be sorted by position");
+        }
+    }
+}
