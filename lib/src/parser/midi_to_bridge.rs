@@ -10,23 +10,16 @@ pub fn bridge_meta_from_midi_track(midi_track: &MidiTrack) -> Vec<BridgeEvent> {
         let delta = midi_event.delta.as_int() as usize;
         current_ticks += delta;
 
-        match midi_event.kind {
-            TrackEventKind::Meta(message) => {
-                match message {
-                    MetaMessage::Tempo(tempo) => {
-                        let tempo = 60_000_000 / tempo.as_int();
+        if let TrackEventKind::Meta(message) = midi_event.kind
+            && let MetaMessage::Tempo(tempo) = message {
+                let tempo = 60_000_000 / tempo.as_int();
 
-                        meta_events.push(BridgeEvent::Tempo(tempo, MidiState {
-                            position_in_tick: current_ticks,
-                            duration_in_tick: 0,
-                            channel: 0,
-                        }));
-                    }
-                    _ => ()
-                }
+                meta_events.push(BridgeEvent::Tempo(tempo, MidiState {
+                    position_in_tick: current_ticks,
+                    duration_in_tick: 0,
+                    channel: 0,
+                }));
             }
-            _ => ()
-        }
     }
 
     meta_events
@@ -41,52 +34,49 @@ pub fn bridge_notes_from_midi_track(midi_track: &MidiTrack) -> Vec<BridgeEvent> 
         let delta = midi_event.delta.as_int() as usize;
         current_ticks += delta;
 
-        match midi_event.kind {
-            TrackEventKind::Midi { channel, message } => {
-                let channel = channel.as_int();
+        if let TrackEventKind::Midi { channel, message } = midi_event.kind {
+            let channel = channel.as_int();
 
-                match message {
-                    MidiMessage::ProgramChange { program } => {
-                        let instrument = Instrument::new(program.as_int(), channel);
+            match message {
+                MidiMessage::ProgramChange { program } => {
+                    let instrument = Instrument::new(program.as_int(), channel);
 
-                        note_events.push(BridgeEvent::ProgramChange(instrument, MidiState {
-                            position_in_tick: current_ticks,
-                            duration_in_tick: 0,
-                            channel,
-                        }));
-                    },
+                    note_events.push(BridgeEvent::ProgramChange(instrument, MidiState {
+                        position_in_tick: current_ticks,
+                        duration_in_tick: 0,
+                        channel,
+                    }));
+                },
 
-                    MidiMessage::NoteOn { key, vel } => {
-                        let key = key.as_int();
-                        let vel = vel.as_int();
-                        
-                        if vel > 0 {
-                            insert_note(
-                                &mut holding_notes,
-                                channel, key, vel,
-                                current_ticks,
-                            );
-                        } else {
-                            update_note(
-                                &mut holding_notes,
-                                &mut note_events, key,
-                                current_ticks,
-                            );
-                        }
-                    }
-                    MidiMessage::NoteOff { key, .. } => {
-                        let key = key.as_int();
-
+                MidiMessage::NoteOn { key, vel } => {
+                    let key = key.as_int();
+                    let vel = vel.as_int();
+                    
+                    if vel > 0 {
+                        insert_note(
+                            &mut holding_notes,
+                            channel, key, vel,
+                            current_ticks,
+                        );
+                    } else {
                         update_note(
                             &mut holding_notes,
                             &mut note_events, key,
                             current_ticks,
                         );
                     }
-                    _ => ()
                 }
+                MidiMessage::NoteOff { key, .. } => {
+                    let key = key.as_int();
+
+                    update_note(
+                        &mut holding_notes,
+                        &mut note_events, key,
+                        current_ticks,
+                    );
+                }
+                _ => ()
             }
-            _ => ()
         }
     }
 

@@ -1,8 +1,4 @@
-use crate::{
-    mml_note::MmlNote,
-    pitch_class::PitchClass,
-    utils, Instrument,
-};
+use crate::{Instrument, mml_note::MmlNote, pitch_class::PitchClass, utils};
 use std::cmp::Ordering;
 
 // --------------------------------
@@ -73,21 +69,17 @@ impl Ord for BridgeEvent {
         };
 
         let order = self_position.cmp(&other_position);
-        
+
         if let Ordering::Equal = order {
             match self {
-                Self::Note(_) => {
-                    match other {
-                        Self::Note(_) => return Ordering::Equal,
-                        _ => return Ordering::Greater,
-                    }
-                }
-                _ => {
-                    match other {
-                        Self::Note(_) => return Ordering::Less,
-                        _ => return Ordering::Equal,
-                    }
-                }
+                Self::Note(_) => match other {
+                    Self::Note(_) => return Ordering::Equal,
+                    _ => return Ordering::Greater,
+                },
+                _ => match other {
+                    Self::Note(_) => return Ordering::Less,
+                    _ => return Ordering::Equal,
+                },
             }
         }
 
@@ -127,13 +119,15 @@ impl MmlEvent {
             Self::Tempo(tempo) => format!("t{tempo}"),
             Self::Octave(octave) => format!("o{octave}"),
             Self::Note(note) => note.mml_string.to_owned(),
-            Self::Rest(rest) => utils::get_display_mml(rest.to_owned().into(), &PitchClass::Rest, smallest_unit),
+            Self::Rest(rest) => {
+                utils::get_display_mml(rest.to_owned(), &PitchClass::Rest, smallest_unit)
+            }
             Self::Velocity(vel) => format!("v{}", vel),
             Self::NoteLength(length) => format!("l{}", length),
         }
     }
 
-    // TODO: Whitespace causes error in mobile disclosure
+    // TODO: Whitespace might cause errors in the game
     // pub fn to_mml_debug(&self, smallest_unit: usize) -> String {
     //     match self {
     //         Self::ConnectChord => String::from(":"),
@@ -163,7 +157,7 @@ impl MmlEvent {
         match self {
             Self::Note(note) => note.duration_in_smallest_unit,
             Self::Rest(rest) => rest.to_owned(),
-            _ => 0
+            _ => 0,
         }
     }
 }

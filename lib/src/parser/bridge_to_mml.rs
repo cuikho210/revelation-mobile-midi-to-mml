@@ -1,7 +1,12 @@
-use crate::{mml_event::{BridgeEvent, MmlEvent}, mml_note::MmlNote, mml_song::MmlSongOptions, Instrument};
+use crate::{
+    Instrument,
+    mml_event::{BridgeEvent, MmlEvent},
+    mml_note::MmlNote,
+    mml_song::MmlSongOptions,
+};
 
 pub fn bridge_events_to_mml_events(
-    bridge_events: &Vec<BridgeEvent>,
+    bridge_events: &[BridgeEvent],
     options: &MmlSongOptions,
     ppq: u16,
 ) -> (Vec<MmlEvent>, Option<Instrument>) {
@@ -11,7 +16,7 @@ pub fn bridge_events_to_mml_events(
 
     for event in bridge_events.iter() {
         match event {
-            BridgeEvent::Tempo(tempo, .. ) => {
+            BridgeEvent::Tempo(tempo, ..) => {
                 mml_events.push(MmlEvent::Tempo(tempo.to_owned()));
             }
             BridgeEvent::Note(midi_state) => {
@@ -19,8 +24,10 @@ pub fn bridge_events_to_mml_events(
 
                 if let Some(before_note) = &before_note {
                     // Rest and chord
-                    let before_note_end = before_note.position_in_smallest_unit + before_note.duration_in_smallest_unit;
-                    let position_diff = note.position_in_smallest_unit as isize - before_note_end as isize;
+                    let before_note_end = before_note.position_in_smallest_unit
+                        + before_note.duration_in_smallest_unit;
+                    let position_diff =
+                        note.position_in_smallest_unit as isize - before_note_end as isize;
 
                     if position_diff > 0 {
                         mml_events.push(MmlEvent::Rest(position_diff as usize));
@@ -75,7 +82,7 @@ pub fn bridge_events_to_mml_events(
     (mml_events, instrument)
 }
 
-fn update_note_mml(events: &mut Vec<MmlEvent>) {
+fn update_note_mml(events: &mut [MmlEvent]) {
     for event in events.iter_mut() {
         if let MmlEvent::Note(note) = event {
             note.update_mml_string();
@@ -87,25 +94,22 @@ fn fix_note_position(events: &mut Vec<MmlEvent>) {
     for i in 0..events.len() {
         let current_event = events.get(i).unwrap().to_owned();
 
-        match current_event {
-            MmlEvent::Note(note) => {
-                if note.is_part_of_chord {
-                    continue;
-                }
-
-                let current_position = get_current_position(&events, i);
-                let position_diff = note.position_in_smallest_unit as isize - current_position as isize;
-
-                if position_diff != 0 {
-                    modify_before_duration(events, i, position_diff);
-                }
+        if let MmlEvent::Note(note) = current_event {
+            if note.is_part_of_chord {
+                continue;
             }
-            _ => ()
+
+            let current_position = get_current_position(events, i);
+            let position_diff = note.position_in_smallest_unit as isize - current_position as isize;
+
+            if position_diff != 0 {
+                modify_before_duration(events, i, position_diff);
+            }
         }
     }
 }
 
-fn get_current_position(events: &Vec<MmlEvent>, current_index: usize) -> usize {
+fn get_current_position(events: &[MmlEvent], current_index: usize) -> usize {
     let mut is_first_note = true;
     let mut duration = 0usize;
     let mut index = 0usize;
@@ -122,11 +126,11 @@ fn get_current_position(events: &Vec<MmlEvent>, current_index: usize) -> usize {
                         is_first_note = false;
                     }
 
-                    if note.is_part_of_chord == false {
+                    if !note.is_part_of_chord {
                         duration += note.duration_in_smallest_unit;
                     }
                 }
-                _ => ()
+                _ => (),
             }
         }
 
@@ -136,7 +140,11 @@ fn get_current_position(events: &Vec<MmlEvent>, current_index: usize) -> usize {
     duration
 }
 
-fn modify_before_duration(events: &mut Vec<MmlEvent>, mut current_index: usize, mut to_modify: isize) {
+fn modify_before_duration(
+    events: &mut Vec<MmlEvent>,
+    mut current_index: usize,
+    mut to_modify: isize,
+) {
     let mut to_insert_connect_chord: Vec<usize> = Vec::new();
 
     loop {
@@ -176,14 +184,14 @@ fn modify_before_duration(events: &mut Vec<MmlEvent>, mut current_index: usize, 
                         to_insert_connect_chord.push(current_index);
                     }
                 }
-                _ => ()
+                _ => (),
             }
         }
     }
 
     for index in to_insert_connect_chord {
         events.insert(index, MmlEvent::ConnectChord);
-        
+
         if let Some(event) = events.get_mut(index + 1) {
             if let MmlEvent::Note(note) = event {
                 note.is_part_of_chord = true;
@@ -196,24 +204,21 @@ fn modify_before_duration(events: &mut Vec<MmlEvent>, mut current_index: usize, 
     }
 }
 
-fn update_chord_duration(events: &mut Vec<MmlEvent>) {
+fn update_chord_duration(events: &mut [MmlEvent]) {
     let mut before_note: Option<MmlNote> = None;
 
     for i in 0..events.len() {
         let event = events.get_mut(i).unwrap();
 
-        match event {
-            MmlEvent::Note(note) => {
-                if note.is_part_of_chord {
-                    if let Some(before_note) = &before_note {
-                        note.duration_in_smallest_unit = before_note.duration_in_smallest_unit;
-                    }
-                    continue;
+        if let MmlEvent::Note(note) = event {
+            if note.is_part_of_chord {
+                if let Some(before_note) = &before_note {
+                    note.duration_in_smallest_unit = before_note.duration_in_smallest_unit;
                 }
-
-                before_note = Some(note.to_owned());
+                continue;
             }
-            _ => ()
+
+            before_note = Some(note.to_owned());
         }
     }
 }

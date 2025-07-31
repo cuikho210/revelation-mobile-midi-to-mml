@@ -1,4 +1,10 @@
-use crate::{mml_event::{BridgeEvent, MidiNoteState, MmlEvent}, mml_song::MmlSongOptions, parser::bridge_events_to_mml_events, utils, Instrument};
+use crate::{
+    Instrument,
+    mml_event::{BridgeEvent, MidiNoteState, MmlEvent},
+    mml_song::MmlSongOptions,
+    parser::bridge_events_to_mml_events,
+    utils,
+};
 
 #[derive(Debug, Clone)]
 pub struct MmlTrack {
@@ -21,7 +27,6 @@ impl MmlTrack {
         song_options: MmlSongOptions,
         ppq: u16,
     ) -> Self {
-
         let mut mml_track = Self {
             name,
             events: Vec::new(),
@@ -46,8 +51,10 @@ impl MmlTrack {
 
             let is_too_different = {
                 let ratio = 0.5_f32;
-                let diff_a = track_a.mml_note_length > (track_b.mml_note_length as f32 * ratio) as usize;
-                let diff_b = track_b.mml_note_length > (track_a.mml_note_length as f32 * ratio) as usize;
+                let diff_a =
+                    track_a.mml_note_length > (track_b.mml_note_length as f32 * ratio) as usize;
+                let diff_b =
+                    track_b.mml_note_length > (track_a.mml_note_length as f32 * ratio) as usize;
                 diff_a || diff_b
             };
 
@@ -63,7 +70,8 @@ impl MmlTrack {
     }
 
     pub fn merge(&mut self, other: &mut Self) {
-        self.bridge_note_events.append(&mut other.bridge_note_events);
+        self.bridge_note_events
+            .append(&mut other.bridge_note_events);
         self.bridge_note_events.sort();
 
         self.name = format!("{}+{}", &self.name, other.name);
@@ -80,7 +88,7 @@ impl MmlTrack {
         mml
     }
 
-    // TODO: Whitespace causes error in mobile disclosure
+    // TODO: Whitespace might cause errors in the game
     // pub fn to_mml_debug(&self) -> String {
     //     let mut mml = String::new();
     //     let mut notes_on_row: usize = 0;
@@ -112,11 +120,8 @@ impl MmlTrack {
     pub fn generate_mml_events(&mut self) {
         self.apply_meta_events();
 
-        let (events, instrument) = bridge_events_to_mml_events(
-            &self.bridge_events,
-            &self.song_options,
-            self.ppq,
-        );
+        let (events, instrument) =
+            bridge_events_to_mml_events(&self.bridge_events, &self.song_options, self.ppq);
 
         if let Some(instrument) = instrument {
             self.instrument = instrument;
@@ -128,7 +133,8 @@ impl MmlTrack {
 
     fn apply_meta_events(&mut self) {
         self.bridge_events = self.bridge_note_events.to_owned();
-        self.bridge_events.append(&mut self.bridge_meta_events.to_owned());
+        self.bridge_events
+            .append(&mut self.bridge_meta_events.to_owned());
         self.bridge_events.sort();
     }
 
@@ -155,8 +161,7 @@ impl MmlTrack {
             let current_bridge_event = current_bridge_event_ref.to_owned();
 
             if let BridgeEvent::Note(current_note) = current_bridge_event_ref {
-                let current_end_position =
-                    current_note.midi_state.position_in_tick
+                let current_end_position = current_note.midi_state.position_in_tick
                     + current_note.midi_state.duration_in_tick;
 
                 if current_end_position > max_end_position {
@@ -168,16 +173,15 @@ impl MmlTrack {
                     let before_note_pos_isize = before_note.midi_state.position_in_tick as isize;
                     let start_pos_diff = note_pos_isize - before_note_pos_isize;
                     let min_gap_for_chord_isize = self.song_options.min_gap_for_chord as isize;
-                    let min_gap_for_chord_in_smallest_unit = min_gap_for_chord_isize * self.song_options.smallest_unit as isize;
+                    let min_gap_for_chord_in_smallest_unit =
+                        min_gap_for_chord_isize * self.song_options.smallest_unit as isize;
 
                     if start_pos_diff <= min_gap_for_chord_in_smallest_unit {
                         bridges_a.push(current_bridge_event);
+                    } else if current_note.midi_state.position_in_tick < max_end_position {
+                        bridges_b.push(current_bridge_event);
                     } else {
-                        if current_note.midi_state.position_in_tick < max_end_position {
-                            bridges_b.push(current_bridge_event);
-                        } else {
-                            bridges_a.push(current_bridge_event);
-                        }
+                        bridges_a.push(current_bridge_event);
                     }
                 } else {
                     bridges_a.push(current_bridge_event);

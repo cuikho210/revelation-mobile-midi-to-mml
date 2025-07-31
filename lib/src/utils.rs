@@ -1,8 +1,7 @@
+use crate::{MmlSongOptions, mml_event::MmlEvent, mml_track::MmlTrack, pitch_class::PitchClass};
 use std::convert::TryInto;
-use crate::{mml_event::MmlEvent, mml_track::MmlTrack, pitch_class::PitchClass, MmlSongOptions};
 
-
-pub fn count_mml_note(mml_string: &String) -> usize {
+pub fn count_mml_notes(mml_string: &str) -> usize {
     mml_string.split("&").count()
 }
 
@@ -25,7 +24,9 @@ pub fn equalize_tracks(track_a: &mut MmlTrack, track_b: &mut MmlTrack) {
         let ratio = index_counter as f32 / a.events.len() as f32;
         let bridge_event_center_index = a.bridge_note_events.len() as f32 * ratio;
 
-        let (left, right) = a.bridge_note_events.split_at(bridge_event_center_index.floor() as usize);
+        let (left, right) = a
+            .bridge_note_events
+            .split_at(bridge_event_center_index.floor() as usize);
         let mut left = left.to_vec();
         let right = right.to_vec();
 
@@ -43,11 +44,11 @@ pub fn equalize_tracks(track_a: &mut MmlTrack, track_b: &mut MmlTrack) {
     if gap > 0 {
         equalize(track_a, track_b, gap as usize);
     } else {
-        equalize(track_b, track_a, gap.abs() as usize);
+        equalize(track_b, track_a, gap.unsigned_abs());
     }
 }
 
-pub fn get_song_velocity_diff(song_options: &MmlSongOptions, tracks: &Vec<MmlTrack>) -> u8 {
+pub fn get_song_velocity_diff(song_options: &MmlSongOptions, tracks: &[MmlTrack]) -> u8 {
     let mut velocity_max = 0u8;
 
     for track in tracks.iter() {
@@ -57,40 +58,33 @@ pub fn get_song_velocity_diff(song_options: &MmlSongOptions, tracks: &Vec<MmlTra
         }
     }
 
-    let diff = song_options.velocity_max - velocity_max;
-    diff
+    song_options.velocity_max - velocity_max
 }
 
-pub fn auto_boot_song_velocity(tracks: &mut Vec<MmlTrack>, velocity_diff: u8) {
+pub fn auto_boot_song_velocity(tracks: &mut [MmlTrack], velocity_diff: u8) {
     for track in tracks.iter_mut() {
         track.apply_boot_velocity(velocity_diff);
     }
 }
 
-pub fn count_mml_notes(mml: &String) -> usize {
-    mml.split('&').count()
-}
-
-pub fn midi_velocity_to_mml_velocity(
-    midi_velocity: u8,
-    velocity_min: u8,
-    velocity_max: u8,
-) -> u8 {
+pub fn midi_velocity_to_mml_velocity(midi_velocity: u8, velocity_min: u8, velocity_max: u8) -> u8 {
     let range: i32 = (velocity_max - velocity_min).into();
     let midi_velocity: i32 = midi_velocity.into();
     let velocity_min: i32 = velocity_min.into();
 
-    ((midi_velocity * range / 127) + velocity_min).try_into().unwrap()
+    ((midi_velocity * range / 127) + velocity_min)
+        .try_into()
+        .unwrap()
 }
 
-pub fn get_highest_velocity(events: &Vec<MmlEvent>) -> u8 {
+pub fn get_highest_velocity(events: &[MmlEvent]) -> u8 {
     let mut max = 0u8;
 
     for event in events.iter() {
-        if let MmlEvent::Velocity(vel) = event {
-            if *vel > max {
-                max = *vel;
-            }
+        if let MmlEvent::Velocity(vel) = event
+            && *vel > max
+        {
+            max = *vel;
         }
     }
 
@@ -152,14 +146,18 @@ fn get_list_of_mml_notes(smallest_unit: usize) -> Vec<CustomMmlNote> {
 
     while remainder > 1 {
         notes.push(CustomMmlNote::new(smallest_unit, remainder));
-        remainder = remainder / 2;
+        remainder /= 2;
     }
     notes.push(CustomMmlNote::new(smallest_unit, remainder));
 
     notes
 }
 
-pub fn get_display_mml(mut duration_in_smallest_unit: usize, note_class: &PitchClass, smallest_unit: usize) -> String {
+pub fn get_display_mml(
+    mut duration_in_smallest_unit: usize,
+    note_class: &PitchClass,
+    smallest_unit: usize,
+) -> String {
     let mut result: Vec<String> = Vec::new();
     let notes = get_list_of_mml_notes(smallest_unit);
 

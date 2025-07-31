@@ -1,9 +1,4 @@
-use crate::{
-    mml_event::MidiNoteState,
-    mml_song::MmlSongOptions,
-    pitch_class::PitchClass,
-    utils,
-};
+use crate::{mml_event::MidiNoteState, mml_song::MmlSongOptions, pitch_class::PitchClass, utils};
 
 #[derive(Debug, Clone)]
 pub struct MmlNote {
@@ -55,7 +50,7 @@ impl MmlNote {
             options.smallest_unit,
         );
 
-        let mml_note_length = utils::count_mml_note(&mml_string);
+        let mml_note_length = utils::count_mml_notes(&mml_string);
 
         Self {
             midi_state,
@@ -67,7 +62,7 @@ impl MmlNote {
             is_part_of_chord,
             mml_string,
             mml_note_length,
-            song_options: options.to_owned(), 
+            song_options: options.to_owned(),
         }
     }
 
@@ -77,6 +72,6 @@ impl MmlNote {
             &self.pitch_class,
             self.song_options.smallest_unit,
         );
-        self.mml_note_length = utils::count_mml_note(&self.mml_string);
+        self.mml_note_length = utils::count_mml_notes(&self.mml_string);
     }
 }
