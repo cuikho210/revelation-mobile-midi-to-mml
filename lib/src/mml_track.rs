@@ -132,9 +132,12 @@ impl MmlTrack {
     }
 
     fn apply_meta_events(&mut self) {
-        self.bridge_events = self.bridge_note_events.to_owned();
+        self.bridge_events =
+            Vec::with_capacity(self.bridge_meta_events.len() + self.bridge_note_events.len());
         self.bridge_events
-            .append(&mut self.bridge_meta_events.to_owned());
+            .extend(self.bridge_note_events.to_owned());
+        self.bridge_events
+            .extend(self.bridge_meta_events.to_owned());
         self.bridge_events.sort();
     }
 

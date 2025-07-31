@@ -19,6 +19,9 @@ pub fn bridge_events_to_mml_events(
             BridgeEvent::Tempo(tempo, ..) => {
                 mml_events.push(MmlEvent::Tempo(tempo.to_owned()));
             }
+            BridgeEvent::ProgramChange(dest_instrument, _) => {
+                instrument = Some(dest_instrument.to_owned());
+            }
             BridgeEvent::Note(midi_state) => {
                 let mut note = MmlNote::from_midi_state(midi_state.to_owned(), options, ppq, false);
 
@@ -68,9 +71,6 @@ pub fn bridge_events_to_mml_events(
 
                 before_note = Some(note.to_owned());
                 mml_events.push(MmlEvent::Note(note));
-            }
-            BridgeEvent::ProgramChange(dest_instrument, _) => {
-                instrument = Some(dest_instrument.to_owned());
             }
         }
     }

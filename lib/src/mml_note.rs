@@ -44,14 +44,6 @@ impl MmlNote {
             options.smallest_unit,
         );
 
-        let mml_string = utils::get_display_mml(
-            duration_in_smallest_unit,
-            &pitch_class,
-            options.smallest_unit,
-        );
-
-        let mml_note_length = utils::count_mml_notes(&mml_string);
-
         Self {
             midi_state,
             pitch_class,
@@ -60,8 +52,8 @@ impl MmlNote {
             position_in_smallest_unit,
             duration_in_smallest_unit,
             is_part_of_chord,
-            mml_string,
-            mml_note_length,
+            mml_string: String::new(),
+            mml_note_length: 0,
             song_options: options.to_owned(),
         }
     }
@@ -105,7 +97,8 @@ mod tests {
 
         // Test middle C (MIDI key 60) quarter note
         let midi_note = create_test_midi_note(60, 64, 0, 480);
-        let mml_note = MmlNote::from_midi_state(midi_note.clone(), &options, ppq, false);
+        let mut mml_note = MmlNote::from_midi_state(midi_note.clone(), &options, ppq, false);
+        mml_note.update_mml_string();
 
         assert_eq!(mml_note.pitch_class, PitchClass::C);
         assert_eq!(mml_note.octave, 4); // Middle C is C4
@@ -140,7 +133,8 @@ mod tests {
 
         for (midi_key, expected_pitch) in test_cases {
             let midi_note = create_test_midi_note(midi_key, 64, 0, 480);
-            let mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
+            let mut mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
+            mml_note.update_mml_string();
             assert_eq!(
                 mml_note.pitch_class, expected_pitch,
                 "Failed for MIDI key {}",
@@ -229,7 +223,8 @@ mod tests {
 
         for (tick_duration, expected_units, expected_mml) in test_cases {
             let midi_note = create_test_midi_note(60, 64, 0, tick_duration);
-            let mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
+            let mut mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
+            mml_note.update_mml_string();
             assert_eq!(
                 mml_note.duration_in_smallest_unit, expected_units,
                 "Duration in units failed for {} ticks",
@@ -291,6 +286,7 @@ mod tests {
 
         let midi_note = create_test_midi_note(60, 64, 0, 480);
         let mut mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
+        mml_note.update_mml_string();
 
         // Initial state
         assert_eq!(mml_note.mml_string, "c4");
@@ -318,13 +314,15 @@ mod tests {
 
         // Test very short duration
         let midi_note = create_test_midi_note(60, 64, 0, 30); // 1/64 note
-        let mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
+        let mut mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
+        mml_note.update_mml_string();
         assert_eq!(mml_note.duration_in_smallest_unit, 1);
         assert_eq!(mml_note.mml_string, "c64");
 
         // Test very long duration
         let midi_note = create_test_midi_note(60, 64, 0, 3840); // Two whole notes
-        let mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
+        let mut mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
+        mml_note.update_mml_string();
         assert_eq!(mml_note.duration_in_smallest_unit, 128);
         assert_eq!(mml_note.mml_string, "c1.&c2"); // Dotted whole + half
 
