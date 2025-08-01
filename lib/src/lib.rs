@@ -1,16 +1,20 @@
-extern crate midly;
+mod instrument;
+mod instrument_map;
+mod mml_event;
+mod mml_note;
+mod mml_song;
+mod mml_track;
+mod parser;
+mod pitch_class;
 
-pub mod mml_event;
-pub mod mml_note;
-pub mod mml_track;
-pub mod mml_song;
+#[cfg(test)]
+mod test_utils;
 
 pub mod utils;
-pub mod parser;
-pub mod pitch_class;
-
-pub mod instrument;
-pub mod instrument_map;
 
 pub use instrument::Instrument;
-pub use mml_song::{MmlSongOptions, MmlSong};
+pub use mml_event::{BridgeEvent, MidiNoteState, MidiState, MmlEvent};
+pub use mml_note::MmlNote;
+pub use mml_song::{MmlSong, MmlSongOptions};
+pub use mml_track::MmlTrack;
+pub use pitch_class::PitchClass;

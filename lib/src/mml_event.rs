@@ -1,8 +1,4 @@
-use crate::{
-    mml_note::MmlNote,
-    pitch_class::PitchClass,
-    utils, Instrument,
-};
+use crate::{Instrument, mml_note::MmlNote, pitch_class::PitchClass, utils};
 use std::cmp::Ordering;
 
 // --------------------------------
@@ -73,21 +69,17 @@ impl Ord for BridgeEvent {
         };
 
         let order = self_position.cmp(&other_position);
-        
+
         if let Ordering::Equal = order {
             match self {
-                Self::Note(_) => {
-                    match other {
-                        Self::Note(_) => return Ordering::Equal,
-                        _ => return Ordering::Greater,
-                    }
-                }
-                _ => {
-                    match other {
-                        Self::Note(_) => return Ordering::Less,
-                        _ => return Ordering::Equal,
-                    }
-                }
+                Self::Note(_) => match other {
+                    Self::Note(_) => return Ordering::Equal,
+                    _ => return Ordering::Greater,
+                },
+                _ => match other {
+                    Self::Note(_) => return Ordering::Less,
+                    _ => return Ordering::Equal,
+                },
             }
         }
 
@@ -109,7 +101,10 @@ impl PartialOrd for BridgeEvent {
 pub enum MmlEvent {
     Note(MmlNote),
     Rest(usize),
-    Tempo(u32),
+
+    /// (tempo, position_in_smallest_unit)
+    Tempo(u32, usize),
+
     Octave(u8),
     IncreOctave,
     DecreOctave,
@@ -124,16 +119,18 @@ impl MmlEvent {
             Self::ConnectChord => String::from(":"),
             Self::IncreOctave => String::from(">"),
             Self::DecreOctave => String::from("<"),
-            Self::Tempo(tempo) => format!("t{tempo}"),
+            Self::Tempo(tempo, _) => format!("t{tempo}"),
             Self::Octave(octave) => format!("o{octave}"),
             Self::Note(note) => note.mml_string.to_owned(),
-            Self::Rest(rest) => utils::get_display_mml(rest.to_owned().into(), &PitchClass::Rest, smallest_unit),
+            Self::Rest(rest) => {
+                utils::get_display_mml(rest.to_owned(), &PitchClass::Rest, smallest_unit)
+            }
             Self::Velocity(vel) => format!("v{}", vel),
             Self::NoteLength(length) => format!("l{}", length),
         }
     }
 
-    // TODO: Whitespace causes error in mobile disclosure
+    // TODO: Whitespace might cause errors in the game
     // pub fn to_mml_debug(&self, smallest_unit: usize) -> String {
     //     match self {
     //         Self::ConnectChord => String::from(":"),
@@ -159,11 +156,45 @@ impl MmlEvent {
     // }
 
     /// Get duration in smallest unit
-    pub fn get_duration(&self) -> usize {
+    pub fn get_duration(&self) -> Option<usize> {
         match self {
-            Self::Note(note) => note.duration_in_smallest_unit,
-            Self::Rest(rest) => rest.to_owned(),
-            _ => 0
+            Self::Note(note) => Some(note.duration_in_smallest_unit),
+            Self::Rest(rest) => Some(*rest),
+            _ => None,
+        }
+    }
+
+    /// Set duration in smallest unit
+    pub fn set_duration(&mut self, new_dur: usize) {
+        match self {
+            Self::Note(note) => note.duration_in_smallest_unit = new_dur,
+            Self::Rest(rest) => *rest = new_dur,
+            _ => (),
+        }
+    }
+
+    /// Get position in smallest unit
+    pub fn get_position(&self) -> Option<usize> {
+        match self {
+            Self::Note(note) => Some(note.position_in_smallest_unit),
+            Self::Tempo(_, pos) => Some(*pos),
+            _ => None,
+        }
+    }
+
+    /// Set position in smallest unit
+    pub fn set_position(&mut self, new_pos: usize) {
+        match self {
+            Self::Note(note) => note.position_in_smallest_unit = new_pos,
+            Self::Tempo(_, pos) => *pos = new_pos,
+            _ => (),
+        }
+    }
+
+    pub fn is_part_of_chord(&self) -> bool {
+        match self {
+            Self::Note(note) => note.is_part_of_chord,
+            _ => false,
         }
     }
 }

@@ -1,6 +1,6 @@
-use crate::{utils, NoteEvent, NoteOnCallbackData, Parser, PlaybackStatus, SynthOutputConnection};
+use crate::{NoteEvent, NoteOnCallbackData, Parser, PlaybackStatus, SynthOutputConnection, utils};
 use anyhow::{Context, Result};
-use revelation_mobile_midi_to_mml::Instrument;
+use midi_to_mml::Instrument;
 use std::{
     sync::{Arc, RwLock},
     thread::sleep,

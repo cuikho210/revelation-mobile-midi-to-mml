@@ -1,7 +1,7 @@
 use crate::{Parser, Synth, SynthOutputConnection, TrackPlayer};
-use anyhow::{anyhow, Result};
-use cpal::{traits::StreamTrait, Stream};
-use revelation_mobile_midi_to_mml::{Instrument, MmlSong};
+use anyhow::{Result, anyhow};
+use cpal::{Stream, traits::StreamTrait};
+use midi_to_mml::{Instrument, MmlSong};
 use std::{
     path::{Path, PathBuf},
     sync::{Arc, Mutex, RwLock},
