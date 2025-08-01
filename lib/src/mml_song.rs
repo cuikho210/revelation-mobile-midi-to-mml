@@ -1,5 +1,6 @@
 use std::{fs, path::Path};
 
+use anyhow::{Context, Result};
 use midly::{Smf, Timing, TrackEvent};
 use rayon::prelude::*;
 
@@ -61,24 +62,16 @@ pub struct MmlSong {
 }
 
 impl MmlSong {
-    pub fn from_path<P>(path: P, options: MmlSongOptions) -> Result<Self, String>
+    pub fn from_path<P>(path: P, options: MmlSongOptions) -> Result<Self>
     where
         P: AsRef<Path>,
     {
-        let bytes = match fs::read(path) {
-            Ok(bytes) => bytes,
-            Err(err) => return Err(err.to_string()),
-        };
-
+        let bytes = fs::read(path)?;
         Self::from_bytes(bytes, options)
     }
 
-    pub fn from_bytes(bytes: Vec<u8>, options: MmlSongOptions) -> Result<Self, String> {
-        let smf = match Smf::parse(&bytes) {
-            Ok(smf) => smf,
-            Err(err) => return Err(err.to_string()),
-        };
-
+    pub fn from_bytes(bytes: Vec<u8>, options: MmlSongOptions) -> Result<Self> {
+        let smf = Smf::parse(&bytes)?;
         let ppq = get_ppq_from_smf(&smf).unwrap_or(480);
 
         let meta_events = get_bridge_meta_events(&smf.tracks);
@@ -97,17 +90,17 @@ impl MmlSong {
         Ok(song)
     }
 
-    pub fn merge_tracks(&mut self, index_a: usize, index_b: usize) -> Result<(), String> {
+    pub fn merge_tracks(&mut self, index_a: usize, index_b: usize) -> Result<()> {
         let mut track_b = self
             .tracks
             .get(index_b)
-            .ok_or(format!("Cannot get track by index_b = {}", index_b))?
+            .with_context(|| format!("Cannot get track by index_b = {}", index_b))?
             .to_owned();
 
         let track_a = self
             .tracks
             .get_mut(index_a)
-            .ok_or(format!("Cannot get track by index_a = {}", index_a))?;
+            .with_context(|| format!("Cannot get track by index_a = {}", index_a))?;
 
         track_a.merge(&mut track_b);
         self.tracks.remove(index_b);
@@ -115,11 +108,11 @@ impl MmlSong {
         Ok(())
     }
 
-    pub fn split_track(&mut self, index: usize) -> Result<(), String> {
+    pub fn split_track(&mut self, index: usize) -> Result<()> {
         let track = self
             .tracks
             .get_mut(index)
-            .ok_or(format!("Cannot get track by index {}", index))?;
+            .with_context(|| format!("Cannot get track by index {}", index))?;
         let (mut track_a, mut track_b) = track.split();
 
         if self.options.auto_boot_velocity
@@ -135,7 +128,7 @@ impl MmlSong {
         Ok(())
     }
 
-    pub fn set_song_options(&mut self, options: MmlSongOptions) -> Result<(), String> {
+    pub fn set_song_options(&mut self, options: MmlSongOptions) -> Result<()> {
         self.options = options.clone();
         self.tracks.par_iter_mut().for_each(|track| {
             track.song_options = options.clone();
