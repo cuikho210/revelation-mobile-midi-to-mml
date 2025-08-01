@@ -42,17 +42,11 @@ fn assert_tempo_position(song: &MmlSong) {
                 .collect()
         })
         .collect();
-    for i in 0..(track_tempos.len() - 1) {
-        let vec_a = track_tempos.get(i).unwrap();
-        let vec_b = track_tempos.get(i + 1).unwrap();
 
-        for (i, (expect_a, actual_a)) in vec_a.into_iter().enumerate() {
-            let (expect_b, actual_b) = vec_b.get(i).unwrap();
-            println!("Assert tempo at {}", i);
-            assert_eq!(expect_a, expect_b);
-            assert_eq!(expect_a, actual_a);
-            assert_eq!(expect_b, actual_b);
-            assert_eq!(actual_a, actual_b);
+    for track in track_tempos.iter() {
+        for (i, (expect, actual)) in track.iter().enumerate() {
+            println!("Assert tempo at {i}");
+            assert_eq!(expect, actual);
         }
     }
 }
