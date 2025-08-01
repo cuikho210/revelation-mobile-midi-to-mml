@@ -7,6 +7,9 @@ mod mml_track;
 mod parser;
 mod pitch_class;
 
+#[cfg(test)]
+mod test_utils;
+
 pub mod utils;
 
 pub use instrument::Instrument;

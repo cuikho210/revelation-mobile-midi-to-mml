@@ -33,7 +33,7 @@ fn assert_only_1_tempo_change(song: &MmlSong) {
             .events
             .iter()
             .filter(|e| {
-                if let MmlEvent::Tempo(_) = e {
+                if let MmlEvent::Tempo(_, _) = e {
                     true
                 } else {
                     false

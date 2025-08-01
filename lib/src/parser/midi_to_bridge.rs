@@ -78,6 +78,12 @@ pub fn bridge_notes_from_midi_track(midi_track: &MidiTrack) -> Vec<BridgeEvent> 
         }
     }
 
+    for mut note in holding_notes.into_values() {
+        let duration = current_ticks - note.midi_state.position_in_tick;
+        note.midi_state.duration_in_tick = duration;
+        note_events.push(BridgeEvent::Note(note));
+    }
+
     note_events
 }
 

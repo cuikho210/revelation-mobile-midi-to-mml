@@ -11,7 +11,6 @@ pub struct MmlNote {
     pub is_part_of_chord: bool,
     pub mml_string: String,
     pub mml_note_length: usize,
-    pub song_options: MmlSongOptions,
 }
 
 impl MmlNote {
@@ -54,15 +53,14 @@ impl MmlNote {
             is_part_of_chord,
             mml_string: String::new(),
             mml_note_length: 0,
-            song_options: options.to_owned(),
         }
     }
 
-    pub fn update_mml_string(&mut self) {
+    pub fn update_mml_string(&mut self, smallest_unit: usize) {
         self.mml_string = utils::get_display_mml(
             self.duration_in_smallest_unit,
             &self.pitch_class,
-            self.song_options.smallest_unit,
+            smallest_unit,
         );
         self.mml_note_length = utils::count_mml_notes(&self.mml_string);
     }
@@ -98,7 +96,7 @@ mod tests {
         // Test middle C (MIDI key 60) quarter note
         let midi_note = create_test_midi_note(60, 64, 0, 480);
         let mut mml_note = MmlNote::from_midi_state(midi_note.clone(), &options, ppq, false);
-        mml_note.update_mml_string();
+        mml_note.update_mml_string(options.smallest_unit);
 
         assert_eq!(mml_note.pitch_class, PitchClass::C);
         assert_eq!(mml_note.octave, 4); // Middle C is C4
@@ -134,7 +132,7 @@ mod tests {
         for (midi_key, expected_pitch) in test_cases {
             let midi_note = create_test_midi_note(midi_key, 64, 0, 480);
             let mut mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
-            mml_note.update_mml_string();
+            mml_note.update_mml_string(options.smallest_unit);
             assert_eq!(
                 mml_note.pitch_class, expected_pitch,
                 "Failed for MIDI key {}",
@@ -224,7 +222,7 @@ mod tests {
         for (tick_duration, expected_units, expected_mml) in test_cases {
             let midi_note = create_test_midi_note(60, 64, 0, tick_duration);
             let mut mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
-            mml_note.update_mml_string();
+            mml_note.update_mml_string(options.smallest_unit);
             assert_eq!(
                 mml_note.duration_in_smallest_unit, expected_units,
                 "Duration in units failed for {} ticks",
@@ -286,7 +284,7 @@ mod tests {
 
         let midi_note = create_test_midi_note(60, 64, 0, 480);
         let mut mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
-        mml_note.update_mml_string();
+        mml_note.update_mml_string(options.smallest_unit);
 
         // Initial state
         assert_eq!(mml_note.mml_string, "c4");
@@ -294,14 +292,14 @@ mod tests {
 
         // Modify duration and update
         mml_note.duration_in_smallest_unit = 24; // Dotted quarter
-        mml_note.update_mml_string();
+        mml_note.update_mml_string(options.smallest_unit);
 
         assert_eq!(mml_note.mml_string, "c4.");
         assert_eq!(mml_note.mml_note_length, 1);
 
         // Test tied note
         mml_note.duration_in_smallest_unit = 20; // Quarter + sixteenth
-        mml_note.update_mml_string();
+        mml_note.update_mml_string(options.smallest_unit);
 
         assert_eq!(mml_note.mml_string, "c4&c16");
         assert_eq!(mml_note.mml_note_length, 2);
@@ -315,14 +313,14 @@ mod tests {
         // Test very short duration
         let midi_note = create_test_midi_note(60, 64, 0, 30); // 1/64 note
         let mut mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
-        mml_note.update_mml_string();
+        mml_note.update_mml_string(options.smallest_unit);
         assert_eq!(mml_note.duration_in_smallest_unit, 1);
         assert_eq!(mml_note.mml_string, "c64");
 
         // Test very long duration
         let midi_note = create_test_midi_note(60, 64, 0, 3840); // Two whole notes
         let mut mml_note = MmlNote::from_midi_state(midi_note, &options, ppq, false);
-        mml_note.update_mml_string();
+        mml_note.update_mml_string(options.smallest_unit);
         assert_eq!(mml_note.duration_in_smallest_unit, 128);
         assert_eq!(mml_note.mml_string, "c1.&c2"); // Dotted whole + half
 

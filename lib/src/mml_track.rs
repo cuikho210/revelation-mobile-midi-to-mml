@@ -435,7 +435,10 @@ mod tests {
         );
 
         // Should have tempo event in the results
-        let has_tempo = track.events.iter().any(|e| matches!(e, MmlEvent::Tempo(_)));
+        let has_tempo = track
+            .events
+            .iter()
+            .any(|e| matches!(e, MmlEvent::Tempo(_, _)));
         assert!(has_tempo);
 
         let mml = track.to_mml();

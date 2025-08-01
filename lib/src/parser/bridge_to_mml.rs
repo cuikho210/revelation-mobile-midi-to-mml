@@ -3,6 +3,7 @@ use crate::{
     mml_event::{BridgeEvent, MmlEvent},
     mml_note::MmlNote,
     mml_song::MmlSongOptions,
+    utils::{compute_position_in_smallest_unit, tick_to_smallest_unit},
 };
 
 pub fn bridge_events_to_mml_events(
@@ -10,14 +11,32 @@ pub fn bridge_events_to_mml_events(
     options: &MmlSongOptions,
     ppq: u16,
 ) -> (Vec<MmlEvent>, Option<Instrument>) {
+    let (mut mml_events, instrument) = bridge_events_to_raw_mml_events(bridge_events, options, ppq);
+
+    normalize_events(&mut mml_events);
+    fix_events_position(&mut mml_events);
+    normalize_events(&mut mml_events);
+    update_chord_duration(&mut mml_events);
+    update_note_mml(&mut mml_events, options.smallest_unit);
+
+    (mml_events, instrument)
+}
+
+fn bridge_events_to_raw_mml_events(
+    bridge_events: &[BridgeEvent],
+    options: &MmlSongOptions,
+    ppq: u16,
+) -> (Vec<MmlEvent>, Option<Instrument>) {
     let mut mml_events: Vec<MmlEvent> = Vec::new();
     let mut before_note: Option<MmlNote> = None;
+    let mut before_note_index: Option<usize> = None;
     let mut instrument = None;
 
     for event in bridge_events.iter() {
         match event {
-            BridgeEvent::Tempo(tempo, ..) => {
-                mml_events.push(MmlEvent::Tempo(tempo.to_owned()));
+            BridgeEvent::Tempo(tempo, state) => {
+                let pos = tick_to_smallest_unit(state.position_in_tick, ppq, options.smallest_unit);
+                mml_events.push(MmlEvent::Tempo(tempo.to_owned(), pos));
             }
             BridgeEvent::ProgramChange(dest_instrument, _) => {
                 instrument = Some(dest_instrument.to_owned());
@@ -29,19 +48,35 @@ pub fn bridge_events_to_mml_events(
                     // Rest and chord
                     let before_note_end = before_note.position_in_smallest_unit
                         + before_note.duration_in_smallest_unit;
-                    let position_diff =
-                        note.position_in_smallest_unit as isize - before_note_end as isize;
+                    let gap = note.position_in_smallest_unit as isize - before_note_end as isize;
 
-                    if position_diff > 0 {
-                        mml_events.push(MmlEvent::Rest(position_diff as usize));
-                    } else if position_diff < 0 {
+                    if gap > 0 {
+                        mml_events.push(MmlEvent::Rest(gap as usize));
+                    } else if gap < 0 {
                         let note_pos_isize = note.position_in_smallest_unit as isize;
                         let before_note_pos_isize = before_note.position_in_smallest_unit as isize;
-                        let start_pos_diff = note_pos_isize - before_note_pos_isize;
+                        let start_pos_gap = note_pos_isize - before_note_pos_isize;
 
-                        if start_pos_diff <= options.min_gap_for_chord as isize {
+                        if start_pos_gap <= options.min_gap_for_chord as isize {
                             mml_events.push(MmlEvent::ConnectChord);
                             note.is_part_of_chord = true;
+                            note.position_in_smallest_unit = before_note.position_in_smallest_unit;
+                            note.duration_in_smallest_unit = before_note.duration_in_smallest_unit;
+                        } else {
+                            let overrided = (before_note_pos_isize
+                                + before_note.duration_in_smallest_unit as isize)
+                                - note_pos_isize;
+                            if overrided > 0 {
+                                let new_dur =
+                                    before_note.duration_in_smallest_unit - overrided as usize;
+                                let before_note =
+                                    mml_events.get_mut(before_note_index.unwrap()).unwrap();
+                                before_note.set_duration(new_dur);
+                            }
+                        }
+
+                        if start_pos_gap < 0 {
+                            panic!("start_pos_gap == 0");
                         }
                     }
 
@@ -70,138 +105,167 @@ pub fn bridge_events_to_mml_events(
                 }
 
                 before_note = Some(note.to_owned());
+                before_note_index = Some(mml_events.len());
+
                 mml_events.push(MmlEvent::Note(note));
             }
         }
     }
 
-    fix_note_position(&mut mml_events);
-    update_chord_duration(&mut mml_events);
-    update_note_mml(&mut mml_events);
-
     (mml_events, instrument)
 }
 
-fn update_note_mml(events: &mut [MmlEvent]) {
+fn update_note_mml(events: &mut [MmlEvent], smallest_unit: usize) {
     for event in events.iter_mut() {
         if let MmlEvent::Note(note) = event {
-            note.update_mml_string();
+            note.update_mml_string(smallest_unit);
         }
     }
 }
 
-fn fix_note_position(events: &mut Vec<MmlEvent>) {
-    for i in 0..events.len() {
-        let current_event = events.get(i).unwrap().to_owned();
+pub fn fix_events_position(events: &mut Vec<MmlEvent>) {
+    let mut i = 0;
+    while i < events.len() {
+        let current_event = events.get(i).unwrap();
 
-        if let MmlEvent::Note(note) = current_event {
-            if note.is_part_of_chord {
+        match &current_event {
+            MmlEvent::Note(note) => {
+                if !note.is_part_of_chord {
+                    let new_i = fix_event_position(events, i);
+                    if new_i != i {
+                        i = new_i;
+                    }
+                }
+            }
+            MmlEvent::Tempo(_, _) => {
+                let new_i = fix_event_position(events, i);
+                if new_i != i {
+                    i = new_i;
+                }
+            }
+            _ => (),
+        };
+
+        i += 1;
+    }
+}
+
+fn fix_event_position(events: &mut Vec<MmlEvent>, event_index: usize) -> usize {
+    let Some(event) = events.get(event_index) else {
+        return event_index;
+    };
+    let Some(expect_pos) = event.get_position() else {
+        return event_index;
+    };
+    let mut current_pos = compute_position_in_smallest_unit(events, event_index);
+
+    if expect_pos == current_pos {
+        return event_index;
+    }
+
+    let mut i = event_index;
+    while i > 0 {
+        i -= 1;
+
+        let e = events.get_mut(i).unwrap();
+        if e.is_part_of_chord() {
+            continue;
+        }
+
+        if expect_pos > current_pos {
+            let to_incre = expect_pos - current_pos;
+            events.insert(i, MmlEvent::Rest(to_incre));
+            return event_index + 1;
+        } else {
+            let to_decre = current_pos - expect_pos;
+            let Some(e_dur) = e.get_duration() else {
                 continue;
-            }
+            };
 
-            let current_position = get_current_position(events, i);
-            let position_diff = note.position_in_smallest_unit as isize - current_position as isize;
-
-            if position_diff != 0 {
-                modify_before_duration(events, i, position_diff);
-            }
-        }
-    }
-}
-
-fn get_current_position(events: &[MmlEvent], current_index: usize) -> usize {
-    let mut is_first_note = true;
-    let mut duration = 0usize;
-    let mut index = 0usize;
-
-    while index < current_index {
-        if let Some(event) = events.get(index) {
-            match event {
-                MmlEvent::Rest(rest) => {
-                    duration += rest;
-                }
-                MmlEvent::Note(note) => {
-                    if is_first_note {
-                        duration = note.position_in_smallest_unit;
-                        is_first_note = false;
-                    }
-
-                    if !note.is_part_of_chord {
-                        duration += note.duration_in_smallest_unit;
-                    }
-                }
-                _ => (),
-            }
-        }
-
-        index += 1;
-    }
-
-    duration
-}
-
-fn modify_before_duration(
-    events: &mut Vec<MmlEvent>,
-    mut current_index: usize,
-    mut to_modify: isize,
-) {
-    let mut to_insert_connect_chord: Vec<usize> = Vec::new();
-
-    loop {
-        if current_index > 0 {
-            current_index -= 1;
-        } else {
-            break;
-        }
-
-        if let Some(event) = events.get_mut(current_index) {
-            match event {
-                MmlEvent::Rest(rest) => {
-                    let rest_isize = rest.to_owned() as isize;
-                    let new_rest = rest_isize + to_modify;
-
-                    if new_rest > 0 {
-                        *rest = new_rest as usize;
-                        break;
-                    } else {
-                        *rest = 0;
-                        to_modify += rest_isize;
-                    }
-                }
-                MmlEvent::Note(note) => {
-                    if note.is_part_of_chord {
-                        continue;
-                    }
-
-                    let duration_isize = note.duration_in_smallest_unit as isize;
-                    let new_duration = duration_isize + to_modify;
-
-                    if new_duration > 0 {
-                        note.duration_in_smallest_unit = new_duration as usize;
-                        break;
-                    } else {
-                        to_modify += duration_isize;
-                        to_insert_connect_chord.push(current_index);
-                    }
-                }
-                _ => (),
-            }
-        }
-    }
-
-    for index in to_insert_connect_chord {
-        events.insert(index, MmlEvent::ConnectChord);
-
-        if let Some(event) = events.get_mut(index + 1) {
-            if let MmlEvent::Note(note) = event {
+            if e_dur > to_decre {
+                e.set_duration(e_dur - to_decre);
+            } else if let MmlEvent::Note(note) = e {
                 note.is_part_of_chord = true;
-            } else {
-                eprintln!("[modify_before_duration] Cannot get note");
+            } else if let MmlEvent::Rest(_) = e {
+                events.remove(i);
+                return event_index - 1;
             }
-        } else {
-            eprintln!("[modify_before_duration] Cannot get event");
+
+            current_pos = compute_position_in_smallest_unit(events, event_index);
+            if expect_pos == current_pos {
+                return event_index;
+            }
         }
     }
+
+    if expect_pos > current_pos {
+        events.insert(0, MmlEvent::Rest(expect_pos - current_pos));
+        return event_index + 1;
+    }
+
+    event_index
+}
+
+fn normalize_events(events: &mut Vec<MmlEvent>) {
+    let mut i = 0;
+    let mut before_note_i: Option<usize> = None;
+
+    while i < events.len() {
+        let current_e = events.get(i).unwrap().clone();
+
+        match current_e {
+            MmlEvent::Note(note) => {
+                if note.is_part_of_chord {
+                    if !has_a_connect_chord_event(events, i) {
+                        if let Some(before_note_i) = before_note_i {
+                            events.insert(before_note_i + 1, MmlEvent::ConnectChord);
+                            i += 1;
+                        } else {
+                            // TODO: Handle case where chord note has no preceding note
+                            println!("Note {note:?} at {i}");
+                            panic!();
+                        }
+                    }
+                } else {
+                    if note.duration_in_smallest_unit == 0 {
+                        events.remove(i);
+                        i -= 1;
+                    } else {
+                        before_note_i = Some(i);
+                    }
+                }
+            }
+            MmlEvent::Rest(rest) => {
+                if rest == 0 {
+                    events.remove(i);
+                    i -= 1;
+                }
+            }
+            MmlEvent::Tempo(_, _) => {
+                if i > 0
+                    && let Some(MmlEvent::Tempo(_, _)) = events.get(i - 1)
+                {
+                    events.remove(i - 1);
+                    i -= 1;
+                }
+            }
+            _ => {}
+        }
+
+        i += 1;
+    }
+}
+
+pub fn has_a_connect_chord_event(events: &[MmlEvent], index: usize) -> bool {
+    for i in (0..index).rev() {
+        let e = events.get(i).unwrap();
+        match e {
+            MmlEvent::ConnectChord => return true,
+            MmlEvent::Note(_) => return false,
+            _ => (),
+        }
+    }
+    return false;
 }
 
 fn update_chord_duration(events: &mut [MmlEvent]) {
@@ -225,321 +289,137 @@ fn update_chord_duration(events: &mut [MmlEvent]) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::{
-        Instrument, MmlSongOptions, PitchClass,
-        mml_event::{BridgeEvent, MidiNoteState, MidiState},
+        MmlEvent, MmlNote,
+        parser::bridge_to_mml::{
+            bridge_events_to_raw_mml_events, fix_event_position, fix_events_position,
+            has_a_connect_chord_event, normalize_events, update_chord_duration,
+        },
+        test_utils,
+        utils::compute_position_in_smallest_unit,
     };
 
-    fn create_test_midi_note_state(
-        key: u8,
-        velocity: u8,
-        position: usize,
-        duration: usize,
-        channel: u8,
-    ) -> MidiNoteState {
-        MidiNoteState {
-            key,
-            velocity,
-            midi_state: MidiState {
-                position_in_tick: position,
-                duration_in_tick: duration,
-                channel,
-            },
-        }
-    }
-
     #[test]
-    fn test_single_note_conversion() {
-        let options = MmlSongOptions::default();
-        let ppq = 480;
+    fn test_update_chord_duration() {
+        let (bridge_events, options, ppq) = test_utils::setup_bridge_events();
+        let (mut events, _) = bridge_events_to_raw_mml_events(&bridge_events, &options, ppq);
 
-        let midi_note = create_test_midi_note_state(60, 64, 0, 480, 0); // Middle C quarter note
-        let bridge_events = vec![BridgeEvent::Note(midi_note)];
+        normalize_events(&mut events);
+        fix_events_position(&mut events);
+        normalize_events(&mut events);
+        update_chord_duration(&mut events);
 
-        let (mml_events, instrument) = bridge_events_to_mml_events(&bridge_events, &options, ppq);
-
-        assert!(instrument.is_none()); // No program change
-
-        // Expected events: Velocity, Octave, Note
-        assert_eq!(mml_events.len(), 3);
-
-        match &mml_events[0] {
-            MmlEvent::Velocity(vel) => assert_eq!(*vel, 7), // 64/127 * 15 ≈ 7
-            _ => panic!("Expected velocity event"),
-        }
-
-        match &mml_events[1] {
-            MmlEvent::Octave(octave) => assert_eq!(*octave, 4), // Middle C is octave 4
-            _ => panic!("Expected octave event"),
-        }
-
-        match &mml_events[2] {
-            MmlEvent::Note(note) => {
-                assert_eq!(note.pitch_class, PitchClass::C);
-                assert_eq!(note.duration_in_smallest_unit, 16); // Quarter note
-                assert_eq!(note.mml_string, "c4");
-            }
-            _ => panic!("Expected note event"),
-        }
-    }
-
-    #[test]
-    fn test_note_with_rest_before() {
-        let options = MmlSongOptions::default();
-        let ppq = 480;
-
-        // Note starting at position 240 (eighth note delay)
-        let midi_note = create_test_midi_note_state(60, 64, 240, 480, 0);
-        let bridge_events = vec![BridgeEvent::Note(midi_note)];
-
-        let (mml_events, _) = bridge_events_to_mml_events(&bridge_events, &options, ppq);
-
-        // Expected: Rest, Velocity, Octave, Note
-        assert_eq!(mml_events.len(), 4);
-
-        match &mml_events[0] {
-            MmlEvent::Rest(duration) => assert_eq!(*duration, 8), // Eighth note rest
-            _ => panic!("Expected rest event"),
-        }
-    }
-
-    #[test]
-    fn test_two_consecutive_notes() {
-        let options = MmlSongOptions::default();
-        let ppq = 480;
-
-        let note1 = create_test_midi_note_state(60, 64, 0, 480, 0); // C quarter note
-        let note2 = create_test_midi_note_state(62, 64, 480, 480, 0); // D quarter note
-
-        let bridge_events = vec![BridgeEvent::Note(note1), BridgeEvent::Note(note2)];
-
-        let (mml_events, _) = bridge_events_to_mml_events(&bridge_events, &options, ppq);
-
-        // Should have: Velocity, Octave, Note1, Note2
-        assert_eq!(mml_events.len(), 4);
-
-        // Verify second note doesn't repeat velocity/octave since they're the same
-        match &mml_events[3] {
-            MmlEvent::Note(note) => {
-                assert_eq!(note.pitch_class, PitchClass::D);
-            }
-            _ => panic!("Expected second note"),
-        }
-    }
-
-    #[test]
-    fn test_octave_changes() {
-        let options = MmlSongOptions::default();
-        let ppq = 480;
-
-        let note1 = create_test_midi_note_state(60, 64, 0, 480, 0); // C4
-        let note2 = create_test_midi_note_state(72, 64, 480, 480, 0); // C5
-
-        let bridge_events = vec![BridgeEvent::Note(note1), BridgeEvent::Note(note2)];
-
-        let (mml_events, _) = bridge_events_to_mml_events(&bridge_events, &options, ppq);
-
-        // Should have octave increment
-        let mut found_octave_increment = false;
-        for event in &mml_events {
-            if matches!(event, MmlEvent::IncreOctave) {
-                found_octave_increment = true;
-                break;
+        let mut before_note_duration: Option<usize> = None;
+        for e in events.iter() {
+            if let MmlEvent::Note(note) = e {
+                if note.is_part_of_chord {
+                    assert_eq!(
+                        note.duration_in_smallest_unit,
+                        before_note_duration.unwrap(),
+                        "Chord note duration mismatch"
+                    );
+                } else {
+                    before_note_duration = Some(note.duration_in_smallest_unit);
+                }
             }
         }
-        assert!(found_octave_increment, "Expected octave increment");
     }
 
     #[test]
-    fn test_velocity_changes() {
-        let options = MmlSongOptions::default();
-        let ppq = 480;
+    fn test_fix_events_position() {
+        let (bridge_events, options, ppq) = test_utils::setup_bridge_events();
+        let (mut events, _) = bridge_events_to_raw_mml_events(&bridge_events, &options, ppq);
+        normalize_events(&mut events);
+        fix_events_position(&mut events);
+        normalize_events(&mut events);
 
-        let note1 = create_test_midi_note_state(60, 64, 0, 480, 0); // Velocity 64
-        let note2 = create_test_midi_note_state(60, 100, 480, 480, 0); // Velocity 100
-
-        let bridge_events = vec![BridgeEvent::Note(note1), BridgeEvent::Note(note2)];
-
-        let (mml_events, _) = bridge_events_to_mml_events(&bridge_events, &options, ppq);
-
-        // Should have two velocity events
-        let velocity_events: Vec<_> = mml_events
-            .iter()
-            .filter_map(|e| match e {
-                MmlEvent::Velocity(vel) => Some(*vel),
-                _ => None,
-            })
-            .collect();
-
-        assert_eq!(velocity_events.len(), 2);
-        assert_ne!(velocity_events[0], velocity_events[1]);
-    }
-
-    #[test]
-    fn test_chord_detection() {
-        let mut options = MmlSongOptions::default();
-        options.min_gap_for_chord = 2; // Small gap for chord detection
-
-        let ppq = 480;
-
-        // Two notes starting very close together (within chord gap)
-        let note1 = create_test_midi_note_state(60, 64, 0, 480, 0); // C
-        let note2 = create_test_midi_note_state(64, 64, 1, 480, 0); // E (1 tick later, within chord gap)
-
-        let bridge_events = vec![BridgeEvent::Note(note1), BridgeEvent::Note(note2)];
-
-        let (mml_events, _) = bridge_events_to_mml_events(&bridge_events, &options, ppq);
-
-        // Should contain a chord connector
-        let has_chord_connector = mml_events
-            .iter()
-            .any(|e| matches!(e, MmlEvent::ConnectChord));
-
-        assert!(has_chord_connector, "Expected chord connector");
-
-        // Second note should be marked as part of chord
-        let note_events: Vec<_> = mml_events
-            .iter()
-            .filter_map(|e| match e {
-                MmlEvent::Note(note) => Some(note),
-                _ => None,
-            })
-            .collect();
-
-        assert_eq!(note_events.len(), 2);
-        assert!(!note_events[0].is_part_of_chord);
-        assert!(note_events[1].is_part_of_chord);
-    }
-
-    #[test]
-    fn test_tempo_events() {
-        let options = MmlSongOptions::default();
-        let ppq = 480;
-
-        let midi_state = MidiState {
-            position_in_tick: 0,
-            duration_in_tick: 0,
-            channel: 0,
-        };
-
-        let bridge_events = vec![
-            BridgeEvent::Tempo(120, midi_state.clone()),
-            BridgeEvent::Note(create_test_midi_note_state(60, 64, 0, 480, 0)),
-        ];
-
-        let (mml_events, _) = bridge_events_to_mml_events(&bridge_events, &options, ppq);
-
-        // Should have tempo event
-        match &mml_events[0] {
-            MmlEvent::Tempo(tempo) => assert_eq!(*tempo, 120),
-            _ => panic!("Expected tempo event first"),
+        for (i, e) in events.iter().enumerate() {
+            if !e.is_part_of_chord()
+                && let Some(expected) = e.get_position()
+            {
+                println!("Event: {e:?} at {i}");
+                let computed = compute_position_in_smallest_unit(&events, i);
+                assert_eq!(computed, expected);
+            }
         }
     }
 
     #[test]
-    fn test_program_change() {
-        let options = MmlSongOptions::default();
-        let ppq = 480;
+    fn test_fix_event_position() {
+        let (bridge_events, options, ppq) = test_utils::setup_bridge_events();
+        let (mut events, _) = bridge_events_to_raw_mml_events(&bridge_events, &options, ppq);
+        normalize_events(&mut events);
 
-        let midi_state = MidiState {
-            position_in_tick: 0,
-            duration_in_tick: 0,
-            channel: 0,
-        };
-
-        let instrument = Instrument::new(1, 0); // Bright acoustic piano
-        let bridge_events = vec![
-            BridgeEvent::ProgramChange(instrument.clone(), midi_state),
-            BridgeEvent::Note(create_test_midi_note_state(60, 64, 0, 480, 0)),
-        ];
-
-        let (_mml_events, returned_instrument) =
-            bridge_events_to_mml_events(&bridge_events, &options, ppq);
-
-        assert!(returned_instrument.is_some());
-        assert_eq!(returned_instrument.unwrap(), instrument);
+        let i = fix_event_position(&mut events, 112);
+        let e = events.get(i).unwrap();
+        println!("Event: {e:?} at {i}");
+        let computed = compute_position_in_smallest_unit(&events, i);
+        let expected = e.get_position().unwrap();
+        assert_eq!(computed, expected);
     }
 
     #[test]
-    fn test_overlapping_notes_shortening() {
-        let options = MmlSongOptions::default();
-        let ppq = 480;
+    fn test_normalize_events() {
+        let (bridge_events, options, ppq) = test_utils::setup_bridge_events();
+        let (mut events, _) = bridge_events_to_raw_mml_events(&bridge_events, &options, ppq);
 
-        // First note lasts longer than the gap to second note
-        let note1 = create_test_midi_note_state(60, 64, 0, 960, 0); // Half note duration
-        let note2 = create_test_midi_note_state(62, 64, 480, 480, 0); // Starts at quarter note position
+        let duration_before = compute_position_in_smallest_unit(&events, events.len());
 
-        let bridge_events = vec![BridgeEvent::Note(note1), BridgeEvent::Note(note2)];
+        normalize_events(&mut events);
 
-        let (mml_events, _) = bridge_events_to_mml_events(&bridge_events, &options, ppq);
+        let duration_after = compute_position_in_smallest_unit(&events, events.len());
+        assert_eq!(duration_after, duration_before);
 
-        // The note positioning should be corrected
-        // This tests the fix_note_position functionality
-        assert!(!mml_events.is_empty());
-
-        // Check that we have the expected notes
-        let note_events: Vec<_> = mml_events
-            .iter()
-            .filter_map(|e| match e {
-                MmlEvent::Note(note) => Some(&note.pitch_class),
-                _ => None,
-            })
-            .collect();
-
-        assert_eq!(note_events.len(), 2);
-        assert_eq!(*note_events[0], PitchClass::C);
-        assert_eq!(*note_events[1], PitchClass::D);
+        for (i, e) in events.iter().enumerate() {
+            match e {
+                MmlEvent::Note(note) => {
+                    if note.is_part_of_chord {
+                        assert!(has_a_connect_chord_event(&events, i));
+                        continue;
+                    }
+                    assert!(note.duration_in_smallest_unit > 0);
+                }
+                MmlEvent::Rest(rest) => assert!(*rest > 0),
+                MmlEvent::Tempo(_, _) => {
+                    if i > 0
+                        && let Some(MmlEvent::Tempo(_, _)) = events.get(i - 1)
+                    {
+                        panic!("Duplicated tempo");
+                    }
+                }
+                _ => (),
+            }
+        }
     }
 
     #[test]
-    fn test_position_fixing_with_rest_insertion() {
-        let options = MmlSongOptions::default();
-        let ppq = 480;
+    fn test_bridge_events_to_raw_mml_events() {
+        let (bridge_events, options, ppq) = test_utils::setup_bridge_events();
+        let (events, _) = bridge_events_to_raw_mml_events(&bridge_events, &options, ppq);
 
-        // Create a gap between notes that should be filled with rest
-        let note1 = create_test_midi_note_state(60, 64, 0, 240, 0); // Eighth note
-        let note2 = create_test_midi_note_state(62, 64, 480, 240, 0); // Eighth note, quarter note later
+        let mut before_note: Option<MmlNote> = None;
+        for (i, e) in events.iter().enumerate() {
+            match e {
+                MmlEvent::Note(note) => {
+                    if note.is_part_of_chord {
+                        assert!(has_a_connect_chord_event(&events, i));
+                        continue;
+                    }
 
-        let bridge_events = vec![BridgeEvent::Note(note1), BridgeEvent::Note(note2)];
+                    if let Some(b_note) = &before_note {
+                        println!("Asserting {i}:");
+                        println!("before note: {b_note:?}");
+                        println!("note: {note:?}");
+                        assert!(
+                            b_note.position_in_smallest_unit + b_note.duration_in_smallest_unit
+                                <= note.position_in_smallest_unit
+                        );
+                    }
 
-        let (mml_events, _) = bridge_events_to_mml_events(&bridge_events, &options, ppq);
-
-        // Should have a rest between the notes
-        let has_rest = mml_events.iter().any(|e| matches!(e, MmlEvent::Rest(_)));
-
-        assert!(has_rest, "Expected rest between notes");
-    }
-
-    #[test]
-    fn test_chord_duration_update() {
-        let mut options = MmlSongOptions::default();
-        options.min_gap_for_chord = 5;
-
-        let ppq = 480;
-
-        // Create chord notes with different durations
-        let note1 = create_test_midi_note_state(60, 64, 0, 480, 0); // Quarter note
-        let note2 = create_test_midi_note_state(64, 64, 1, 240, 0); // Eighth note, but should get quarter duration
-
-        let bridge_events = vec![BridgeEvent::Note(note1), BridgeEvent::Note(note2)];
-
-        let (mml_events, _) = bridge_events_to_mml_events(&bridge_events, &options, ppq);
-
-        let note_events: Vec<_> = mml_events
-            .iter()
-            .filter_map(|e| match e {
-                MmlEvent::Note(note) => Some(note),
-                _ => None,
-            })
-            .collect();
-
-        if note_events.len() == 2 && note_events[1].is_part_of_chord {
-            // Chord notes should have same duration
-            assert_eq!(
-                note_events[0].duration_in_smallest_unit, note_events[1].duration_in_smallest_unit,
-                "Chord notes should have same duration"
-            );
+                    before_note = Some(note.to_owned());
+                }
+                _ => (),
+            }
         }
     }
 }

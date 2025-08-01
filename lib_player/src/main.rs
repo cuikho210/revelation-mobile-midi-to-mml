@@ -6,7 +6,13 @@ use midi_to_mml::{MmlSong, MmlSongOptions};
 pub fn main() {
     let song = MmlSong::from_path(
         "../assets/FIRE_BIRD_(full_ver_)_(BanG_Dream!_Roselia_9th_Single)_(piano_cover).mid",
-        MmlSongOptions::default(),
+        // "../assets/hishokunosora.mid",
+        // "../assets/Stay_With_Me_-_Miki_Matsubara.mid",
+        // "../assets/cloudless-yorushika.mid",
+        MmlSongOptions {
+            auto_boot_velocity: true,
+            ..Default::default()
+        },
     )
     .unwrap();
     let mut player = MmlPlayer::from_song(
@@ -14,6 +20,7 @@ pub fn main() {
         MmlPlayerOptions {
             soundfont_path: vec![PathBuf::from(
                 "/home/cuikho210/Documents/assets/soundfonts/FluidR3_GM.sf2",
+                // "/home/cuikho210/Documents/assets/soundfonts/MonalisaGMv2_06_5.sf2",
             )],
         },
     );

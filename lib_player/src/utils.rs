@@ -1,5 +1,5 @@
+use crate::{NoteEvent, SynthOutputConnection};
 use std::time::Duration;
-use crate::{SynthOutputConnection, NoteEvent};
 
 const SMALLEST_UNIT: usize = 256;
 
@@ -61,7 +61,7 @@ pub fn mml_duration_to_duration_in_smallest_unit(mml_duration: &str) -> usize {
 
     let mml_duration = mml.parse::<usize>().unwrap();
     let mut result = SMALLEST_UNIT / mml_duration;
-    
+
     if is_has_a_dot {
         result += result / 2;
     }
@@ -82,7 +82,7 @@ pub fn play_note(
     mut connection: SynthOutputConnection,
     note: &NoteEvent,
     channel: u8,
-    duration: Option<Duration>
+    duration: Option<Duration>,
 ) -> Duration {
     let duration = match duration {
         Some(value) => value,
@@ -96,21 +96,13 @@ pub fn play_note(
     duration
 }
 
-pub fn stop_note(
-    mut connection: SynthOutputConnection,
-    note: &NoteEvent,
-    channel: u8,
-) {
+pub fn stop_note(mut connection: SynthOutputConnection, note: &NoteEvent, channel: u8) {
     if let Some(key) = note.midi_key {
         connection.note_off(channel, key);
     }
 }
 
-pub fn stop_chord(
-    mut connection: SynthOutputConnection,
-    chord: &Vec<NoteEvent>,
-    channel: u8,
-) {
+pub fn stop_chord(mut connection: SynthOutputConnection, chord: &Vec<NoteEvent>, channel: u8) {
     for note in chord.iter() {
         if let Some(key) = note.midi_key {
             connection.note_off(channel, key);
@@ -140,7 +132,7 @@ pub fn play_chord(
 
 pub fn get_longest_note_duration(notes: &Vec<NoteEvent>) -> isize {
     let mut max: isize = 0;
-    
+
     for note in notes {
         let duration = note.duration_in_ms as isize;
 

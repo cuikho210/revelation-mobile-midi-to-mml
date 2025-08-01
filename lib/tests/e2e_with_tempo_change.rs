@@ -1,7 +1,9 @@
 mod common;
 
-use midi_to_mml::{MmlSong, MmlSongOptions, utils::tick_to_smallest_unit};
-use rayon::prelude::*;
+use midi_to_mml::{
+    MmlEvent, MmlSong, MmlSongOptions,
+    utils::{compute_position_in_smallest_unit, tick_to_smallest_unit},
+};
 
 use crate::common::TrackTestExt;
 
@@ -16,12 +18,47 @@ fn test_e2e() {
             let options = MmlSongOptions::default();
             let song = MmlSong::from_path(&path, options).unwrap();
             assert_notes_duration(&song);
+            assert_tempo_position(&song);
+        }
+    }
+}
+
+fn assert_tempo_position(song: &MmlSong) {
+    let track_tempos: Vec<Vec<(usize, usize)>> = song
+        .tracks
+        .iter()
+        .map(|track| {
+            track
+                .events
+                .iter()
+                .enumerate()
+                .filter_map(|(i, e)| {
+                    if let MmlEvent::Tempo(_, pos) = e {
+                        Some((*pos, compute_position_in_smallest_unit(&track.events, i)))
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        })
+        .collect();
+    for i in 0..(track_tempos.len() - 1) {
+        let vec_a = track_tempos.get(i).unwrap();
+        let vec_b = track_tempos.get(i + 1).unwrap();
+
+        for (i, (expect_a, actual_a)) in vec_a.into_iter().enumerate() {
+            let (expect_b, actual_b) = vec_b.get(i).unwrap();
+            println!("Assert tempo at {}", i);
+            assert_eq!(expect_a, expect_b);
+            assert_eq!(expect_a, actual_a);
+            assert_eq!(expect_b, actual_b);
+            assert_eq!(actual_a, actual_b);
         }
     }
 }
 
 fn assert_notes_duration(song: &MmlSong) {
-    song.tracks.par_iter().for_each(|track| {
+    song.tracks.iter().for_each(|track| {
         let expect_duration = tick_to_smallest_unit(
             track.get_bridge_events_duration(),
             track.ppq,

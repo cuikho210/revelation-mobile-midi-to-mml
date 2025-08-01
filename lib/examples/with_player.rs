@@ -8,6 +8,10 @@ pub fn main() {
         MmlSongOptions::default(),
     )
     .unwrap();
+    for track in song.tracks.iter() {
+        println!("Track {}", track.name);
+        println!("{}\n", track.to_mml());
+    }
     let mut player = MmlPlayer::from_song(
         &song,
         MmlPlayerOptions {

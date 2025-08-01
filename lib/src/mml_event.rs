@@ -101,7 +101,10 @@ impl PartialOrd for BridgeEvent {
 pub enum MmlEvent {
     Note(MmlNote),
     Rest(usize),
-    Tempo(u32),
+
+    /// (tempo, position_in_smallest_unit)
+    Tempo(u32, usize),
+
     Octave(u8),
     IncreOctave,
     DecreOctave,
@@ -116,7 +119,7 @@ impl MmlEvent {
             Self::ConnectChord => String::from(":"),
             Self::IncreOctave => String::from(">"),
             Self::DecreOctave => String::from("<"),
-            Self::Tempo(tempo) => format!("t{tempo}"),
+            Self::Tempo(tempo, _) => format!("t{tempo}"),
             Self::Octave(octave) => format!("o{octave}"),
             Self::Note(note) => note.mml_string.to_owned(),
             Self::Rest(rest) => {
@@ -153,11 +156,45 @@ impl MmlEvent {
     // }
 
     /// Get duration in smallest unit
-    pub fn get_duration(&self) -> usize {
+    pub fn get_duration(&self) -> Option<usize> {
         match self {
-            Self::Note(note) => note.duration_in_smallest_unit,
-            Self::Rest(rest) => rest.to_owned(),
-            _ => 0,
+            Self::Note(note) => Some(note.duration_in_smallest_unit),
+            Self::Rest(rest) => Some(*rest),
+            _ => None,
+        }
+    }
+
+    /// Set duration in smallest unit
+    pub fn set_duration(&mut self, new_dur: usize) {
+        match self {
+            Self::Note(note) => note.duration_in_smallest_unit = new_dur,
+            Self::Rest(rest) => *rest = new_dur,
+            _ => (),
+        }
+    }
+
+    /// Get position in smallest unit
+    pub fn get_position(&self) -> Option<usize> {
+        match self {
+            Self::Note(note) => Some(note.position_in_smallest_unit),
+            Self::Tempo(_, pos) => Some(*pos),
+            _ => None,
+        }
+    }
+
+    /// Set position in smallest unit
+    pub fn set_position(&mut self, new_pos: usize) {
+        match self {
+            Self::Note(note) => note.position_in_smallest_unit = new_pos,
+            Self::Tempo(_, pos) => *pos = new_pos,
+            _ => (),
+        }
+    }
+
+    pub fn is_part_of_chord(&self) -> bool {
+        match self {
+            Self::Note(note) => note.is_part_of_chord,
+            _ => false,
         }
     }
 }

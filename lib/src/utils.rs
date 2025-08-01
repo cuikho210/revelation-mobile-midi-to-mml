@@ -2,6 +2,22 @@ use crate::{MmlSongOptions, mml_event::MmlEvent, mml_track::MmlTrack, pitch_clas
 use rayon::prelude::*;
 use std::convert::TryInto;
 
+pub fn compute_position_in_smallest_unit(events: &[MmlEvent], current_index: usize) -> usize {
+    let mut duration = 0usize;
+    for (i, e) in events.iter().enumerate() {
+        if i == current_index {
+            break;
+        }
+
+        if !e.is_part_of_chord()
+            && let Some(dur) = e.get_duration()
+        {
+            duration += dur;
+        }
+    }
+    duration
+}
+
 pub fn count_mml_notes(mml_string: &str) -> usize {
     mml_string.split("&").count()
 }
@@ -355,7 +371,7 @@ mod tests {
         assert_eq!(get_highest_velocity(&events), 15);
 
         // Test with no velocity events
-        let no_velocity_events = vec![MmlEvent::Tempo(120), MmlEvent::Octave(4)];
+        let no_velocity_events = vec![MmlEvent::Tempo(120, 0), MmlEvent::Octave(4)];
         assert_eq!(get_highest_velocity(&no_velocity_events), 0);
     }
 
