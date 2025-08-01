@@ -1,11 +1,7 @@
-use std::{
-    collections::HashMap,
-    sync::Arc,
-    time::Instant,
-};
-use rinf::debug_print;
-use tokio::sync::Mutex;
 use crate::messages::rust_to_dart::SignalLogMessage;
+use rinf::debug_print;
+use std::{collections::HashMap, sync::Arc, time::Instant};
+use tokio::sync::Mutex;
 
 pub enum LogType {
     ParseMidiInit,
@@ -14,7 +10,7 @@ pub enum LogType {
 
     ParseMmlInit,
     ParseMmlEnd,
-    
+
     SetSongOptionsInit,
     SetSongOptionsEnd,
     SetSongOptionsError,
@@ -22,7 +18,7 @@ pub enum LogType {
     SplitTrackInit,
     SplitTrackEnd,
     SplitTrackError,
-    
+
     MergeTrackInit,
     MergeTrackEnd,
     MergeTrackError,
@@ -43,6 +39,8 @@ pub enum LogType {
     LoadSoundfontInit,
     LoadSoundfontEnd,
     LoadSoundfontError,
+
+    Error(String),
 }
 
 impl LogType {
@@ -58,6 +56,7 @@ impl LogType {
             Self::SetPlaybackPauseInit | Self::SetPlaybackPauseEnd => 7,
             Self::SetPlaybackStopInit | Self::SetPlaybackStopEnd => 8,
             Self::LoadSoundfontInit | Self::LoadSoundfontEnd | Self::LoadSoundfontError => 9,
+            Self::Error(_) => 10,
         }
     }
 
@@ -98,6 +97,8 @@ impl LogType {
             Self::LoadSoundfontInit => true,
             Self::LoadSoundfontEnd => false,
             Self::LoadSoundfontError => false,
+
+            Self::Error(_) => false,
         }
     }
 
@@ -138,6 +139,8 @@ impl LogType {
             Self::LoadSoundfontInit => "Loading soundfont started".to_owned(),
             Self::LoadSoundfontEnd => "Loading soundfont completed".to_owned(),
             Self::LoadSoundfontError => "Loading soundfont error".to_owned(),
+
+            Self::Error(err) => err.to_owned(),
         }
     }
 }
@@ -169,11 +172,7 @@ impl Logger {
             if to_effect {
                 state.instant = Instant::now();
             } else {
-                message = format!(
-                    "{} in {} ms",
-                    message,
-                    state.instant.elapsed().as_millis(),
-                );
+                message = format!("{} in {} ms", message, state.instant.elapsed().as_millis(),);
             }
         } else {
             self.loading_state.insert(
@@ -181,7 +180,7 @@ impl Logger {
                 LogData {
                     value: to_effect,
                     instant: Instant::now(),
-                }
+                },
             );
         }
 
@@ -194,8 +193,9 @@ impl Logger {
 
         SignalLogMessage {
             message,
-            is_loading
-        }.send_signal_to_dart();
+            is_loading,
+        }
+        .send_signal_to_dart();
     }
 
     fn get_global_loading_state(&self) -> bool {
@@ -209,11 +209,7 @@ impl Logger {
     }
 }
 
-pub async fn log(
-    logger_state: Arc<Mutex<Logger>>,
-    log_type: LogType,
-) {
+pub async fn log(logger_state: Arc<Mutex<Logger>>, log_type: LogType) {
     let mut logger = logger_state.lock().await;
     logger.log(log_type);
 }
-

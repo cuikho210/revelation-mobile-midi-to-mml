@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.95"
 cpal = { git = "https://github.com/sidit77/cpal.git", branch = "master" }
 oxisynth = "0.0.5"
 midi-to-mml = { version = "*", path = "../lib" }
+rayon = "1.10.0"
 
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.21.1"

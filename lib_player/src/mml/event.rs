@@ -1,4 +1,4 @@
-use crate::note_event::NoteEvent;
+use crate::NoteEvent;
 
 pub enum MmlEvent {
     SetTempo(usize),

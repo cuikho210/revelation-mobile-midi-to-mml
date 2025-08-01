@@ -19,7 +19,8 @@ pub fn main() {
                 "/home/cuikho210/Documents/assets/soundfonts/FluidR3_GM.sf2",
             )],
         },
-    );
-    player.play(None, None);
+    )
+    .unwrap();
+    player.play(None, None).unwrap();
     sleep(Duration::from_secs(120));
 }

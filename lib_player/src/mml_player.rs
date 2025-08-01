@@ -1,12 +1,19 @@
-use crate::{Parser, Synth, SynthOutputConnection, TrackPlayer};
-use cpal::{Stream, traits::StreamTrait};
-use midi_to_mml::{Instrument, MmlSong};
 use std::{
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex, RwLock},
-    thread::{self, JoinHandle},
+    path::PathBuf,
+    sync::{
+        Arc, Mutex, RwLock,
+        atomic::{AtomicUsize, Ordering},
+    },
+    thread::{self},
     time::{Duration, Instant},
 };
+
+use anyhow::{Ok, Result, anyhow};
+use cpal::{Stream, traits::StreamTrait};
+use midi_to_mml::{Instrument, MmlSong};
+use rayon::prelude::*;
+
+use crate::{Parser, Synth, SynthOutputConnection, TrackPlayer};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlaybackStatus {
@@ -44,18 +51,20 @@ pub struct MmlPlayer {
 }
 
 impl MmlPlayer {
-    pub fn new(options: MmlPlayerOptions) -> Self {
+    pub fn new(options: MmlPlayerOptions) -> Result<Self> {
         let time = Instant::now();
 
-        let mut synth = Synth::new();
-        synth
-            .load_soundfont_from_file_parallel(options.soundfont_path)
-            .unwrap();
-        let (stream, connection) = synth.new_stream();
+        let mut synth = Synth::new()?;
+
+        for path in options.soundfont_path.iter() {
+            synth.load_soundfont_from_file(path)?;
+        }
+
+        let (stream, connection) = synth.new_stream()?;
 
         log_initialize_synth(time.elapsed());
 
-        Self {
+        Ok(Self {
             synth,
             stream: CpalStreamWrapper { stream },
             connection,
@@ -63,10 +72,10 @@ impl MmlPlayer {
             playback_status: Arc::new(RwLock::new(PlaybackStatus::STOP)),
             time_start: None,
             time_pause: None,
-        }
+        })
     }
 
-    pub fn from_song(song: &MmlSong, options: MmlPlayerOptions) -> Self {
+    pub fn from_song(song: &MmlSong, options: MmlPlayerOptions) -> Result<Self> {
         let mmls: Vec<(String, Instrument)> = song
             .tracks
             .iter()
@@ -76,124 +85,111 @@ impl MmlPlayer {
         Self::from_mmls(mmls, options)
     }
 
-    pub fn from_mmls(mmls: Vec<(String, Instrument)>, options: MmlPlayerOptions) -> Self {
-        let mut result = Self::new(options);
-        result.parse_mmls(mmls);
+    pub fn from_mmls(mmls: Vec<(String, Instrument)>, options: MmlPlayerOptions) -> Result<Self> {
+        let mut result = Self::new(options)?;
+        result.parse_mmls(mmls)?;
 
-        result
+        Ok(result)
     }
 
-    pub fn parse_mmls(&mut self, mmls: Vec<(String, Instrument)>) {
-        let mut handles: Vec<JoinHandle<TrackPlayer>> = Vec::new();
-        let mut tracks: Vec<Arc<Mutex<TrackPlayer>>> = Vec::new();
-
+    pub fn parse_mmls(&mut self, mmls: Vec<(String, Instrument)>) -> Result<()> {
         let time = Instant::now();
-        let track_length = mmls.len();
-        let mut char_length: usize = 0;
+        let char_length = AtomicUsize::new(0);
 
-        for mml in mmls {
-            let conn = self.connection.clone();
-            char_length += mml.0.len();
+        let results: Result<Vec<Arc<Mutex<TrackPlayer>>>> = mmls
+            .into_par_iter()
+            .enumerate()
+            .map(|(index, (mml, instrument))| {
+                char_length.fetch_add(mml.len(), Ordering::Relaxed);
 
-            let index = handles.len();
-            let playback_status = self.playback_status.clone();
+                let conn = self.connection.clone();
+                let playback_status = self.playback_status.clone();
+                let parser = Parser::parse(index, mml)?;
 
-            let handle = thread::spawn::<_, TrackPlayer>(move || {
-                let parser = Parser::parse(index, mml.0);
+                TrackPlayer::from_parser(index, parser, playback_status, instrument, conn)
+                    .map(|track| Arc::new(Mutex::new(track)))
+            })
+            .collect();
+        self.tracks = results?;
 
-                TrackPlayer::from_parser(index, parser, playback_status, mml.1, conn)
-            });
-            handles.push(handle);
-        }
+        let char_length = char_length.load(Ordering::SeqCst);
+        log_parse_mmls(time.elapsed(), self.tracks.len(), char_length);
 
-        for handle in handles {
-            let parsed = handle.join().unwrap();
-            tracks.push(Arc::new(Mutex::new(parsed)));
-        }
-
-        log_parse_mmls(time.elapsed(), track_length, char_length);
-        self.tracks = tracks;
+        Ok(())
     }
 
     pub fn play(
         &mut self,
         note_on_callback: Option<Arc<fn(NoteOnCallbackData)>>,
         track_end_callback: Option<Arc<fn(usize)>>,
-    ) {
-        self.stream.stream.play().unwrap();
+    ) -> Result<()> {
+        self.stream.stream.play()?;
 
         {
-            let mut guard = self.playback_status.write().unwrap();
+            let mut guard = self
+                .playback_status
+                .write()
+                .map_err(|e| anyhow!("Failed to acquire write lock on playback status: {}", e))?;
             *guard = PlaybackStatus::PLAY;
         }
 
         let time_start = self.get_time_start();
         self.time_start = Some(time_start);
 
-        let mut index = 0;
-        for track in self.tracks.iter() {
+        for (index, track) in self.tracks.iter().enumerate() {
             let parsed = track.clone();
             let note_on_callback = note_on_callback.clone();
             let track_end_callback = track_end_callback.clone();
 
             thread::Builder::new()
                 .name(format!("Track player {}", index))
-                .spawn(move || {
-                    if let Ok(mut guard) = parsed.lock() {
-                        guard.play(time_start, note_on_callback, track_end_callback);
-                    } else {
-                        eprintln!("[mml_player.play] Cannot lock Parsed track");
-                    }
-                })
-                .unwrap();
-
-            index += 1;
+                .spawn(move || -> Result<()> {
+                    let mut guard = parsed
+                        .lock()
+                        .map_err(|e| anyhow!("Failed to acquire lock: {}", e))?;
+                    guard.play(time_start, note_on_callback, track_end_callback)
+                })?;
         }
+
+        Ok(())
     }
 
-    pub fn pause(&mut self) {
+    pub fn pause(&mut self) -> Result<()> {
         {
-            let mut guard = self.playback_status.write().unwrap();
+            let mut guard = self
+                .playback_status
+                .write()
+                .map_err(|e| anyhow!("Failed to acquire write lock on playback status: {}", e))?;
             *guard = PlaybackStatus::PAUSE;
         }
 
         self.time_pause = Some(Instant::now());
-        self.stream.stream.pause().ok();
+        self.stream.stream.pause()?;
+
+        Ok(())
     }
 
-    pub fn stop(&mut self) {
+    pub fn stop(&mut self) -> Result<()> {
         {
-            let mut guard = self.playback_status.write().unwrap();
+            let mut guard = self
+                .playback_status
+                .write()
+                .map_err(|e| anyhow!("Failed to acquire write lock on playback status: {}", e))?;
             *guard = PlaybackStatus::STOP;
         }
 
         self.time_start = None;
         self.time_pause = None;
-        self.stream.stream.pause().ok();
+        self.stream.stream.pause()?;
+
+        Ok(())
     }
 
-    pub fn load_soundfont_from_bytes<B>(&mut self, bytes: B) -> Result<(), String>
+    pub fn load_soundfont_from_bytes<B>(&mut self, bytes: B) -> Result<()>
     where
         B: AsRef<[u8]>,
     {
         self.synth.load_soundfont_from_bytes(bytes)
-    }
-
-    pub fn load_soundfont_from_bytes_parallel<B>(
-        &mut self,
-        list_bytes: Vec<B>,
-    ) -> Result<(), String>
-    where
-        B: AsRef<[u8]> + Sync + Send + Clone + 'static,
-    {
-        self.synth.load_soundfont_from_bytes_parallel(list_bytes)
-    }
-
-    pub fn load_soundfont_from_file_parallel<P>(&mut self, paths: Vec<P>) -> Result<(), String>
-    where
-        P: AsRef<Path> + Sync + Send + Clone + 'static,
-    {
-        self.synth.load_soundfont_from_file_parallel(paths)
     }
 
     fn get_time_start(&self) -> Instant {
