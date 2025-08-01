@@ -340,6 +340,7 @@ dependencies = [
  "midi-to-mml",
  "ndk-context",
  "oxisynth",
+ "rayon",
 ]
 
 [[package]]

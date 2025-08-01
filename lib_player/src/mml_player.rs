@@ -1,13 +1,19 @@
-use crate::{Parser, Synth, SynthOutputConnection, TrackPlayer};
-use anyhow::{Result, anyhow};
-use cpal::{Stream, traits::StreamTrait};
-use midi_to_mml::{Instrument, MmlSong};
 use std::{
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex, RwLock},
-    thread::{self, JoinHandle},
+    path::PathBuf,
+    sync::{
+        Arc, Mutex, RwLock,
+        atomic::{AtomicUsize, Ordering},
+    },
+    thread::{self},
     time::{Duration, Instant},
 };
+
+use anyhow::{Ok, Result, anyhow};
+use cpal::{Stream, traits::StreamTrait};
+use midi_to_mml::{Instrument, MmlSong};
+use rayon::prelude::*;
+
+use crate::{Parser, Synth, SynthOutputConnection, TrackPlayer};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlaybackStatus {
@@ -49,7 +55,11 @@ impl MmlPlayer {
         let time = Instant::now();
 
         let mut synth = Synth::new()?;
-        synth.load_soundfont_from_file_parallel(options.soundfont_path)?;
+
+        for path in options.soundfont_path.iter() {
+            synth.load_soundfont_from_file(path)?;
+        }
+
         let (stream, connection) = synth.new_stream()?;
 
         log_initialize_synth(time.elapsed());
@@ -83,36 +93,27 @@ impl MmlPlayer {
     }
 
     pub fn parse_mmls(&mut self, mmls: Vec<(String, Instrument)>) -> Result<()> {
-        let mut handles: Vec<JoinHandle<Result<TrackPlayer>>> = Vec::new();
-        let mut tracks: Vec<Arc<Mutex<TrackPlayer>>> = Vec::new();
-
         let time = Instant::now();
-        let track_length = mmls.len();
-        let mut char_length: usize = 0;
+        let char_length = AtomicUsize::new(0);
 
-        for mml in mmls {
-            let conn = self.connection.clone();
-            char_length += mml.0.len();
+        let results: Result<Vec<Arc<Mutex<TrackPlayer>>>> = mmls
+            .into_par_iter()
+            .enumerate()
+            .map(|(index, (mml, instrument))| {
+                char_length.fetch_add(mml.len(), Ordering::Relaxed);
 
-            let index = handles.len();
-            let playback_status = self.playback_status.clone();
+                let conn = self.connection.clone();
+                let playback_status = self.playback_status.clone();
+                let parser = Parser::parse(index, mml)?;
 
-            let handle = thread::spawn::<_, Result<TrackPlayer>>(move || {
-                let parser = Parser::parse(index, mml.0)?;
-                TrackPlayer::from_parser(index, parser, playback_status, mml.1, conn)
-            });
-            handles.push(handle);
-        }
+                TrackPlayer::from_parser(index, parser, playback_status, instrument, conn)
+                    .map(|track| Arc::new(Mutex::new(track)))
+            })
+            .collect();
+        self.tracks = results?;
 
-        for handle in handles {
-            let parsed = handle
-                .join()
-                .map_err(|e| anyhow!("Error joining thread: {:?}", e))??;
-            tracks.push(Arc::new(Mutex::new(parsed)));
-        }
-
-        log_parse_mmls(time.elapsed(), track_length, char_length);
-        self.tracks = tracks;
+        let char_length = char_length.load(Ordering::SeqCst);
+        log_parse_mmls(time.elapsed(), self.tracks.len(), char_length);
 
         Ok(())
     }
@@ -189,20 +190,6 @@ impl MmlPlayer {
         B: AsRef<[u8]>,
     {
         self.synth.load_soundfont_from_bytes(bytes)
-    }
-
-    pub fn load_soundfont_from_bytes_parallel<B>(&mut self, list_bytes: Vec<B>) -> Result<()>
-    where
-        B: AsRef<[u8]> + Sync + Send + Clone + 'static,
-    {
-        self.synth.load_soundfont_from_bytes_parallel(list_bytes)
-    }
-
-    pub fn load_soundfont_from_file_parallel<P>(&mut self, paths: Vec<P>) -> Result<()>
-    where
-        P: AsRef<Path> + Sync + Send + Clone + 'static,
-    {
-        self.synth.load_soundfont_from_file_parallel(paths)
     }
 
     fn get_time_start(&self) -> Instant {

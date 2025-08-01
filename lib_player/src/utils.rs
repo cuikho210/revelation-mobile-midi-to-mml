@@ -85,7 +85,7 @@ pub fn play_note(
     channel: u8,
     duration: Option<Duration>,
 ) -> Result<Duration> {
-    println!("Play note {}", note.raw_mml);
+    // println!("Play note {}", note.raw_mml);
 
     let duration = match duration {
         Some(value) => value,
@@ -131,7 +131,7 @@ pub fn play_chord(
     channel: u8,
     duration: Option<Duration>,
 ) -> Result<Duration> {
-    println!("Play chord {:?}", chord);
+    // println!("Play chord {:?}", chord);
 
     let duration = match duration {
         Some(value) => value,

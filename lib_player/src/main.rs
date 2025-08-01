@@ -5,6 +5,7 @@ use midi_to_mml::{MmlSong, MmlSongOptions};
 
 pub fn main() {
     let song = MmlSong::from_path(
+        // "/home/cuikho210/Documents/assets/midi-files/chinese/ban_khong_thuc_su_hanh_phuc.mid",
         "../assets/FIRE_BIRD_(full_ver_)_(BanG_Dream!_Roselia_9th_Single)_(piano_cover).mid",
         // "../assets/hishokunosora.mid",
         // "../assets/Stay_With_Me_-_Miki_Matsubara.mid",

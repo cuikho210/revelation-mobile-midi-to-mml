@@ -15,24 +15,22 @@ pub struct Parser {
 
 impl Parser {
     pub fn parse(index: usize, mml: String) -> Result<Self> {
-        let mut result = Self {
+        let notes = parse_note_events(&mml)?;
+        Ok(Self {
             index,
             raw_mml: mml,
-            notes: Vec::new(),
-        };
-
-        result.notes = parse_note_events(&result.raw_mml)?;
-        Ok(result)
+            notes,
+        })
     }
 }
 
 fn parse_note_events(mml: &str) -> Result<Vec<NoteEvent>> {
-    let mut index = 0usize;
+    let mut index = 0;
     let mut current_mml_velocity = 12u8;
     let mut current_octave = 4u8;
     let mut current_tempo = 120usize;
     let mut is_connect_chord = false;
-    let mut notes: Vec<NoteEvent> = Vec::new();
+    let mut notes: Vec<NoteEvent> = Vec::with_capacity(mml.len() / 2);
 
     while let Some(event) = parse_event(
         mml,
@@ -67,122 +65,101 @@ fn parse_event(
     current_tempo: usize,
     is_connect_chord: &mut bool,
 ) -> Result<Option<MmlEvent>> {
-    match raw_mml.chars().nth(*index) {
-        Some(char) => {
-            let mml = &raw_mml[*index..];
+    let char = match raw_mml.as_bytes().get(*index) {
+        Some(&c) => c as char,
+        None => return Ok(None),
+    };
 
-            if char == 't' {
-                let value = get_first_mml_value(mml);
-                *index += value.len() + 1;
-
-                let tempo = value.parse::<usize>()?;
-
-                Ok(Some(MmlEvent::SetTempo(tempo)))
-            } else if char == 'o' {
-                let value = &mml[1..2];
-                *index += 2;
-
-                let octave = value.parse::<u8>()?;
-
-                Ok(Some(MmlEvent::SetOctave(octave)))
-            } else if char == 'v' {
-                let value = get_first_mml_value(mml);
-                *index += value.len() + 1;
-
-                let velocity = value.parse::<u8>()?;
-
-                Ok(Some(MmlEvent::SetVelocity(velocity)))
-            } else if char == '>' {
-                *index += 1;
-
-                Ok(Some(MmlEvent::IncreOctave))
-            } else if char == '<' {
-                *index += 1;
-
-                Ok(Some(MmlEvent::DecreOctave))
-            } else if char == ':' {
-                *index += 1;
-
-                Ok(Some(MmlEvent::ConnectChord))
-            } else if NOTE_NAMES.contains(&char) {
-                let mml_note = get_first_mml_note(mml)?;
-                let mml_note_length = mml_note.len();
-
-                let note = NoteEvent::from_mml(
-                    mml_note,
-                    current_mml_octave,
-                    current_mml_velocity,
-                    current_tempo,
-                    *is_connect_chord,
-                    *index,
-                )?;
-
-                *is_connect_chord = false;
-                *index += mml_note_length;
-
-                Ok(Some(MmlEvent::SetNote(note)))
-            } else {
-                *index += 1;
-                Ok(Some(MmlEvent::Empty))
-            }
+    match char {
+        't' => {
+            let (value, len) = get_first_mml_value(&raw_mml[*index..]);
+            *index += len + 1;
+            let tempo = value.parse::<usize>().context("Invalid tempo value")?;
+            Ok(Some(MmlEvent::SetTempo(tempo)))
         }
-        None => Ok(None),
+        'o' => {
+            let value = raw_mml
+                .get(*index + 1..*index + 2)
+                .context("Missing octave value")?;
+            *index += 2;
+            let octave = value.parse::<u8>().context("Invalid octave value")?;
+            Ok(Some(MmlEvent::SetOctave(octave)))
+        }
+        'v' => {
+            let (value, len) = get_first_mml_value(&raw_mml[*index..]);
+            *index += len + 1;
+            let velocity = value.parse::<u8>().context("Invalid velocity value")?;
+            Ok(Some(MmlEvent::SetVelocity(velocity)))
+        }
+        '>' => {
+            *index += 1;
+            Ok(Some(MmlEvent::IncreOctave))
+        }
+        '<' => {
+            *index += 1;
+            Ok(Some(MmlEvent::DecreOctave))
+        }
+        ':' => {
+            *index += 1;
+            Ok(Some(MmlEvent::ConnectChord))
+        }
+        c if NOTE_NAMES.contains(&c) => {
+            let (mml_note, len) = get_first_mml_note(&raw_mml[*index..])?;
+            let note = NoteEvent::from_mml(
+                mml_note.to_string(),
+                current_mml_octave,
+                current_mml_velocity,
+                current_tempo,
+                *is_connect_chord,
+                *index,
+            )?;
+            *is_connect_chord = false;
+            *index += len;
+            Ok(Some(MmlEvent::SetNote(note)))
+        }
+        _ => {
+            *index += 1;
+            Ok(Some(MmlEvent::Empty))
+        }
     }
 }
 
-fn get_first_mml_note(mml: &str) -> Result<String> {
-    let mut chars = mml.chars();
-    let mut result = String::new();
+fn get_first_mml_note(mml: &str) -> Result<(&str, usize)> {
+    let mut len = 1;
     let mut is_note_extra_checked = false;
-    let mut before_char = chars
-        .next()
-        .context("Cannot get first character from MML string")?;
+    let mut before_char = mml.chars().next().context("Empty MML string")?;
     let note_name = before_char;
 
-    result.push(note_name);
-
-    for char in chars {
+    for (i, char) in mml.chars().enumerate().skip(1) {
         if !is_note_extra_checked {
             if char == '+' {
-                result.push(char);
+                len += 1;
                 continue;
             }
-
             is_note_extra_checked = true;
         }
 
-        let mut is_break = true;
-
-        if char.is_ascii_digit() || NOTE_EXTRAS.contains(&char) {
-            is_break = false;
-        }
-
-        if is_break && (char == note_name && before_char == '&') {
-            is_break = false;
-        }
+        let is_break = !(char.is_ascii_digit()
+            || NOTE_EXTRAS.contains(&char)
+            || (char == note_name && before_char == '&'));
 
         if is_break {
-            break;
-        } else {
-            before_char = char;
-            result.push(char);
+            return Ok((mml.get(..i).context("Invalid slice")?, i));
         }
+        before_char = char;
+        len += 1;
     }
 
-    Ok(result)
+    Ok((mml.get(..len).context("Invalid slice")?, len))
 }
 
-fn get_first_mml_value(mml: &str) -> String {
-    let chars = mml[1..].chars();
-    let mut result = String::new();
-
-    for char in chars {
-        if char.is_ascii_digit() {
-            result.push(char);
-        } else {
-            break;
+fn get_first_mml_value(mml: &str) -> (&str, usize) {
+    let mut len = 0;
+    for (i, char) in mml.chars().skip(1).enumerate() {
+        if !char.is_ascii_digit() {
+            return (mml.get(1..=i).unwrap_or(""), i);
         }
+        len = i + 1;
     }
-
-    result
+    (mml.get(1..=len).unwrap_or(""), len)
 }

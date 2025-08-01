@@ -1,15 +1,14 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use cpal::{
-    traits::{DeviceTrait, HostTrait},
     FromSample, SizedSample,
+    traits::{DeviceTrait, HostTrait},
 };
 use oxisynth::{MidiEvent, SoundFont};
 use std::{
     fs::File,
     io::Cursor,
     path::Path,
-    sync::{mpsc::Receiver, Arc, Mutex},
-    thread::{self, JoinHandle},
+    sync::{Arc, Mutex, mpsc::Receiver},
 };
 
 pub struct OxisynthWrapper {
@@ -143,34 +142,6 @@ impl Synth {
         synth.load_soundfont_from_file(path)
     }
 
-    pub fn load_soundfont_from_file_parallel<P>(&mut self, paths: Vec<P>) -> Result<()>
-    where
-        P: AsRef<Path> + Sync + Send + Clone + 'static,
-    {
-        let handles: Vec<JoinHandle<Result<()>>> = paths
-            .iter()
-            .map::<JoinHandle<Result<()>>, _>(|path| {
-                let synth = self.synth.clone();
-                let path = path.to_owned();
-
-                thread::spawn(move || -> Result<()> {
-                    let mut synth_guard = synth
-                        .lock()
-                        .map_err(|e| anyhow::anyhow!("Cannot lock synth: {}", e))?;
-                    synth_guard.load_soundfont_from_file(path)
-                })
-            })
-            .collect();
-
-        for handle in handles {
-            handle
-                .join()
-                .map_err(|e| anyhow::anyhow!("Thread join error: {:?}", e))??;
-        }
-
-        Ok(())
-    }
-
     pub fn load_soundfont_from_bytes<B>(&mut self, bytes: B) -> Result<()>
     where
         B: AsRef<[u8]>,
@@ -180,34 +151,6 @@ impl Synth {
             .lock()
             .map_err(|e| anyhow::anyhow!("Cannot lock synth: {}", e))?;
         synth.load_soundfont_from_bytes(bytes)
-    }
-
-    pub fn load_soundfont_from_bytes_parallel<B>(&mut self, list_bytes: Vec<B>) -> Result<()>
-    where
-        B: AsRef<[u8]> + Sync + Send + Clone + 'static,
-    {
-        let handles: Vec<JoinHandle<Result<()>>> = list_bytes
-            .iter()
-            .map::<JoinHandle<Result<()>>, _>(|bytes| {
-                let synth = self.synth.clone();
-                let bytes = bytes.to_owned();
-
-                thread::spawn(move || {
-                    let mut synth_guard = synth
-                        .lock()
-                        .map_err(|e| anyhow::anyhow!("Cannot lock synth: {}", e))?;
-                    synth_guard.load_soundfont_from_bytes(bytes)
-                })
-            })
-            .collect();
-
-        for handle in handles {
-            handle
-                .join()
-                .map_err(|e| anyhow::anyhow!("Thread join error: {:?}", e))??;
-        }
-
-        Ok(())
     }
 
     fn make_stream<T>(&self, rx: Receiver<MidiEvent>) -> Result<cpal::Stream>
