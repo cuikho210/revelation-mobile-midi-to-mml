@@ -71,16 +71,16 @@ impl TrackPlayer {
     fn handle_playback_status(&mut self) -> Result<PlaybackStatus> {
         let playback_status = self.playback_status.clone();
 
-        if let Ok(guard) = playback_status.read() {
-            if *guard != PlaybackStatus::PLAY {
-                if *guard == PlaybackStatus::PAUSE {
-                    return Ok(PlaybackStatus::PAUSE);
-                } else {
-                    self.reset_state();
-                    self.stop_all_notes()?;
+        if let Ok(guard) = playback_status.read()
+            && *guard != PlaybackStatus::PLAY
+        {
+            if *guard == PlaybackStatus::PAUSE {
+                return Ok(PlaybackStatus::PAUSE);
+            } else {
+                self.reset_state();
+                self.stop_all_notes()?;
 
-                    return Ok(PlaybackStatus::STOP);
-                }
+                return Ok(PlaybackStatus::STOP);
             }
         }
 
@@ -132,10 +132,10 @@ impl TrackPlayer {
                 .to_owned();
 
             if note.is_connected_to_prev_note {
-                if let Some(before_note) = self.note_before.as_ref() {
-                    if self.current_chord.is_empty() {
-                        self.current_chord.push(before_note.to_owned());
-                    }
+                if let Some(before_note) = self.note_before.as_ref()
+                    && self.current_chord.is_empty()
+                {
+                    self.current_chord.push(before_note.to_owned());
                 }
 
                 self.current_chord.push(note.to_owned());

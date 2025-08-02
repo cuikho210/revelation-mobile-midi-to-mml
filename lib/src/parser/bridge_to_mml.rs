@@ -226,13 +226,11 @@ fn normalize_events(events: &mut Vec<MmlEvent>) {
                             panic!();
                         }
                     }
+                } else if note.duration_in_smallest_unit == 0 {
+                    events.remove(i);
+                    i -= 1;
                 } else {
-                    if note.duration_in_smallest_unit == 0 {
-                        events.remove(i);
-                        i -= 1;
-                    } else {
-                        before_note_i = Some(i);
-                    }
+                    before_note_i = Some(i);
                 }
             }
             MmlEvent::Rest(rest) => {
@@ -265,7 +263,7 @@ pub fn has_a_connect_chord_event(events: &[MmlEvent], index: usize) -> bool {
             _ => (),
         }
     }
-    return false;
+    false
 }
 
 fn update_chord_duration(events: &mut [MmlEvent]) {

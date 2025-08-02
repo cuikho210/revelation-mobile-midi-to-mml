@@ -193,14 +193,14 @@ impl MmlPlayer {
     }
 
     fn get_time_start(&self) -> Instant {
-        if let Some(time_start) = self.time_start {
-            if let Some(time_pause) = self.time_pause {
-                let now = Instant::now();
-                let diff = now - time_pause;
-                let new_time = time_start + diff;
+        if let Some(time_start) = self.time_start
+            && let Some(time_pause) = self.time_pause
+        {
+            let now = Instant::now();
+            let diff = now - time_pause;
+            let new_time = time_start + diff;
 
-                return new_time;
-            }
+            return new_time;
         }
 
         Instant::now()

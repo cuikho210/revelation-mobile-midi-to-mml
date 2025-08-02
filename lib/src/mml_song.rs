@@ -128,6 +128,29 @@ impl MmlSong {
         Ok(())
     }
 
+    pub fn equalize_tracks(&mut self, index_a: usize, index_b: usize) -> Result<()> {
+        if index_a == index_b {
+            return Err(anyhow::anyhow!("Cannot equalize the same track"));
+        }
+
+        let (slice_a, slice_b) = if index_a < index_b {
+            self.tracks.split_at_mut(index_a + 1)
+        } else {
+            self.tracks.split_at_mut(index_b + 1)
+        };
+
+        let track_a = slice_a
+            .get_mut(index_a)
+            .with_context(|| format!("Cannot get track by index {}", index_a))?;
+
+        let track_b = slice_b
+            .get_mut(index_b - if index_a < index_b { index_a + 1 } else { 0 })
+            .with_context(|| format!("Cannot get track by index {}", index_b))?;
+
+        utils::equalize_tracks(track_a, track_b);
+        Ok(())
+    }
+
     pub fn set_song_options(&mut self, options: MmlSongOptions) -> Result<()> {
         self.options = options.clone();
         self.tracks.par_iter_mut().for_each(|track| {
