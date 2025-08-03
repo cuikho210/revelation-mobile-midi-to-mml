@@ -23,7 +23,7 @@ void main() async {
 }
 
 void loadSoundfont() async {
-  // const path = 'assets/soundfonts/gm.sf2';
-  const path = '/home/cuikho210/Documents/assets/soundfonts/FluidR3_GM.sf2';
+  const path = 'assets/soundfonts/gm.sf2';
+  // const path = '/home/cuikho210/Documents/assets/soundfonts/FluidR3_GM.sf2';
   LoadSoundfont.fromPath(path);
 }
