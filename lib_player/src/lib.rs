@@ -6,7 +6,7 @@ mod utils;
 
 // https://github.com/fzyzcjy/flutter_rust_bridge/pull/1335/files
 #[cfg(target_os = "android")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn JNI_OnLoad(vm: jni::JavaVM, res: *mut std::os::raw::c_void) -> jni::sys::jint {
     use std::ffi::c_void;
 
