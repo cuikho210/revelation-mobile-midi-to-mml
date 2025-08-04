@@ -12,6 +12,7 @@ use anyhow::{Ok, Result, anyhow};
 use cpal::{Stream, traits::StreamTrait};
 use midi_to_mml::{Instrument, MmlSong};
 use rayon::prelude::*;
+use tracing::info;
 
 use crate::{Parser, Synth, SynthOutputConnection, TrackPlayer};
 
@@ -208,11 +209,11 @@ impl MmlPlayer {
 }
 
 fn log_initialize_synth(duration: Duration) {
-    println!("Initialized synth in {}ms", duration.as_millis());
+    info!("Initialized synth in {}ms", duration.as_millis());
 }
 
 fn log_parse_mmls(duration: Duration, track_length: usize, char_length: usize) {
-    println!(
+    info!(
         "Parsed {} tracks, {} chars in {}ms",
         track_length,
         char_length,

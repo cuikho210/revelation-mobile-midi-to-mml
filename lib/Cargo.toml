@@ -7,8 +7,10 @@ edition = "2024"
 anyhow = "1.0.98"
 midly = "0.5.3"
 rayon = "1.10.0"
+tracing = "0.1.41"
 
 [dev-dependencies]
 tempfile = "3.8"
 proptest = "1.4"
 lib_player = { path = "../lib_player" }
+tracing-subscriber = "0.3.19"
