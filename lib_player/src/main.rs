@@ -20,8 +20,9 @@ pub fn main() {
         &song,
         MmlPlayerOptions {
             soundfont_path: vec![PathBuf::from(
-                "/home/cuikho210/Documents/assets/soundfonts/FluidR3_GM.sf2",
+                // "/home/cuikho210/Documents/assets/soundfonts/FluidR3_GM.sf2",
                 // "/home/cuikho210/Documents/assets/soundfonts/MonalisaGMv2_06_5.sf2",
+                "/home/cuikho210/Downloads/a320-neo.sf2",
             )],
         },
     )
