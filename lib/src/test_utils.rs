@@ -7,9 +7,12 @@ use crate::{
     parser::{bridge_meta_from_midi_track, bridge_notes_from_midi_track},
 };
 
-pub fn setup_bridge_events() -> (Vec<BridgeEvent>, MmlSongOptions, u16) {
-    let midi_path =
-        "../assets/FIRE_BIRD_(full_ver_)_(BanG_Dream!_Roselia_9th_Single)_(piano_cover).mid";
+pub const MIDI_PATHS: [&str; 2] = [
+    "../assets/heart_beat-band.mid",
+    "../assets/FIRE_BIRD_(full_ver_)_(BanG_Dream!_Roselia_9th_Single)_(piano_cover).mid",
+];
+
+pub fn setup_bridge_events(midi_path: &str) -> (Vec<BridgeEvent>, MmlSongOptions, u16) {
     let bytes = fs::read(midi_path).unwrap();
     let smf = Smf::parse(&bytes).unwrap();
     let smf_track = smf.tracks.first().unwrap();
