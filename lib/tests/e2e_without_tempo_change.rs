@@ -1,9 +1,5 @@
-mod common;
-
-use midi_to_mml::{MmlEvent, MmlSong, MmlSongOptions, utils::tick_to_smallest_unit};
+use midi_to_mml::{MmlEvent, MmlSong, MmlSongOptions, utils::compute_position_in_smallest_unit};
 use rayon::prelude::*;
-
-use crate::common::TrackTestExt;
 
 const MIDI_FILE_PATH: &str = "../assets/cloudless-yorushika.mid";
 
@@ -12,18 +8,21 @@ fn test_e2e() {
     let options = MmlSongOptions::default();
     let song = MmlSong::from_path(MIDI_FILE_PATH, options).unwrap();
     assert_only_1_tempo_change(&song);
-    assert_notes_duration(&song);
+    assert_notes(&song);
 }
 
-fn assert_notes_duration(song: &MmlSong) {
+fn assert_notes(song: &MmlSong) {
     song.tracks.par_iter().for_each(|track| {
-        let expect_duration = tick_to_smallest_unit(
-            track.get_bridge_events_duration(),
-            track.ppq,
-            track.song_options.smallest_unit,
-        );
-        let mml_duration = track.get_mml_events_duration();
-        assert_eq!(expect_duration, mml_duration);
+        for (i, e) in track.events.iter().enumerate() {
+            if let MmlEvent::Note(note) = e
+                && !note.is_part_of_chord
+            {
+                assert_eq!(
+                    note.position_in_smallest_unit,
+                    compute_position_in_smallest_unit(&track.events, i)
+                );
+            }
+        }
     });
 }
 

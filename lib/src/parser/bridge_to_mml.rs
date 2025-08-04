@@ -226,7 +226,7 @@ fn fix_event_position(events: &mut Vec<MmlEvent>, event_index: usize) -> usize {
 
         if expect_pos > current_pos {
             let to_incre = expect_pos - current_pos;
-            events.insert(i, MmlEvent::Rest(to_incre));
+            events.insert(i + 1, MmlEvent::Rest(to_incre));
             return event_index + 1;
         } else {
             let to_decre = current_pos - expect_pos;
@@ -351,7 +351,7 @@ mod tests {
 
     #[test]
     fn test_update_chord_duration() {
-        for path in &MIDI_PATHS {
+        for path in MIDI_PATHS {
             println!("Testing {path}");
 
             let (bridge_events, options, ppq) = test_utils::setup_bridge_events(path);
@@ -381,7 +381,7 @@ mod tests {
 
     #[test]
     fn test_fix_events_position() {
-        for path in &MIDI_PATHS {
+        for path in MIDI_PATHS {
             println!("Testing {path}");
 
             let (bridge_events, options, ppq) = test_utils::setup_bridge_events(path);
@@ -394,9 +394,17 @@ mod tests {
                 if !e.is_part_of_chord()
                     && let Some(expected) = e.get_position()
                 {
-                    println!("Event: {e:?} at {i}");
                     let computed = compute_position_in_smallest_unit(&events, i);
-                    assert_eq!(computed, expected);
+
+                    if computed != expected {
+                        println!("MML Events -------------------");
+                        for (i, e) in events[..=i].iter().enumerate() {
+                            println!("{i}: {e:?}");
+                        }
+                        println!("-------------------");
+                        println!("{i}: Expected {expected} but computed {computed}");
+                        panic!("computed != expected");
+                    }
                 }
             }
         }
@@ -418,7 +426,7 @@ mod tests {
 
     #[test]
     fn test_normalize_events() {
-        for path in &MIDI_PATHS {
+        for path in MIDI_PATHS {
             println!("Testing {path}");
 
             let (bridge_events, options, ppq) = test_utils::setup_bridge_events(path);
@@ -456,7 +464,7 @@ mod tests {
 
     #[test]
     fn test_bridge_events_to_raw_mml_events() {
-        for path in &MIDI_PATHS {
+        for path in MIDI_PATHS {
             println!("Testing {path}");
             let (bridge_events, options, ppq) = test_utils::setup_bridge_events(path);
             let (events, _) = bridge_events_to_raw_mml_events(&bridge_events, &options, ppq);

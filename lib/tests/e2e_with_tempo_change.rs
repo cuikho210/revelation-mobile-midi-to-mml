@@ -1,11 +1,5 @@
-mod common;
-
-use midi_to_mml::{
-    MmlEvent, MmlSong, MmlSongOptions,
-    utils::{compute_position_in_smallest_unit, tick_to_smallest_unit},
-};
-
-use crate::common::TrackTestExt;
+use midi_to_mml::{MmlEvent, MmlSong, MmlSongOptions, utils::compute_position_in_smallest_unit};
+use rayon::prelude::*;
 
 #[test]
 fn test_e2e() {
@@ -17,8 +11,8 @@ fn test_e2e() {
             println!("Testing MIDI file: {:?}", path);
             let options = MmlSongOptions::default();
             let song = MmlSong::from_path(&path, options).unwrap();
-            assert_notes_duration(&song);
             assert_tempo_position(&song);
+            assert_notes(&song);
         }
     }
 }
@@ -26,7 +20,7 @@ fn test_e2e() {
 fn assert_tempo_position(song: &MmlSong) {
     let track_tempos: Vec<Vec<(usize, usize)>> = song
         .tracks
-        .iter()
+        .par_iter()
         .map(|track| {
             track
                 .events
@@ -51,14 +45,17 @@ fn assert_tempo_position(song: &MmlSong) {
     }
 }
 
-fn assert_notes_duration(song: &MmlSong) {
-    song.tracks.iter().for_each(|track| {
-        let expect_duration = tick_to_smallest_unit(
-            track.get_bridge_events_duration(),
-            track.ppq,
-            track.song_options.smallest_unit,
-        );
-        let mml_duration = track.get_mml_events_duration();
-        assert_eq!(expect_duration, mml_duration);
+fn assert_notes(song: &MmlSong) {
+    song.tracks.par_iter().for_each(|track| {
+        for (i, e) in track.events.iter().enumerate() {
+            if let MmlEvent::Note(note) = e
+                && !note.is_part_of_chord
+            {
+                assert_eq!(
+                    note.position_in_smallest_unit,
+                    compute_position_in_smallest_unit(&track.events, i)
+                );
+            }
+        }
     });
 }

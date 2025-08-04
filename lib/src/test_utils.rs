@@ -7,9 +7,10 @@ use crate::{
     parser::{bridge_meta_from_midi_track, bridge_notes_from_midi_track},
 };
 
-pub const MIDI_PATHS: [&str; 2] = [
+pub const MIDI_PATHS: [&str; 3] = [
     "../assets/heart_beat-band.mid",
     "../assets/FIRE_BIRD_(full_ver_)_(BanG_Dream!_Roselia_9th_Single)_(piano_cover).mid",
+    "../assets/Stay_With_Me_-_Miki_Matsubara.mid",
 ];
 
 pub fn setup_bridge_events(midi_path: &str) -> (Vec<BridgeEvent>, MmlSongOptions, u16) {
