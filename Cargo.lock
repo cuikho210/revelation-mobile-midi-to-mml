@@ -515,6 +515,8 @@ dependencies = [
  "rinf",
  "serde",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

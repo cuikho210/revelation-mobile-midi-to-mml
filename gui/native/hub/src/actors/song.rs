@@ -5,8 +5,8 @@ use messages::{
     prelude::{Address, Context, Handler},
 };
 use midi_to_mml::{MmlSong, MmlSongOptions};
-use rinf::debug_print;
 use tokio::{spawn, task::JoinSet};
+use tracing::info;
 
 use crate::{
     actors::{
@@ -44,7 +44,7 @@ impl SongActor {
     }
 
     pub fn spawn(player: Address<PlayerActor>) -> Address<Self> {
-        debug_print!("SongActor: Spawning actor and listeners");
+        info!("SongActor: Spawning actor and listeners");
         let context = Context::new();
         let addr = context.address();
         let mut actor = Self::new(player);
@@ -96,7 +96,7 @@ impl SongActor {
             ),
         );
 
-        debug_print!("SongActor: All listeners spawned");
+        info!("SongActor: All listeners spawned");
         spawn(context.run(actor));
         addr
     }

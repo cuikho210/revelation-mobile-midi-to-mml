@@ -26,6 +26,8 @@ midi-to-mml = { version = "*", path = "../../../lib" }
 anyhow = "1.0.98"
 lib_player = { version = "0.1.0", path = "../../../lib_player" }
 rayon = "1.10.0"
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
 
 # Uncomment below to target the web.
 # tokio_with_wasm = { version = "0.8.1", features = ["rt", "macros", "time"] }

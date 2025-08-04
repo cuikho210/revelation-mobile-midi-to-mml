@@ -2,6 +2,7 @@ use rinf::{DartSignal, DartSignalBinary, RustSignal, SignalPiece};
 use serde::{Deserialize, Serialize};
 
 pub mod error;
+pub mod logging;
 
 #[derive(Serialize, Deserialize, SignalPiece)]
 pub enum SignalPlayStatus {

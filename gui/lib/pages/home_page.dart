@@ -42,19 +42,16 @@ class HomePage extends StatelessWidget {
     });
   }
 
-  // listenLogMessageStream() {
-  //   SignalLogMessage.rustSignalStream.listen((signal) {
-  //     final message = signal.message.message;
-  //     final isLoading = signal.message.isLoading;
-
-  //     controller.isLoading(isLoading);
-  //     controller.listLog.add(LogData(
-  //       DateTime.now(),
-  //       message,
-  //     ));
-  //     controller.listLog.refresh();
-  //   });
-  // }
+  listenLogMessageStream() {
+    SignalLog.rustSignalStream.listen((signal) {
+      controller.listLog.add(LogData(
+        DateTime.now(),
+        signal.message.level,
+        signal.message.content,
+      ));
+      controller.listLog.refresh();
+    });
+  }
 
   void listenUpdateMmlTracksStream() async {
     SignalUpdateMmlTracks.rustSignalStream.listen((signal) {
@@ -77,7 +74,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(context) {
     listenLoadSongStream();
-    // listenLogMessageStream(controller);
+    listenLogMessageStream();
     listenUpdateMmlTracksStream();
     listenOnTrackEndStream();
 

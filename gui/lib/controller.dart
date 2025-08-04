@@ -5,10 +5,12 @@ import 'package:midi_to_mml/extensions/track.dart';
 
 class LogData {
   final DateTime time;
+  final SignalLogLevel level;
   final String message;
 
   const LogData(
     this.time,
+    this.level,
     this.message,
   );
 }
@@ -34,7 +36,6 @@ class AppController extends GetxController {
   final playingLength = 0.obs;
 
   final listLog = RxList<LogData>([]);
-  final isLoading = false.obs;
 
   AppController() {
     getAppVersion();

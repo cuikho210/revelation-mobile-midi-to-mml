@@ -1,5 +1,6 @@
 use messages::prelude::{Address, Handler};
-use rinf::{DartSignal, DartSignalBinary, RustSignal, debug_print};
+use rinf::{DartSignal, DartSignalBinary, RustSignal};
+use tracing::{debug, error, info};
 
 use crate::{error::send_error_signal, signals::error::ErrorFrom};
 
@@ -21,21 +22,21 @@ pub trait ListenDartSignal {
         U: RustSignal,
     {
         let actor_name = A::get_name();
-        debug_print!("[{actor_name}] spawning listen {signal_name}");
+        info!("[{actor_name}] spawning listen {signal_name}");
         let receiver = T::get_dart_signal_receiver();
         while let Some(signal_pack) = receiver.recv().await {
-            debug_print!("[{actor_name}] Received a signal {signal_name} request from Dart",);
+            debug!("[{actor_name}] Received a signal {signal_name} request from Dart",);
             match self_addr.send(signal_pack.message).await {
                 Ok(res) => match res.into() {
                     Ok(res) => {
-                        debug_print!("[{actor_name}] {signal_name} successful");
+                        debug!("[{actor_name}] {signal_name} successful");
                         res.send_signal_to_dart();
                     }
                     Err(err) => {
                         send_error_signal(err, format!("{signal_name} Error"), error_from.clone());
                     }
                 },
-                Err(err) => debug_print!(
+                Err(err) => error!(
                     "[{actor_name}] Error sending signal {signal_name} to {actor_name}: {err}"
                 ),
             };
@@ -52,14 +53,12 @@ pub trait ListenDartSignal {
         <A as Handler<T>>::Result: 'static,
     {
         let actor_name = A::get_name();
-        debug_print!("[{actor_name}] spawning listen {signal_name}");
+        info!("[{actor_name}] spawning listen {signal_name}");
         let receiver = T::get_dart_signal_receiver();
         while let Some(signal_pack) = receiver.recv().await {
-            debug_print!("[{actor_name}] Received a signal {signal_name} request from Dart",);
+            debug!("[{actor_name}] Received a signal {signal_name} request from Dart",);
             if let Err(err) = self_addr.send(signal_pack.message).await {
-                debug_print!(
-                    "[{actor_name}] Error sending signal {signal_name} to {actor_name}: {err}"
-                );
+                error!("[{actor_name}] Error sending signal {signal_name} to {actor_name}: {err}");
             };
         }
     }
@@ -75,14 +74,12 @@ pub trait ListenDartSignal {
         <A as Handler<R>>::Result: 'static,
     {
         let actor_name = A::get_name();
-        debug_print!("[{actor_name}] spawning listen binary {signal_name}");
+        info!("[{actor_name}] spawning listen binary {signal_name}");
         let receiver = T::get_dart_signal_receiver();
         while let Some(signal_pack) = receiver.recv().await {
-            debug_print!("[{actor_name}] Received a binary signal {signal_name} request from Dart",);
+            debug!("[{actor_name}] Received a binary signal {signal_name} request from Dart",);
             if let Err(err) = self_addr.send(R::from(signal_pack.binary)).await {
-                debug_print!(
-                    "[{actor_name}] Error sending signal {signal_name} to {actor_name}: {err}"
-                );
+                error!("[{actor_name}] Error sending signal {signal_name} to {actor_name}: {err}");
             };
         }
     }
