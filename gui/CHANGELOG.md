@@ -4,6 +4,7 @@
 
 - Allow scrolling while text highlighting is active
 - More detailed logging
+- Added key mapping
 
 ### Changed
 
