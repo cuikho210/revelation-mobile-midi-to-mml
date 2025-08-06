@@ -15,10 +15,13 @@ use crate::{
     },
     signal_converter,
     signals::{
-        SignalEqualizeTracksRequest, SignalLoadSongFromPathRequest, SignalLoadSongFromPathResponse,
-        SignalMergeTracksRequest, SignalMmlSongStatus, SignalRenameTrackRequest,
-        SignalSplitTrackRequest, SignalUpdateMmlSongOptionsRequest, SignalUpdateMmlTracks,
         error::ErrorFrom,
+        song::{
+            SignalEqualizeTracksRequest, SignalLoadSongFromPathRequest,
+            SignalLoadSongFromPathResponse, SignalMergeTracksRequest, SignalMmlSongStatus,
+            SignalRenameTrackRequest, SignalSplitTrackRequest, SignalUpdateMmlSongOptionsRequest,
+            SignalUpdateMmlTracks,
+        },
     },
 };
 

@@ -14,7 +14,7 @@ use tracing::info;
 
 use crate::{
     actors::common::{ActorName, ListenDartSignal},
-    signals::{
+    signals::player::{
         SignalLoadSoundfontRequest, SignalMmlNoteOn, SignalOnTrackEnd, SignalPlayStatus,
         SignalSetSongPlayStatusRequest,
     },

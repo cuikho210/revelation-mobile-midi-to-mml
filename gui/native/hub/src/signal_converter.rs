@@ -1,7 +1,7 @@
 use midi_to_mml::{Instrument, MmlSongOptions, MmlTrack};
 use rayon::prelude::*;
 
-use crate::signals::{SignalInstrument, SignalMmlSongOptions, SignalMmlTrack};
+use crate::signals::song::{SignalInstrument, SignalMmlSongOptions, SignalMmlTrack};
 
 pub fn mml_song_options_to_signal(options: &MmlSongOptions) -> SignalMmlSongOptions {
     SignalMmlSongOptions {
