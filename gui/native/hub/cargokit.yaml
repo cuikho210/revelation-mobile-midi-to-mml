@@ -1,0 +1,5 @@
+cargo:
+  debug:
+    toolchain: nightly
+  release:
+    toolchain: nightly

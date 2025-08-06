@@ -50,3 +50,8 @@ target/
 
 # Generated messages
 */**/messages/
+
+# Generated signals
+/lib/src/bincode
+/lib/src/serde
+/lib/src/bindings

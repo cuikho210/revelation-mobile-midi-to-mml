@@ -1,98 +1,41 @@
 //! This `hub` crate is the
 //! entry point of the Rust logic.
 
-mod messages;
-mod song;
-mod player;
-mod converter;
-mod signal_bridge;
-mod logger;
+mod actors;
+mod error;
+mod logging;
+mod signal_converter;
+mod signals;
 
-use logger::Logger;
-use tokio;
-use player::PlayerState;
-use song::SongState;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use actors::create_actors;
+use rinf::{dart_shutdown, write_interface};
+use tokio::spawn;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-rinf::write_interface!();
+use crate::logging::ReportToDartLayer;
 
-// Use `tokio::spawn` to run concurrent tasks.
-// Always use non-blocking async functions
-// such as `tokio::fs::File::open`.
-// If you really need to use blocking code,
-// use `tokio::task::spawn_blocking`.
+// Uncomment below to target the web.
+// use tokio_with_wasm::alias as tokio;
+
+write_interface!();
+
+// You can go with any async library, not just `tokio`.
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let song: Arc<Mutex<SongState>> = Arc::new(Mutex::new(SongState::new()));
-    let player: Arc<Mutex<PlayerState>> = Arc::new(Mutex::new(PlayerState::new()));
-    let logger: Arc<Mutex<Logger>> = Arc::new(Mutex::new(Logger::new()));
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .with_line_number(true)
+        .finish()
+        .with(ReportToDartLayer)
+        .try_init()
+        .ok();
 
-    tokio::spawn(
-        signal_bridge::listen_load_song_from_path(
-            song.clone(),
-            player.clone(),
-            logger.clone(),
-        )
-    );
+    // Spawn concurrent tasks.
+    // Always use non-blocking async functions like `tokio::fs::File::open`.
+    // If you must use blocking code, use `tokio::task::spawn_blocking`
+    // or the equivalent provided by your async library.
+    spawn(create_actors());
 
-    tokio::spawn(
-        signal_bridge::listen_update_mml_song_option(
-            song.clone(),
-            player.clone(),
-            logger.clone(),
-        )
-    );
-
-    tokio::spawn(
-        signal_bridge::listen_split_track(
-            song.clone(),
-            player.clone(),
-            logger.clone(),
-        )
-    );
-
-
-    tokio::spawn(
-        signal_bridge::listen_merge_tracks(
-            song.clone(),
-            player.clone(),
-            logger.clone(),
-        )
-    );
-
-    tokio::spawn(
-        signal_bridge::listen_equalize_tracks(
-            song.clone(),
-            player.clone(),
-            logger.clone(),
-        )
-    );
-
-    tokio::spawn(
-        signal_bridge::listen_rename_tracks(
-            song.clone(),
-        )
-    );
-
-    tokio::spawn(
-        signal_bridge::listen_set_song_play_status(
-            player.clone(),
-            logger.clone(),
-        )
-    );
-
-    tokio::spawn(
-        signal_bridge::listen_load_soundfont(
-            player.clone(),
-            logger.clone(),
-        )
-    );
-
-    tokio::spawn(
-        signal_bridge::listen_load_list_soundfont(
-            player.clone(),
-            logger.clone(),
-        )
-    );
+    // Keep the main function running until Dart shutdown.
+    dart_shutdown().await;
 }
-

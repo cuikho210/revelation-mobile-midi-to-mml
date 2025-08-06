@@ -1,67 +1,66 @@
 import 'package:flutter/services.dart';
-import 'package:midi_to_mml/messages/dart_to_rust.pb.dart';
-import 'package:midi_to_mml/messages/types.pb.dart';
+import 'package:midi_to_mml/src/bindings/bindings.dart';
 
 class SplitTrack {
-	SplitTrack(int index) {
-		SignalSplitTrackPayload(index: index).sendSignalToRust();
-	}
+  SplitTrack(int index) {
+    SignalSplitTrackRequest(index: index).sendSignalToRust();
+  }
 }
 
 class MergeTracks {
-	MergeTracks(int indexA, int indexB) {
-		SignalMergeTracksPayload(indexA: indexA, indexB: indexB).sendSignalToRust();
-	}
+  MergeTracks(int indexA, int indexB) {
+    SignalMergeTracksRequest(indexA: indexA, indexB: indexB).sendSignalToRust();
+  }
 }
 
 class EqualizeTracks {
-	EqualizeTracks(int indexA, int indexB) {
-		SignalEqualizeTracksPayload(indexA: indexA, indexB: indexB).sendSignalToRust();
-	}
+  EqualizeTracks(int indexA, int indexB) {
+    SignalEqualizeTracksRequest(indexA: indexA, indexB: indexB)
+        .sendSignalToRust();
+  }
 }
 
 class RenameTrack {
-	RenameTrack(int index, String name) {
-		SignalRenameTrackPayload(index: index, name: name).sendSignalToRust();
-	}
+  RenameTrack(int index, String name) {
+    SignalRenameTrackRequest(index: index, name: name).sendSignalToRust();
+  }
 }
 
 class SaveSongOptions {
-	SaveSongOptions(SignalMmlSongOptions songOptions) {
-		SignalUpdateMmlSongOptionsPayload( songOptions: songOptions ).sendSignalToRust();
-	}
+  SaveSongOptions(SignalMmlSongOptions songOptions) {
+    SignalUpdateMmlSongOptionsRequest(songOptions: songOptions)
+        .sendSignalToRust();
+  }
 }
 
 class PlaySong {
-	PlaySong() {
-		SignalSetSongPlayStatusPayload( status: SignalPlayStatus.PLAY ).sendSignalToRust();
-	}
+  PlaySong() {
+    const SignalSetSongPlayStatusRequest(status: SignalPlayStatus.play)
+        .sendSignalToRust();
+  }
 }
 
 class PauseSong {
-	PauseSong() {
-		SignalSetSongPlayStatusPayload( status: SignalPlayStatus.PAUSE ).sendSignalToRust();
-	}
+  PauseSong() {
+    const SignalSetSongPlayStatusRequest(status: SignalPlayStatus.pause)
+        .sendSignalToRust();
+  }
 }
 
 class StopSong {
-	StopSong() {
-		SignalSetSongPlayStatusPayload( status: SignalPlayStatus.STOP ).sendSignalToRust();
-	}
+  StopSong() {
+    const SignalSetSongPlayStatusRequest(status: SignalPlayStatus.stop)
+        .sendSignalToRust();
+  }
 }
 
 class LoadSoundfont {
-	LoadSoundfont(Uint8List bytes) {
-		SignalLoadSoundfontPayload().sendSignalToRust(bytes);
-	}
+  LoadSoundfont(Uint8List bytes) {
+    const SignalLoadSoundfontRequest().sendSignalToRust(bytes);
+  }
 
-	LoadSoundfont.fromPath(String path) {
-		loadSoundfontFromPath(path);
-	}
-
-	loadSoundfontFromPath(String path) async {
-		final bytes = await rootBundle.load(path);
-		LoadSoundfont(bytes.buffer.asUint8List());
-	}
+  static fromPath(String path) async {
+    final bytes = await rootBundle.load(path);
+    LoadSoundfont(bytes.buffer.asUint8List());
+  }
 }
-
