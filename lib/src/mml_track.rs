@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use rayon::prelude::*;
+
 use crate::{
     Instrument,
     mml_event::{BridgeEvent, MidiNoteState, MmlEvent},
@@ -41,6 +45,20 @@ impl MmlTrack {
 
         mml_track.generate_mml_events();
         mml_track
+    }
+
+    pub fn apply_keymap(&mut self, keymap: &HashMap<u8, u8>) {
+        self.events
+            .par_chunks_mut(num_cpus::get())
+            .for_each(|events| {
+                for e in events.iter_mut() {
+                    if let MmlEvent::Note(note) = e
+                        && let Some(new_midi_key) = keymap.get(&note.midi_state.key)
+                    {
+                        note.apply_keymap(*new_midi_key, self.song_options.smallest_unit);
+                    }
+                }
+            });
     }
 
     pub fn split(&self) -> (Self, Self) {

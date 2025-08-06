@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{collections::HashMap, fs, path::Path};
 
 use anyhow::{Context, Result};
 use midly::{Smf, Timing, TrackEvent};
@@ -149,6 +149,12 @@ impl MmlSong {
 
         utils::equalize_tracks(track_a, track_b);
         Ok(())
+    }
+
+    pub fn apply_keymap(&mut self, track_index: usize, keymap: &HashMap<u8, u8>) {
+        if let Some(track) = self.tracks.get_mut(track_index) {
+            track.apply_keymap(keymap);
+        }
     }
 
     pub fn set_song_options(&mut self, options: MmlSongOptions) -> Result<()> {

@@ -64,6 +64,13 @@ impl MmlNote {
         );
         self.mml_note_length = utils::count_mml_notes(&self.mml_string);
     }
+
+    pub fn apply_keymap(&mut self, new_midi_key: u8, smallest_unit: usize) {
+        self.midi_state.key = new_midi_key;
+        self.pitch_class = utils::midi_key_to_pitch_class(new_midi_key);
+        self.octave = utils::midi_key_to_octave(new_midi_key);
+        self.update_mml_string(smallest_unit);
+    }
 }
 
 #[cfg(test)]
@@ -86,6 +93,61 @@ mod tests {
                 channel: 0,
             },
         }
+    }
+
+    #[test]
+    fn test_apply_keymap() {
+        let options = MmlSongOptions::default();
+        let ppq = 480;
+
+        // Initial MIDI note: C4 quarter note (MIDI key 60)
+        let initial_midi_note = create_test_midi_note(60, 64, 0, 480); // C4, velocity 64, quarter note
+        let mut mml_note =
+            MmlNote::from_midi_state(initial_midi_note.clone(), &options, ppq, false);
+        mml_note.update_mml_string(options.smallest_unit);
+
+        // Verify initial state
+        assert_eq!(mml_note.midi_state.key, 60);
+        assert_eq!(mml_note.pitch_class, PitchClass::C);
+        assert_eq!(mml_note.octave, 4);
+        assert_eq!(mml_note.mml_string, "c4");
+        assert_eq!(mml_note.mml_note_length, 1);
+        assert_eq!(mml_note.duration_in_smallest_unit, 16); // Quarter note
+
+        // Apply keymap to change to D5 (MIDI key 74)
+        let new_midi_key = 74; // D5
+        mml_note.apply_keymap(new_midi_key, options.smallest_unit);
+
+        // Verify updated state
+        assert_eq!(mml_note.midi_state.key, new_midi_key);
+        assert_eq!(mml_note.pitch_class, PitchClass::D);
+        assert_eq!(mml_note.octave, 5);
+        assert_eq!(mml_note.mml_string, "d4"); // MML string should reflect new pitch, same duration
+        assert_eq!(mml_note.mml_note_length, 1);
+
+        // Verify unchanged properties
+        assert_eq!(mml_note.velocity, 7); // Velocity should be unchanged
+        assert_eq!(mml_note.position_in_smallest_unit, 0); // Position should be unchanged
+        assert_eq!(mml_note.duration_in_smallest_unit, 16); // Duration should be unchanged
+        assert!(!mml_note.is_part_of_chord); // Chord flag should be unchanged
+
+        // Test with a different duration that results in tied notes
+        let midi_note_tied = create_test_midi_note(60, 64, 0, 20 * 30); // C4, 20 smallest units (quarter + sixteenth)
+        let mut mml_note_tied =
+            MmlNote::from_midi_state(midi_note_tied.clone(), &options, ppq, false);
+        mml_note_tied.update_mml_string(options.smallest_unit);
+
+        assert_eq!(mml_note_tied.mml_string, "c4&c16");
+        assert_eq!(mml_note_tied.mml_note_length, 2);
+
+        // Apply keymap to change to E4 (MIDI key 64)
+        mml_note_tied.apply_keymap(64, options.smallest_unit); // E4
+
+        assert_eq!(mml_note_tied.midi_state.key, 64);
+        assert_eq!(mml_note_tied.pitch_class, PitchClass::E);
+        assert_eq!(mml_note_tied.octave, 4);
+        assert_eq!(mml_note_tied.mml_string, "e4&e16"); // MML string should reflect new pitch, same duration
+        assert_eq!(mml_note_tied.mml_note_length, 2);
     }
 
     #[test]
