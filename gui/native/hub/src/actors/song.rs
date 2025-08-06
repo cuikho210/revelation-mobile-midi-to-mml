@@ -17,7 +17,7 @@ use crate::{
     signals::{
         error::ErrorFrom,
         song::{
-            SignalEqualizeTracksRequest, SignalLoadSongFromPathRequest,
+            SignalApplyKeymap, SignalEqualizeTracksRequest, SignalLoadSongFromPathRequest,
             SignalLoadSongFromPathResponse, SignalMergeTracksRequest, SignalMmlSongStatus,
             SignalRenameTrackRequest, SignalSplitTrackRequest, SignalUpdateMmlSongOptionsRequest,
             SignalUpdateMmlTracks,
@@ -98,8 +98,14 @@ impl SongActor {
                 Some(ErrorFrom::RenameTrack),
             ),
         );
+        actor
+            .tasks
+            .spawn(Self::listen_with_response::<SignalApplyKeymap, _, _>(
+                addr.clone(),
+                "Apply Keymap",
+                Some(ErrorFrom::ApplyKeymap),
+            ));
 
-        info!("SongActor: All listeners spawned");
         spawn(context.run(actor));
         addr
     }
@@ -207,6 +213,24 @@ impl Handler<SignalRenameTrackRequest> for SongActor {
             .get_mut(index as usize)
             .with_context(|| format!("Track at {index} is None"))?;
         track.name = name;
+        let tracks = signal_converter::mml_song_tracks_to_signal(&song.tracks);
+        Ok(SignalUpdateMmlTracks { tracks })
+    }
+}
+
+#[async_trait]
+impl Handler<SignalApplyKeymap> for SongActor {
+    type Result = Result<SignalUpdateMmlTracks>;
+    async fn handle(
+        &mut self,
+        SignalApplyKeymap {
+            keymap,
+            track_index,
+        }: SignalApplyKeymap,
+        _: &Context<Self>,
+    ) -> Result<SignalUpdateMmlTracks> {
+        let song = self.song.as_mut().context("Song is None")?;
+        song.apply_keymap(track_index as usize, &keymap);
         let tracks = signal_converter::mml_song_tracks_to_signal(&song.tracks);
         Ok(SignalUpdateMmlTracks { tracks })
     }

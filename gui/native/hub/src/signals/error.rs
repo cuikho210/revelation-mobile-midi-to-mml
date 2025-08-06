@@ -8,6 +8,7 @@ pub enum ErrorFrom {
     MergeTracks,
     EqualizeTracks,
     RenameTrack,
+    ApplyKeymap,
 }
 
 #[derive(Debug, Clone, Serialize, RustSignal)]

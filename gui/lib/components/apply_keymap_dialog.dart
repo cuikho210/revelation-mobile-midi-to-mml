@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:midi_to_mml/components/keymap/keymap_manager.dart';
+import 'package:midi_to_mml/src/bindings/signals/signals.dart';
 
 class ApplyKeymapDialog extends GetView<KeymapManager> {
-  const ApplyKeymapDialog({super.key});
+  final int trackIndex;
+
+  const ApplyKeymapDialog(this.trackIndex, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +25,9 @@ class ApplyKeymapDialog extends GetView<KeymapManager> {
                     : const Text('User-created'),
                 trailing: ElevatedButton(
                   onPressed: () {
-                    // TODO: Implement apply keymap logic
+                    SignalApplyKeymap(
+                            trackIndex: trackIndex, keymap: keymap.entries)
+                        .sendSignalToRust();
                     Navigator.of(context).pop();
                   },
                   child: const Text('Apply'),

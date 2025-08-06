@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rinf::{DartSignal, RustSignal, SignalPiece};
 use serde::{Deserialize, Serialize};
 
@@ -74,4 +76,10 @@ pub struct SignalEqualizeTracksRequest {
 #[derive(Serialize, RustSignal)]
 pub struct SignalUpdateMmlTracks {
     pub tracks: Vec<SignalMmlTrack>,
+}
+
+#[derive(Deserialize, DartSignal)]
+pub struct SignalApplyKeymap {
+    pub track_index: u32,
+    pub keymap: HashMap<u8, u8>,
 }

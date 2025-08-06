@@ -94,9 +94,12 @@ class _TrackControls extends GetView<AppController> {
   }
 
   void openApplyKeymapDialog(BuildContext context) {
+    final track = controller.currentTrack();
+    if (track == null) return;
+
     showDialog(
       context: context,
-      builder: (context) => const ApplyKeymapDialog(),
+      builder: (context) => ApplyKeymapDialog(track.index),
     );
   }
 
@@ -161,7 +164,7 @@ class _TrackControls extends GetView<AppController> {
               ),
               TextButton.icon(
                 onPressed: () => openApplyKeymapDialog(context),
-                icon: const Icon(Remix.map_line),
+                icon: const Icon(Remix.guide_line),
                 label: const Text("Apply Keymap"),
               ),
             ],
