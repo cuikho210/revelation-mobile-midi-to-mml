@@ -8,8 +8,11 @@ releases:
           target: apk
           build_args:
             target-platform: android-arm64
-      - name: release-windows-exe
+      # - name: release-windows-exe
+      #   package:
+      #     platform: windows
+      #     target: exe
+      - name: release-windows-msix
         package:
           platform: windows
-          target: exe
-
+          target: msix
