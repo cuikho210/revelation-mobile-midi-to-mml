@@ -8,8 +8,9 @@ use messages::{
     prelude::{Address, Context, Handler},
 };
 use midi_to_mml::MmlTrack;
-use rinf::{RustSignal, debug_print};
+use rinf::RustSignal;
 use tokio::{spawn, sync::Mutex, task::JoinSet};
+use tracing::info;
 
 use crate::{
     actors::common::{ActorName, ListenDartSignal},
@@ -41,7 +42,7 @@ impl PlayerActor {
     }
 
     pub fn spawn() -> Result<Address<Self>> {
-        debug_print!("PlayerActor: Spawning actor and listeners");
+        info!("PlayerActor: Spawning actor and listeners");
         let context = Context::new();
         let addr = context.address();
         let mut actor = Self::try_new()?;
@@ -57,7 +58,7 @@ impl PlayerActor {
             _,
         >(addr.clone(), "Load Soundfont"));
 
-        debug_print!("PlayerActor: All listeners spawned");
+        info!("PlayerActor: All listeners spawned");
         spawn(context.run(actor));
         Ok(addr)
     }

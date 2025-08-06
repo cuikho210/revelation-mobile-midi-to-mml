@@ -10,6 +10,7 @@ use std::{
     path::Path,
     sync::{Arc, Mutex, mpsc::Receiver},
 };
+use tracing::error;
 
 pub struct OxisynthWrapper {
     pub synth: oxisynth::Synth,
@@ -168,7 +169,7 @@ impl Synth {
                     synth
                         .synth
                         .send_event(e)
-                        .map_err(|e| eprintln!("Failed to send midi event: {:?}", e))
+                        .map_err(|e| error!("Failed to send midi event: {:?}", e))
                         .ok();
                 }
 
@@ -178,7 +179,7 @@ impl Synth {
             }
         };
 
-        let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+        let err_fn = |err| error!("an error occurred on stream: {}", err);
 
         let channels = config.channels as usize;
 

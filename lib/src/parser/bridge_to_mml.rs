@@ -1,3 +1,5 @@
+use tracing::error;
+
 use crate::{
     Instrument,
     mml_event::{BridgeEvent, MmlEvent},
@@ -160,8 +162,7 @@ fn handle_bridge_note_events(
             let overrided = (before_note_pos_isize + b_note.duration_in_smallest_unit as isize)
                 - note_pos_isize;
             if overrided > 0 {
-                b_note.duration_in_smallest_unit =
-                    b_note.duration_in_smallest_unit - overrided as usize;
+                b_note.duration_in_smallest_unit -= overrided as usize;
             }
         }
     }
@@ -274,8 +275,7 @@ fn normalize_events(events: &mut Vec<MmlEvent>) {
                             i += 1;
                         } else {
                             // TODO: Handle case where chord note has no preceding note
-                            println!("Note {note:?} at {i}");
-                            panic!();
+                            error!("Note {note:?} at {i} has no preceding note");
                         }
                     }
                 } else if note.duration_in_smallest_unit == 0 {
@@ -339,6 +339,8 @@ fn update_chord_duration(events: &mut [MmlEvent]) {
 
 #[cfg(test)]
 mod tests {
+    use tracing::debug;
+
     use crate::{
         MmlEvent, MmlNote,
         parser::bridge_to_mml::{
@@ -352,7 +354,7 @@ mod tests {
     #[test]
     fn test_update_chord_duration() {
         for path in MIDI_PATHS {
-            println!("Testing {path}");
+            debug!("Testing {path}");
 
             let (bridge_events, options, ppq) = test_utils::setup_bridge_events(path);
             let (mut events, _) = bridge_events_to_raw_mml_events(&bridge_events, &options, ppq);
@@ -382,7 +384,7 @@ mod tests {
     #[test]
     fn test_fix_events_position() {
         for path in MIDI_PATHS {
-            println!("Testing {path}");
+            debug!("Testing {path}");
 
             let (bridge_events, options, ppq) = test_utils::setup_bridge_events(path);
             let (mut events, _) = bridge_events_to_raw_mml_events(&bridge_events, &options, ppq);
@@ -397,12 +399,12 @@ mod tests {
                     let computed = compute_position_in_smallest_unit(&events, i);
 
                     if computed != expected {
-                        println!("MML Events -------------------");
+                        debug!("MML Events -------------------");
                         for (i, e) in events[..=i].iter().enumerate() {
-                            println!("{i}: {e:?}");
+                            debug!("{i}: {e:?}");
                         }
-                        println!("-------------------");
-                        println!("{i}: Expected {expected} but computed {computed}");
+                        debug!("-------------------");
+                        debug!("{i}: Expected {expected} but computed {computed}");
                         panic!("computed != expected");
                     }
                 }
@@ -418,7 +420,7 @@ mod tests {
 
         let i = fix_event_position(&mut events, 112);
         let e = events.get(i).unwrap();
-        println!("Event: {e:?} at {i}");
+        debug!("Event: {e:?} at {i}");
         let computed = compute_position_in_smallest_unit(&events, i);
         let expected = e.get_position().unwrap();
         assert_eq!(computed, expected);
@@ -427,7 +429,7 @@ mod tests {
     #[test]
     fn test_normalize_events() {
         for path in MIDI_PATHS {
-            println!("Testing {path}");
+            debug!("Testing {path}");
 
             let (bridge_events, options, ppq) = test_utils::setup_bridge_events(path);
             let (mut events, _) = bridge_events_to_raw_mml_events(&bridge_events, &options, ppq);
@@ -465,7 +467,7 @@ mod tests {
     #[test]
     fn test_bridge_events_to_raw_mml_events() {
         for path in MIDI_PATHS {
-            println!("Testing {path}");
+            debug!("Testing {path}");
             let (bridge_events, options, ppq) = test_utils::setup_bridge_events(path);
             let (events, _) = bridge_events_to_raw_mml_events(&bridge_events, &options, ppq);
 
@@ -479,9 +481,9 @@ mod tests {
                         }
 
                         if let Some(b_note) = &before_note {
-                            println!("Asserting {i}:");
-                            println!("before note: {b_note:?}");
-                            println!("note: {note:?}");
+                            debug!("Asserting {i}:");
+                            debug!("before note: {b_note:?}");
+                            debug!("note: {note:?}");
                             assert!(
                                 b_note.position_in_smallest_unit + b_note.duration_in_smallest_unit
                                     <= note.position_in_smallest_unit

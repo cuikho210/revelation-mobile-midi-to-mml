@@ -6,6 +6,7 @@ use std::{
     thread::sleep,
     time::{Duration, Instant},
 };
+use tracing::debug;
 
 pub struct TrackPlayer {
     pub index: usize,
@@ -150,7 +151,7 @@ impl TrackPlayer {
                 let duration = chord_duration - duration_diff;
 
                 if duration <= 0 {
-                    println!(
+                    debug!(
                         "[track_player.play_notes_linear] skip by duration is {} ms",
                         duration
                     );
@@ -192,7 +193,7 @@ impl TrackPlayer {
                 let duration = note_duration - duration_diff;
 
                 if duration <= 0 {
-                    println!(
+                    debug!(
                         "[track_player.play_notes_linear] skip by duration is {} ms",
                         duration
                     );

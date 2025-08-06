@@ -1,5 +1,6 @@
 use midi_to_mml::{MmlEvent, MmlSong, MmlSongOptions, utils::compute_position_in_smallest_unit};
 use rayon::prelude::*;
+use tracing::debug;
 
 #[test]
 fn test_e2e() {
@@ -8,7 +9,7 @@ fn test_e2e() {
         let path = entry.path();
 
         if path.is_file() && path.extension().map_or(false, |ext| ext == "mid") {
-            println!("Testing MIDI file: {:?}", path);
+            debug!("Testing MIDI file: {:?}", path);
             let options = MmlSongOptions::default();
             let song = MmlSong::from_path(&path, options).unwrap();
             assert_tempo_position(&song);
@@ -39,7 +40,7 @@ fn assert_tempo_position(song: &MmlSong) {
 
     for track in track_tempos.iter() {
         for (i, (expect, actual)) in track.iter().enumerate() {
-            println!("Assert tempo at {i}");
+            debug!("Assert tempo at {i}");
             assert_eq!(expect, actual);
         }
     }

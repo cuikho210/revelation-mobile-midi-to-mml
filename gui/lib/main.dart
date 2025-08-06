@@ -1,3 +1,4 @@
+import 'package:midi_to_mml/toast_signals.dart';
 import 'package:rinf/rinf.dart';
 import 'src/bindings/bindings.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,8 @@ void main() async {
   await initializeRust(
     assignRustSignal,
   );
+
+  ToastSignal.listen();
 
   runApp(GetMaterialApp(
     home: HomePage(),
