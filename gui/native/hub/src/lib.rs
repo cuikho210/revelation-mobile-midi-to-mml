@@ -27,7 +27,8 @@ async fn main() {
         .with_line_number(true)
         .finish()
         .with(ReportToDartLayer)
-        .init();
+        .try_init()
+        .ok();
 
     // Spawn concurrent tasks.
     // Always use non-blocking async functions like `tokio::fs::File::open`.

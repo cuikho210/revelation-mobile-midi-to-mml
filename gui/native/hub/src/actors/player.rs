@@ -14,7 +14,7 @@ use tracing::info;
 
 use crate::{
     actors::common::{ActorName, ListenDartSignal},
-    signals::{
+    signals::player::{
         SignalLoadSoundfontRequest, SignalMmlNoteOn, SignalOnTrackEnd, SignalPlayStatus,
         SignalSetSongPlayStatusRequest,
     },
@@ -58,7 +58,6 @@ impl PlayerActor {
             _,
         >(addr.clone(), "Load Soundfont"));
 
-        info!("PlayerActor: All listeners spawned");
         spawn(context.run(actor));
         Ok(addr)
     }

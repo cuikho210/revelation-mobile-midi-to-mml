@@ -16,7 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 class HomePage extends StatelessWidget {
   HomePage({super.key});
 
-  final controller = Get.put(AppController());
+  final AppController controller = Get.find();
 
   toEditPage() async {
     await Get.to(

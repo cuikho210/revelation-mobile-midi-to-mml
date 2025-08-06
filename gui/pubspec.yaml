@@ -13,6 +13,8 @@ dependencies:
 
   cupertino_icons: ^1.0.6
   get: ^4.7.2
+  get_storage: ^2.1.1
+  uuid: ^4.4.0
   rinf: ^8.7.1
   protobuf: ^3.1.0
   gap: ^3.0.1
@@ -24,6 +26,7 @@ dependencies:
   url_launcher: ^6.2.5
   meta: ^1.16.0
   tuple: ^2.0.2
+  logger: ^2.6.1
 
 dev_dependencies:
   flutter_test:
@@ -37,6 +40,7 @@ flutter:
   assets:
     - assets/icon-instruments/
     - assets/soundfonts/
+    - assets/keymap/
 
 flutter_launcher_icons:
   android: "launcher_icon"

@@ -3,6 +3,7 @@
 ### Added
 
 - Allow scrolling while text highlighting is active
+- More detailed logging
 
 ### Changed
 
