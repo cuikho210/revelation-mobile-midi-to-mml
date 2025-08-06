@@ -7,6 +7,7 @@ import 'package:midi_to_mml/controller.dart';
 import 'package:midi_to_mml/extensions/track.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:flutter/services.dart';
+import 'package:midi_to_mml/components/apply_keymap_dialog.dart';
 
 class TrackContent extends GetView<AppController> {
   const TrackContent({super.key});
@@ -92,6 +93,13 @@ class _TrackControls extends GetView<AppController> {
     );
   }
 
+  void openApplyKeymapDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const ApplyKeymapDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
@@ -150,6 +158,11 @@ class _TrackControls extends GetView<AppController> {
                 }),
                 icon: const Icon(Remix.file_copy_line),
                 label: const Text("Copy"),
+              ),
+              TextButton.icon(
+                onPressed: () => openApplyKeymapDialog(context),
+                icon: const Icon(Remix.map_line),
+                label: const Text("Apply Keymap"),
               ),
             ],
           ),
