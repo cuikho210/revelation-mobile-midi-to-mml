@@ -33,6 +33,7 @@ pub trait ListenDartSignal {
                         res.send_signal_to_dart();
                     }
                     Err(err) => {
+                        error!("[{actor_name}] {err}");
                         send_error_signal(err, format!("{signal_name} Error"), error_from.clone());
                     }
                 },

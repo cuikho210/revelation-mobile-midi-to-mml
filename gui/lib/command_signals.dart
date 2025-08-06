@@ -59,11 +59,7 @@ class LoadSoundfont {
     const SignalLoadSoundfontRequest().sendSignalToRust(bytes);
   }
 
-  LoadSoundfont.fromPath(String path) {
-    loadSoundfontFromPath(path);
-  }
-
-  static loadSoundfontFromPath(String path) async {
+  static fromPath(String path) async {
     final bytes = await rootBundle.load(path);
     LoadSoundfont(bytes.buffer.asUint8List());
   }
