@@ -7,10 +7,10 @@
   </p>
 
   <a href="https://play.google.com/store/apps/details?id=com.mtlkms.revelation_mobile_midi_to_mml">
-    <img src="./assets/google-play-badge.png" height="64" />
+    <img src="./assets/google-play-badge.png" height="44" />
   </a>
   <a href="https://apps.microsoft.com/detail/9nwbrmhf4tlh">
-    <img src="https://get.microsoft.com/images/en-us%20dark.svg" height="64"/>
+    <img src="https://get.microsoft.com/images/en-us%20dark.svg" height="44"/>
   </a>
   <br /> <br />
 
