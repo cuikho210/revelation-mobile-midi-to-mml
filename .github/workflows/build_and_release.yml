@@ -190,6 +190,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: gui/dist/*/*
-          generateReleaseNotes: true
+          generateReleaseNotes: false
           artifactErrorsFailBuild: true
           draft: true
