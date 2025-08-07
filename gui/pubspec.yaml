@@ -68,3 +68,4 @@ msix_config:
   msix_version: 1.2.0.0
   logo_path: ./icon.png
   msstore_appId: 9NWBRMHF4TLH
+  store: true

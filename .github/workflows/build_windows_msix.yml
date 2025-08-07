@@ -30,8 +30,8 @@ jobs:
       # Build windows
       # -------------------------
 
-      - name: Build Windows release
-        run: flutter build windows --release
+      - name: Build MSIX package
+        run: dart run msix:create --output-path build/msix
 
       # -------------------------
       # Store artifact
@@ -40,4 +40,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: msix-package
-          path: gui/build/windows/runner/Release/*.msix
+          path: gui/build/msix/*.msix
