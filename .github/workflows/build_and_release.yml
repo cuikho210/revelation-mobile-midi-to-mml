@@ -6,70 +6,70 @@ on:
       - "v*"
 
 jobs:
-  # publish-android:
-  #   runs-on: windows-latest
-  #   defaults:
-  #     run:
-  #       working-directory: ./gui
-  #   steps:
-  #     # -------------------------
-  #     # Setup
-  #     # -------------------------
+  publish-android:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./gui
+    steps:
+      # -------------------------
+      # Setup
+      # -------------------------
 
-  #     - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-  #     - uses: actions/setup-java@v4
-  #       with:
-  #         distribution: "zulu"
-  #         java-version: "17"
-  #         cache: "gradle"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+          cache: "gradle"
 
-  #     - uses: subosito/flutter-action@v2
-  #       with:
-  #         channel: "stable"
-  #         cache: true
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
 
-  #     - name: Install rinf
-  #       run: cargo install rinf_cli
+      - name: Install rinf
+        run: cargo install rinf_cli
 
-  #     - name: Generate message code
-  #       run: rinf gen
+      - name: Generate message code
+        run: rinf gen
 
-  #     # -------------------------
-  #     # Setup android
-  #     # -------------------------
+      # -------------------------
+      # Setup android
+      # -------------------------
 
-  #     - name: Create upload keystore file
-  #       run: |
-  #         $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
-  #         [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
+      - name: Create upload keystore file
+        run: |
+          $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
+          [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
 
-  #     - name: Create key.properties file
-  #       run: |
-  #         echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
-  #         echo "keyPassword=${{ secrets.KEYSTORE_PASSWORD }}" >> ./android/key.properties
-  #         echo "keyAlias=upload" >> ./android/key.properties
-  #         echo "storeFile=D:/keystore.jks" >> ./android/key.properties
+      - name: Create key.properties file
+        run: |
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
+          echo "keyPassword=${{ secrets.KEYSTORE_PASSWORD }}" >> ./android/key.properties
+          echo "keyAlias=upload" >> ./android/key.properties
+          echo "storeFile=D:/keystore.jks" >> ./android/key.properties
 
-  #     # -------------------------
-  #     # Build android
-  #     # -------------------------
+      # -------------------------
+      # Build android
+      # -------------------------
 
-  #     - name: Build release for android
-  #       run: flutter build appbundle --release
+      - name: Build release for android
+        run: flutter build appbundle --release
 
-  #     # -------------------------
-  #     # Publish android
-  #     # -------------------------
+      # -------------------------
+      # Publish android
+      # -------------------------
 
-  #     - name: Publish to play store
-  #       uses: r0adkll/upload-google-play@v1
-  #       with:
-  #         serviceAccountJsonPlainText: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-  #         packageName: com.mtlkms.revelation_mobile_midi_to_mml
-  #         releaseFiles: gui/build/app/outputs/bundle/release/app-release.aab
-  #         track: alpha
-  #         status: completed
+      - name: Publish to play store
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          packageName: com.mtlkms.revelation_mobile_midi_to_mml
+          releaseFiles: gui/build/app/outputs/bundle/release/app-release.aab
+          track: alpha
+          status: completed
 
   # My Microsoft tenant has been locked due to inactivity,
   # and I haven't found a way to reactivate it.
@@ -138,11 +138,11 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      # - uses: actions/setup-java@v4
-      #   with:
-      #     distribution: "zulu"
-      #     java-version: "17"
-      #     cache: "gradle"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+          cache: "gradle"
 
       - uses: subosito/flutter-action@v2
         with:
@@ -162,17 +162,17 @@ jobs:
       # Setup android
       # -------------------------
 
-      # - name: Create upload keystore file
-      #   run: |
-      #     $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
-      #     [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
+      - name: Create upload keystore file
+        run: |
+          $bytes = [Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
+          [IO.File]::WriteAllBytes("D:/keystore.jks", $bytes)
 
-      # - name: Create key.properties file
-      #   run: |
-      #     echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
-      #     echo "keyPassword=${{ secrets.KEYSTORE_PASSWORD }}" >> ./android/key.properties
-      #     echo "keyAlias=upload" >> ./android/key.properties
-      #     echo "storeFile=D:/keystore.jks" >> ./android/key.properties
+      - name: Create key.properties file
+        run: |
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > ./android/key.properties
+          echo "keyPassword=${{ secrets.KEYSTORE_PASSWORD }}" >> ./android/key.properties
+          echo "keyAlias=upload" >> ./android/key.properties
+          echo "storeFile=D:/keystore.jks" >> ./android/key.properties
 
       # -------------------------
       # Build
@@ -190,6 +190,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: gui/dist/*/*
-          generateReleaseNotes: false
+          generateReleaseNotes: true
           artifactErrorsFailBuild: true
           draft: true

@@ -1,0 +1,43 @@
+name: Build Windows MSIX
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows-msix:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./gui
+    steps:
+      # -------------------------
+      # Setup
+      # -------------------------
+
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Install rinf
+        run: cargo install rinf_cli
+
+      - name: Generate message code
+        run: rinf gen
+
+      # -------------------------
+      # Build windows
+      # -------------------------
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      # -------------------------
+      # Store artifact
+      # -------------------------
+      - name: Upload MSIX package
+        uses: actions/upload-artifact@v4
+        with:
+          name: msix-package
+          path: gui/build/windows/runner/Release/*.msix
