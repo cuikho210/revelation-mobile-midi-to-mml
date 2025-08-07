@@ -71,51 +71,59 @@ jobs:
           track: alpha
           status: completed
 
-  publish-windows:
-    runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: ./gui
-    steps:
-      # -------------------------
-      # Setup
-      # -------------------------
+  # My Microsoft tenant has been locked due to inactivity,
+  # and I haven't found a way to reactivate it.
+  # I'll try to build the msix file via GitHub Actions and then publish it manually.
+  # If that doesn't work, I'll abandon the Microsoft Store.
+  # I also don't have any Windows devices left to test,
+  # so it's a hit or miss.
+  # It might not run ^^
+  #
+  # publish-windows:
+  #   runs-on: windows-latest
+  #   defaults:
+  #     run:
+  #       working-directory: ./gui
+  #   steps:
+  #     # -------------------------
+  #     # Setup
+  #     # -------------------------
 
-      - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
-          cache: true
+  #     - uses: subosito/flutter-action@v2
+  #       with:
+  #         channel: "stable"
+  #         cache: true
 
-      - name: Install rinf
-        run: cargo install rinf_cli
+  #     - name: Install rinf
+  #       run: cargo install rinf_cli
 
-      - name: Generate message code
-        run: rinf gen
+  #     - name: Generate message code
+  #       run: rinf gen
 
-      # -------------------------
-      # Setup windows
-      # -------------------------
+  #     # -------------------------
+  #     # Setup windows
+  #     # -------------------------
 
-      - name: Setup Microsoft Store Developer CLI
-        uses: microsoft/setup-msstore-cli@v1
-      - name: Configure Microsoft Store Developer CLI
-        run: msstore reconfigure --tenantId ${{ secrets.PARTNER_CENTER_TENANT_ID }} --sellerId ${{ secrets.PARTNER_CENTER_SELLER_ID }} --clientId ${{ secrets.PARTNER_CENTER_CLIENT_ID }} --clientSecret ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
+  #     - name: Setup Microsoft Store Developer CLI
+  #       uses: microsoft/setup-msstore-cli@v1
+  #     - name: Configure Microsoft Store Developer CLI
+  #       run: msstore reconfigure --tenantId ${{ secrets.PARTNER_CENTER_TENANT_ID }} --sellerId ${{ secrets.PARTNER_CENTER_SELLER_ID }} --clientId ${{ secrets.PARTNER_CENTER_CLIENT_ID }} --clientSecret ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
 
-      # -------------------------
-      # Build windows
-      # -------------------------
+  #     # -------------------------
+  #     # Build windows
+  #     # -------------------------
 
-      - name: Package windows
-        run: msstore package
+  #     - name: Package windows
+  #       run: msstore package
 
-      # -------------------------
-      # Publish windows
-      # -------------------------
+  #     # -------------------------
+  #     # Publish windows
+  #     # -------------------------
 
-      - name: Create microsoft store submission
-        run: msstore publish
+  #     - name: Create microsoft store submission
+  #       run: msstore publish
 
   github-release:
     runs-on: windows-latest
@@ -147,8 +155,8 @@ jobs:
       - name: Generate message code
         run: rinf gen
 
-      - name: Install flutter_distributor
-        run: dart pub global activate flutter_distributor
+      - name: Install fastforge
+        run: dart pub global activate fastforge
 
       # -------------------------
       # Setup android
@@ -171,7 +179,7 @@ jobs:
       # -------------------------
 
       - name: Build releases
-        run: flutter_distributor release --name default
+        run: fastforge release --name default
 
       # -------------------------
       # Release on github
@@ -184,3 +192,4 @@ jobs:
           artifacts: gui/dist/*/*
           generateReleaseNotes: true
           artifactErrorsFailBuild: true
+          draft: true
